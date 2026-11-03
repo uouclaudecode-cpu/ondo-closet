@@ -386,7 +386,10 @@ function onSession(session) {
   const was = me?.id;
   me = session?.user || null;
   sample = me ? true : null; caps = me ? { images: true } : null;
-  if (me) { S.mode = "db"; S.guest = false; if (was !== me.id) loadAll(); }
+  if (me) {
+    S.mode = "db"; S.guest = false;
+    if (was !== me.id) { loadAll(); ai("status").then(r => { S.aiOn = !!r?.ai; render(); }).catch(() => {}); }
+  }
   else { S.mode = "memory"; S.items.clear(); S.logs.clear(); S.trips.clear(); S.loading = false; render(); }
 }
 async function boot() {
@@ -572,6 +575,74 @@ function cleanItem(x) {
     material: MATERIALS[x?.material] ? x.material : "cotton", thickness: THICK[x?.thickness] ? x.thickness : "normal" };
 }
 const fullName = it => (it.brand ? it.brand + " " : "") + it.name;
+
+/* ---------- guess from a product name (no AI) ---------- */
+// Checked in order: more specific words first ("롱패딩" before "패딩", "니트 가디건" before "니트").
+const GUESS_TYPE = [
+  [/롱\s?패딩|롱\s?다운|벤치\s?파카/, "long_down"], [/패딩\s?(조끼|베스트)|다운\s?베스트|조끼|베스트|vest/i, "vest"],
+  [/경량|라이트\s?(패딩|다운)|초경량/, "light_down"],
+  [/숏\s?패딩|푸퍼|패딩|다운\s?(자켓|재킷|점퍼)|파카|puffer|down/i, "short_down"],
+  [/트렌치/, "trench"], [/코트|coat/i, "coat"], [/가죽|레더|라이더|무스탕|leather/i, "leather"],
+  [/블레이저|블레이져|수트\s?자켓|테일러드|blazer/i, "blazer"], [/데님\s?(자켓|재킷)|청\s?자켓|트러커/, "denim_jk"],
+  [/바람막이|윈드\s?브레이커|아노락|윈드\s?(자켓|재킷)|windbreaker/i, "windbreaker"],
+  [/플리스|후리스|뽀글이|보아|fleece/i, "fleece"], [/가디건|cardigan/i, "cardigan"],
+  [/후드|hood/i, "hood"], [/맨투맨|스웨트\s?셔츠|sweat/i, "sweat"], [/니트|스웨터|풀오버|터틀넥|knit|sweater/i, "knit"],
+  [/히트텍|발열|내의|이너웨어|thermal/i, "thermal"], [/(?<!티)셔츠|블라우스|(?<![-t])shirt|blouse/i, "shirt"],
+  [/반팔|반소매|숏\s?슬리브|민소매|나시|탱크/, "tee_s"], [/긴팔|롱\s?슬리브|티셔츠|(^|\s)티(\s|$)|t-?shirt|\btee\b/i, "tee_l"],
+  [/롱\s?부츠|니하이/, "long_boots"], [/부츠|첼시|워커|boots?/i, "boots"], [/샌들|슬리퍼|쪼리|sandal/i, "sandals"],
+  [/로퍼|구두|더비|옥스퍼드\s?슈즈|메리제인|loafer/i, "loafers"], [/운동화|스니커|런닝화|sneaker/i, "sneakers"],
+  [/비니|beanie/i, "beanie"], [/베레/, "beret"], [/볼캡|캡|모자|cap\b/i, "cap"],
+  [/목도리|머플러|스카프|scarf|muffler/i, "scarf"], [/장갑|gloves?/i, "gloves"], [/가방|백팩|토트|숄더백|크로스백|에코백|미니백|bag\b/i, "bag"],
+  [/기모\s?(바지|팬츠|조거)|융털/, "lined_pants"], [/반바지|숏\s?팬츠|쇼츠|shorts/i, "shorts"],
+  [/스커트|치마|skirt/i, "skirt"], [/청바지|데님\s?팬츠|진(\s|$)|jeans/i, "jeans"],
+  [/슬랙스|slacks/i, "slacks"], [/치노|면바지|카고|조거|팬츠|바지|pants/i, "chino"],
+];
+const GUESS_COLOR = [
+  [/차콜|charcoal/i, "charcoal"], [/네이비|navy|곤색/i, "navy"], [/블랙|검정|black/i, "black"],
+  [/아이보리|크림|에크루|ivory|cream/i, "ivory"], [/화이트|흰|white/i, "white"], [/그레이|회색|멜란지|gray|grey/i, "gray"],
+  [/베이지|오트밀|샌드|beige|oatmeal/i, "beige"], [/연청|중청|진청|인디고|워싱|청\s/, "denim"],
+  [/브라운|카멜|모카|초코|갈색|brown|camel/i, "brown"], [/카키|올리브|khaki|olive/i, "khaki"],
+  [/버건디|와인|burgundy|wine/i, "burgundy"], [/스카이|하늘|소라|sky/i, "skyblue"], [/블루|파랑|blue/i, "blue"],
+  [/그린|초록|green/i, "green"], [/레드|빨강|red/i, "red"], [/핑크|분홍|pink/i, "pink"],
+  [/옐로|노랑|머스타드|yellow/i, "yellow"], [/퍼플|보라|라벤더|purple/i, "purple"],
+];
+const GUESS_MAT = [
+  [/캐시미어|cashmere/i, "cashmere"], [/울|wool|메리노|알파카|모헤어|램스|양모/i, "wool"],
+  [/구스|덕\s?다운|다운|오리털|거위털|down/i, "down"], [/플리스|후리스|기모|보아|fleece/i, "fleece"],
+  [/가죽|레더|leather/i, "leather"], [/데님|denim/i, "denim"], [/린넨|리넨|linen|마\s?\d/i, "linen"],
+  [/나일론|nylon/i, "nylon"], [/레이온|비스코스|모달|텐셀|rayon|viscose/i, "rayon"],
+  [/아크릴|acrylic/i, "acrylic"], [/폴리|polyester/i, "poly"], [/코튼|면(\s|$|\d)|^면|cotton/i, "cotton"],
+];
+const TYPE_MAT = { light_down: "down", short_down: "down", long_down: "down", jeans: "denim", denim_jk: "denim", leather: "leather", fleece: "fleece", lined_pants: "fleece", windbreaker: "nylon", knit: "acrylic", coat: "wool" };
+const firstHit = (list, s) => list.find(([re]) => re.test(s))?.[1];
+// name decides type/color; hints (page material lines) only help with material and thickness.
+function guessItem(name, hints = "") {
+  const g = {}, n = String(name || ""), h = String(hints || "");
+  const type = firstHit(GUESS_TYPE, n); if (type) g.type = type;
+  const color = firstHit(GUESS_COLOR, n); if (color) g.color = color;
+  // "울 80% 나일론 20%" → the biggest share wins.
+  let best = 0;
+  for (const m of h.matchAll(/([가-힣A-Za-z]+)\s*(\d{1,3})\s?%/g)) {
+    const k = firstHit(GUESS_MAT, m[1]); if (k && +m[2] > best) { best = +m[2]; g.material = k; }
+  }
+  // Padding: the shell is usually nylon, but the filling is what keeps you warm.
+  if (/down|vest/.test(type || "") && /다운|구스|덕|오리털|거위털|패딩|푸퍼|down|puffer/i.test(n + " " + h)) g.material = "down";
+  if (!g.material) g.material = firstHit(GUESS_MAT, n) || (type && TYPE_MAT[type]) || firstHit(GUESS_MAT, h);
+  if (!g.material) delete g.material;
+  const all = n + " " + h;
+  if (/경량|라이트|얇은|썸머|시어|시스루|초경량|summer/i.test(n) || g.type === "light_down") g.thickness = "thin";
+  else if (/헤비|두꺼운|두툼|기모|누빔|퀼팅|보아|양털|헤비웨이트|heavy|chunky|청키/i.test(all) && !/얇/.test(n)) g.thickness = "thick";
+  return g;
+}
+const GUESS_KEYS = ["type", "color", "material", "thickness"];
+// Fill only the fields the user has not picked themselves. Returns true when something changed.
+function autoFill(x) {
+  if (!x || S.add.editing) return false;
+  const g = guessItem(x.name, x.hints), t = x._t || {};
+  let changed = false;
+  for (const k of GUESS_KEYS) if (g[k] && !t[k] && x[k] !== g[k]) { x[k] = g[k]; changed = true; }
+  return changed;
+}
 function aiErr(e) {
   switch (e?.code) {
     case "not_granted": return "로그인하면 자동 분석을 쓸 수 있어요. 지금은 직접 입력해 주세요.";
@@ -614,9 +685,9 @@ async function analyzePhoto(file) {
   let up;
   try { up = await toUpload(file); A.photo = cropTo(up.img); } catch { A.busy = false; A.msg = "사진을 열 수 없어요. JPG나 PNG 사진으로 다시 올려 주세요."; render(); return; }
   render();
-  if (!sample) {
-    A.busy = false; A.msg = "로그인하면 사진 자동 분석을 쓸 수 있어요. 지금은 정보를 직접 골라 주세요.";
-    A.draft = { ...cleanItem({}), photo: A.photo }; A.method = "manual"; render(); return;
+  if (!sample || !S.aiOn) {
+    A.busy = false; A.msg = "사진을 넣었어요. 옷 이름을 적으면 종류·색·소재를 추측해서 채워 줘요.";
+    A.draft = { ...cleanItem({}), name: "", photo: A.photo }; A.method = "manual"; render(); return;
   }
   try {
     const out = await ai("analyze_photo", { image: up.data, media_type: up.media_type });
@@ -630,14 +701,20 @@ async function readLink(url) {
   const A = S.add;
   if (!/^https?:\/\//i.test(url.trim())) { A.msg = "https:// 로 시작하는 상품 링크를 붙여넣어 주세요."; render(); return; }
   if (!sample) { A.msg = "상품 링크 읽기는 로그인한 뒤에 쓸 수 있어요."; render(); return; }
-  A.busy = true; A.msg = "상품 페이지를 읽는 중이에요… (10~30초)"; A.found = []; render();
+  A.busy = true; A.msg = S.aiOn ? "상품 페이지를 읽는 중이에요… (10~30초)" : "상품 페이지를 읽는 중이에요…"; A.found = []; render();
   try {
     const out = await ai("read_link", { url: url.trim() });
     let photo = null;
     if (out?.image) { try { const b = await (await fetch(out.image)).blob(); photo = cropTo(await loadImg(b)); } catch {} }
-    A.draft = { ...cleanItem(out?.item), photo, source: "link" }; A.method = "manual";
-    A.msg = (photo ? "상품 정보와 사진을 가져왔어요. 맞는지 확인하고 저장해 주세요." : "상품 정보를 채웠어요. 사진은 '사진 넣기'로 캡처를 넣을 수 있어요.") + (out?.note ? " (" + out.note + ")" : "");
-  } catch (e) { A.msg = e?.code === "fetch_blocked" ? "이 쇼핑몰이 자동 접근을 막아서 페이지를 읽지 못했어요. 상품 화면을 캡처해서 '사진으로' 올려 주세요." : aiErr(e); }
+    // Free mode returns only brand + name; the rest is guessed from the name and the page's material lines.
+    const it = out?.item || {};
+    A.draft = { ...cleanItem({ ...guessItem(it.name, out?.hints), ...it }), photo, source: "link", hints: out?.hints || "" }; A.method = "manual";
+    const head = photo ? "상품 사진과 이름을 가져왔어요." : "상품 이름을 가져왔어요. 사진은 '사진 넣기'로 캡처를 넣을 수 있어요.";
+    A.msg = (out?.free ? head + " 종류·색·소재·두께는 상품명으로 추측한 거라 맞는지 확인하고 저장해 주세요." : photo ? "상품 정보와 사진을 가져왔어요. 맞는지 확인하고 저장해 주세요." : "상품 정보를 채웠어요. 사진은 '사진 넣기'로 캡처를 넣을 수 있어요.") + (out?.note ? " (" + out.note + ")" : "");
+  } catch (e) {
+    if (e?.code === "fetch_blocked") { A.draft = { ...cleanItem({}), name: "", source: "link" }; A.method = "manual"; }
+    A.msg = e?.code === "fetch_blocked" ? "이 쇼핑몰이 자동 접근을 막아서 페이지를 읽지 못했어요. 상품 화면을 캡처해서 Ctrl+V로 붙여넣거나 '사진 넣기'로 올리고, 이름을 적어 주세요." : aiErr(e);
+  }
   A.busy = false; render();
 }
 async function styleNote(c) {
@@ -970,7 +1047,7 @@ function renderToday() {
           <button class="btn primary" data-wear="${i}" ${log && !log.rating ? "" : ""}>${log ? "이 코디로 바꿔 기록" : "이 코디 입을게요"}</button>
           <button class="btn" data-boardbtn="${i}">${S.boardOpen === c.key ? "착장 보드 닫기" : "착장 보드 보기"}</button>
           ${S.boardOpen === c.key && downloads ? `<button class="btn" data-saveboard="${i}">이미지로 저장</button>` : ""}
-          ${sample ? `<button class="btn" data-note="${i}">스타일 한마디</button>` : ""}
+          ${sample && S.aiOn ? `<button class="btn" data-note="${i}">스타일 한마디</button>` : ""}
         </div>
       </article>`;
     }).join("");
@@ -1040,7 +1117,7 @@ function renderCloset() {
       <div class="meta">보온 <b class="num">${fmt(warmth(it))}</b>점 · ${st ? `${st.n}번 입음${daysAgo(st.last) === 0 ? " · 오늘" : ` · ${daysAgo(st.last)}일 전`}` : "아직 안 입음"}</div>
       <div class="acts">${S.confirmDel === it.id
         ? `<button class="btn danger" data-del="${it.id}">삭제</button><button class="btn" data-cancel="1">취소</button>`
-        : `<button class="btn" data-anchor="${it.id}">이 옷 입고 싶어</button><button class="btn ghost" data-edit="${it.id}">수정</button><button class="btn ghost" data-ask="${it.id}" aria-label="${esc(fullName(it))} 삭제">삭제</button>`}</div>
+        : `<button class="btn" data-anchor="${it.id}">이 옷 입고 싶어</button><button class="btn ghost" data-edit="${it.id}">수정</button><button class="btn ghost" data-dup="${it.id}" aria-label="${esc(fullName(it))} 복제">복제</button><button class="btn ghost" data-ask="${it.id}" aria-label="${esc(fullName(it))} 삭제">삭제</button>`}</div>
     </div></div>`; }).join("")}</div>`;
   $("#view-closet").innerHTML = h;
 }
@@ -1067,9 +1144,9 @@ function renderAdd() {
   const A = S.add;
   const M = [
     ["template", "템플릿", "자주 입는 기본템을 탭 한 번에"],
-    ["photo", "사진으로", "여러 벌을 한 장에 찍어도 돼요"],
+    ["photo", "사진으로", S.aiOn ? "여러 벌을 한 장에 찍어도 돼요" : "내가 찍은 사진이나 캡처로"],
     ["link", "상품 링크", "주문내역의 링크를 붙여넣기"],
-    ["manual", "직접 입력", "종류·소재·두께를 골라서"],
+    ["manual", "직접 입력", "이름을 적으면 나머지를 추측해요"],
   ];
   let h = `<h2>옷 추가</h2><div class="methods">${M.map(([k, b, s]) => `<button class="method" data-method="${k}" aria-pressed="${A.method === k}"><b>${b}</b><span>${s}</span></button>`).join("")}</div>`;
   if (A.msg) h += `<p class="banner">${esc(A.msg)}</p>`;
@@ -1078,7 +1155,7 @@ function renderAdd() {
       <p class="small muted">넣은 뒤 옷장에서 지우거나 같은 옷을 직접 입력으로 다시 등록할 수 있어요.</p></div>`;
   } else if (A.method === "photo") {
     h += `<div class="card"><h3>옷 사진 올리기</h3>
-      <p class="small muted">옷 사진이나 쇼핑몰 캡처를 올리면 Claude가 옷마다 잘라서 종류·색·소재를 채워요. 한 장에 여러 벌이 있어도 돼요. 캡처는 Ctrl+V로 붙여넣어도 돼요.</p>
+      <p class="small muted">${S.aiOn ? "옷 사진이나 쇼핑몰 캡처를 올리면 Claude가 옷마다 잘라서 종류·색·소재를 채워요. 한 장에 여러 벌이 있어도 돼요." : "옷 한 벌이 나온 사진이나 쇼핑몰 캡처를 올리면 옷장 사진으로 넣어요. 이름을 적으면 종류·색·소재를 추측해서 채워 줘요."} 캡처는 Ctrl+V로 붙여넣어도 돼요.</p>
       <label class="btn primary" style="align-self:flex-start" for="photoIn">사진 선택</label><input type="file" id="photoIn" accept="image/jpeg,image/png,image/webp" hidden>
       ${A.photo && !A.found.length ? `<img class="photo-prev" src="${esc(A.photo)}" alt="">` : ""}</div>`;
     if (A.found.length) h += `<div class="found">${A.found.map((x, i) => `<div class="card"><div class="row between"><label class="row small" style="font-weight:600"><input type="checkbox" data-keep="${i}" ${x.keep ? "checked" : ""}> 옷장에 넣기</label><span class="tag">${i + 1}/${A.found.length}</span></div>${formHTML(x, "f" + i)}</div>`).join("")}
@@ -1086,7 +1163,7 @@ function renderAdd() {
   } else if (A.method === "link") {
     h += `<div class="card"><h3>상품 링크 붙여넣기</h3>
       <form class="search" id="linkForm"><input type="url" id="linkIn" placeholder="https://www.musinsa.com/products/..." aria-label="상품 링크"><button class="btn primary" ${A.busy ? "disabled" : ""}>읽기</button></form>
-      <p class="small muted">무신사, 29CM, 유니클로 같은 쇼핑몰 상품 페이지에서 브랜드, 상품명, 소재, 상품 사진을 가져와요. 쇼핑몰이 자동 접근을 막으면 실패할 수 있어요.</p></div>`;
+      <p class="small muted">무신사, 29CM, W컨셉 같은 쇼핑몰 상품 페이지에서 ${S.aiOn ? "브랜드, 상품명, 소재, 상품 사진을" : "대표 사진, 브랜드, 상품명을 가져오고, 종류·색·소재·두께는 상품명으로 추측해서"} 채워요. 쇼핑몰이 자동 접근을 막으면 실패할 수 있어요.</p></div>`;
   } else {
     A.draft = A.draft || cleanItem({});
     h += `<div class="card"><h3>${A.editing ? "옷 정보 수정" : A.draft.source === "link" ? "상품 정보 확인" : "직접 입력"}</h3>${formHTML(A.draft, "d")}
@@ -1164,8 +1241,8 @@ document.addEventListener("click", e => {
   if (ds.rate) { rate(ds.rate); return; }
   if (ds.method) { S.add.method = ds.method; S.add.msg = ""; if (S.add.editing) { S.add.editing = null; S.add.draft = null; } if (ds.method === "manual" && S.add.draft?.source === "link") {} render(); return; }
   if (ds.tpl) { const t = TEMPLATES[+ds.tpl]; addItem(t, "template").then(() => { S.add.msg = `'${t.name}'을(를) 옷장에 넣었어요.`; render(); }); return; }
-  if (ds.color) { const x = formTarget(b); if (x) { x.color = ds.color; render(); } return; }
-  if (ds.thick) { const x = formTarget(b); if (x) { x.thickness = ds.thick; render(); } return; }
+  if (ds.color) { const x = formTarget(b); if (x) { x.color = ds.color; touch(x, "color"); render(); } return; }
+  if (ds.thick) { const x = formTarget(b); if (x) { x.thickness = ds.thick; touch(x, "thickness"); render(); } return; }
   if (b.id === "saveDraft") {
     const x = S.add.draft, ed = S.add.editing; if (!x.name.trim()) { S.add.msg = "옷 이름을 적어 주세요."; render(); return; }
     addItem(x, x.source || (x.photo ? "photo" : "manual"), ed).then(() => {
@@ -1185,11 +1262,27 @@ document.addEventListener("change", e => {
   if (el.id === "photoIn" && el.files?.[0]) { analyzePhoto(el.files[0]); return; }
   if (el.id === "replaceIn" && el.files?.[0] && photoFor) { replacePhoto(photoFor, el.files[0]); photoFor = null; return; }
   if (el.dataset.keep !== undefined) { S.add.found[+el.dataset.keep].keep = el.checked; render(); return; }
-  if (el.dataset.k) { const x = formTarget(el); if (x) { x[el.dataset.k] = el.value; if (el.tagName === "SELECT") render(); } }
+  if (el.dataset.k) { const x = formTarget(el); if (x) { x[el.dataset.k] = el.value; if (el.tagName === "SELECT") { touch(x, el.dataset.k); render(); } } }
 });
+// Remember fields the user picked so name-based guessing never overwrites them.
+function touch(x, k) { x._t = { ...(x._t || {}), [k]: true }; }
+let composing = false;
+document.addEventListener("compositionstart", () => { composing = true; });
+document.addEventListener("compositionend", e => { composing = false; if (e.target.dataset?.k === "name") e.target.dispatchEvent(new Event("input", { bubbles: true })); });
+// While typing a name, guess type/color/material/thickness and redraw the form (keeping the cursor).
+function guessSoon(el) {
+  clearTimeout(window._gT);
+  window._gT = setTimeout(() => {
+    if (composing || document.activeElement !== el) return;
+    const x = formTarget(el); if (!autoFill(x)) return;
+    const id = el.id, pos = el.selectionStart;
+    renderAdd();
+    const n = document.getElementById(id); if (n) { n.focus(); n.setSelectionRange(pos, pos); }
+  }, 500);
+}
 document.addEventListener("input", e => {
   const el = e.target;
-  if (el.dataset.k === "name" || el.dataset.k === "brand") { const x = formTarget(el); if (x) x[el.dataset.k] = el.value; }
+  if (el.dataset.k === "name" || el.dataset.k === "brand") { const x = formTarget(el); if (x) x[el.dataset.k] = el.value; if (el.dataset.k === "name") guessSoon(el); }
   if (el.id === "cq") { S.cf.q = el.value; clearTimeout(window._cqT); window._cqT = setTimeout(() => { renderCloset(); const q = $("#cq"); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }, 250); }
 });
 document.addEventListener("submit", e => {
@@ -1212,6 +1305,12 @@ document.addEventListener("click", e => {
   else if (ds.cft) { F.thickness = F.thickness === ds.cft ? "" : ds.cft; render(); }
   else if (ds.cfc) { F.color = F.color === ds.cfc ? "" : ds.cfc; render(); }
   else if (b.id === "cfReset") { Object.assign(F, { brand: "", color: "", material: "", thickness: "", q: "" }); render(); }
+  else if (ds.dup) {
+    const it = S.items.get(ds.dup); if (!it) return;
+    const { id, createdAt, source, ...rest } = it;
+    S.add.editing = null; S.add.draft = { ...rest, _t: { type: true, material: true, thickness: true } }; S.add.method = "manual"; S.tab = "add";
+    S.add.msg = `'${fullName(it)}'을(를) 복사했어요. 색이나 이름만 바꿔서 저장하세요.`; render(); window.scrollTo({ top: 0 });
+  }
   else if (ds.edit) { const it = S.items.get(ds.edit); if (!it) return; S.add.editing = it.id; S.add.draft = { ...it }; S.add.method = "manual"; S.add.msg = ""; S.tab = "add"; render(); window.scrollTo({ top: 0 }); }
 });
 document.addEventListener("change", e => { const el = e.target; if (el.dataset.cf) { S.cf[el.dataset.cf] = el.value; render(); } });

@@ -1,6 +1,6 @@
-// 온도 옷장 AI 기능: 사진 분석, 상품 링크 읽기, 코디 한마디.
+// 온도 옷장 서버 기능: 상품 링크 읽기, (API 키가 있으면) 사진 분석과 코디 한마디.
 // Supabase Edge Function "closet-ai" 로 배포돼요 (로그인한 사용자만 호출 가능).
-// 비밀값: ANTHROPIC_API_KEY (대시보드 Edge Functions → Secrets 에 직접 넣기)
+// 비밀값(선택): ANTHROPIC_API_KEY. 없으면 링크 읽기는 쇼핑몰의 공유 정보만으로 무료로 작동해요.
 import Anthropic from "npm:@anthropic-ai/sdk";
 
 const MODEL = "claude-opus-5-5";
@@ -122,16 +122,21 @@ async function readLink(url: string) {
 
   const title = decode(meta(html, "og:title") || html.match(/<title>([^<]*)/i)?.[1] || "");
   const desc = decode(meta(html, "og:description") || meta(html, "description"));
-  const ld = [...html.matchAll(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1]).join("\n").slice(0, 4000);
+  const ldRaw = [...html.matchAll(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1]);
+  const ld = ldRaw.join("\n").slice(0, 4000);
   const text = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 8000);
+  const product = findProduct(ldRaw);
 
-  // Candidate product photos: og:image first, then gallery-looking images on the same page.
+  // Candidate product photos: structured-data image and og:image first, then gallery-looking images on the same page.
   const og = decode(meta(html, "og:image"));
   const found = [...html.matchAll(/(?:https?:)?\/\/[^"'\s()<>]+?\.(?:jpe?g|png|webp)(?:\?[^"'\s()<>]*)?/gi)].map((m) => decode(m[0]));
   const ogDir = og ? og.replace(/[^/]+$/, "") : "";
-  const pick = [og, ...found.filter((u) => ogDir && u.includes(ogDir.replace(/^https?:/, ""))), ...found.filter((u) => /goods|product|prd|item|detail/i.test(u))]
+  const pick = [...product.images, og, ...found.filter((u) => ogDir && u.includes(ogDir.replace(/^https?:/, ""))), ...found.filter((u) => /goods|product|prd|item|detail/i.test(u))]
     .filter(Boolean).map((u) => (u.startsWith("//") ? "https:" + u : u))
     .filter((u, i, a) => a.indexOf(u) === i && !/logo|icon|banner|sprite|badge/i.test(u)).slice(0, 6);
+
+  if (!Deno.env.get("ANTHROPIC_API_KEY")) return readLinkFree(page, html, title, desc, text, product, pick);
+
   const imgs = (await Promise.all(pick.map((u) => fetchImage(u, page.href)))).filter((x): x is { type: string; data: string } => !!x);
 
   const content: Anthropic.Beta.BetaContentBlockParam[] = [];
@@ -164,6 +169,59 @@ ${ITEM_RULES}
   };
 }
 
+type Product = { name: string; brand: string; images: string[]; material: string; color: string; description: string };
+
+// schema.org Product from ld+json blocks (may be an array or nested in @graph).
+function findProduct(blocks: string[]): Product {
+  const out: Product = { name: "", brand: "", images: [], material: "", color: "", description: "" };
+  const visit = (o: unknown): boolean => {
+    if (!o || typeof o !== "object") return false;
+    if (Array.isArray(o)) return o.some(visit);
+    const r = o as Record<string, unknown>;
+    const t = r["@type"];
+    if (t === "Product" || (Array.isArray(t) && t.includes("Product"))) {
+      const str = (v: unknown): string => typeof v === "string" ? v : v && typeof v === "object" && "name" in v ? String((v as { name: unknown }).name || "") : "";
+      out.name = decode(str(r.name));
+      out.brand = decode(str(r.brand) || str(r.manufacturer));
+      const im = r.image;
+      out.images = (Array.isArray(im) ? im : [im]).map((v) => typeof v === "string" ? v : v && typeof v === "object" ? String((v as { url?: unknown }).url || "") : "").filter(Boolean);
+      out.material = str(r.material);
+      out.color = str(r.color);
+      out.description = decode(str(r.description)).slice(0, 600);
+      return true;
+    }
+    return visit(r["@graph"]);
+  };
+  for (const b of blocks) { try { if (visit(JSON.parse(b.trim()))) break; } catch { /* not JSON */ } }
+  return out;
+}
+
+// Without an API key: use the page's share data (og tags, structured data). Type, color and material are guessed in the browser from the name and hints.
+async function readLinkFree(page: URL, html: string, title: string, desc: string, text: string, product: Product, pick: string[]) {
+  const site = decode(meta(html, "og:site_name"));
+  let name = (product.name || title).split(/\s+[|｜]\s+/)[0].replace(/\s+-\s+(사이즈|후기|리뷰|가격).*$/, "");
+  if (site) name = name.replace(new RegExp(`\\s*[-|:]\\s*${site.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`), "");
+  let brand = product.brand || decode(meta(html, "product:brand") || meta(html, "og:brand"));
+  const bracket = name.match(/^\s*[\[【(]([^\]】)]{1,30})[\]】)]\s*/);
+  if (bracket) { if (!brand) brand = bracket[1].trim(); name = name.slice(bracket[0].length); }
+  if (brand && name.startsWith(brand)) name = name.slice(brand.length).replace(/^\s*\([^)]*\)\s*/, "");
+  name = name.replace(/\s+/g, " ").trim();
+
+  // Material lines near words like 소재 / 혼용률, plus the descriptions.
+  const near = [...text.matchAll(/(소재|혼용률|혼용율|원단|겉감|fabric|material)[^가-힣a-z]{0,5}.{0,120}/gi)].slice(0, 3).map((m) => m[0]);
+  const hints = [product.material, product.color, product.description, desc, ...near].filter(Boolean).join(" / ").slice(0, 1500);
+
+  let image: { type: string; data: string } | null = null;
+  for (const u of pick.slice(0, 4)) { image = await fetchImage(u, page.href); if (image) break; }
+  return {
+    free: true,
+    item: { brand: brand.slice(0, 30), name: name.slice(0, 60) },
+    hints,
+    image: image ? `data:${image.type};base64,${image.data}` : null,
+    note: image ? "" : "페이지에서 상품 사진을 찾지 못했어요.",
+  };
+}
+
 async function styleNote(outfit: string, weather: string) {
   const out = await ask([{ type: "text", text: `오늘 ${weather}. 아래 코디를 친구처럼 짧게 평가해 주세요. 어울리는 점 1가지와 더 좋아지는 팁 1가지, 한국어 두 문장, 이모지 없이.\n${outfit.slice(0, 2000)}` }],
     { type: "object", additionalProperties: false, required: ["text"], properties: { text: { type: "string" } } }, "low");
@@ -176,6 +234,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     switch (body?.action) {
+      case "status": return json({ ai: !!Deno.env.get("ANTHROPIC_API_KEY") });
       case "analyze_photo": return json(await analyzePhoto(String(body.image || ""), String(body.media_type || "image/jpeg")));
       case "read_link": return json(await readLink(String(body.url || "")));
       case "style_note": return json(await styleNote(String(body.outfit || ""), String(body.weather || "")));
