@@ -13,7 +13,8 @@ create table if not exists public.closet_docs (
 
 -- 로그인한 사용자(authenticated)만 이 테이블을 쓸 수 있게 열어 줘요.
 -- (프로젝트 만들 때 "Automatically expose new tables"를 꺼도 작동하도록 직접 지정)
-revoke all on public.closet_docs from anon;
+-- (자동으로 붙는 TRUNCATE 같은 권한은 RLS를 건너뛰므로 먼저 모두 빼고 필요한 것만 다시 줘요)
+revoke all on public.closet_docs from anon, authenticated;
 grant select, insert, update, delete on public.closet_docs to authenticated;
 
 -- 행 단위 보안: 로그인한 사람은 자기 행만 읽고 쓸 수 있어요.

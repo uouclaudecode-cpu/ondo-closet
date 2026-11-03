@@ -1,6 +1,6 @@
 // 온도 옷장 AI 기능: 사진 분석, 상품 링크 읽기, 코디 한마디.
-// Supabase 대시보드 → Edge Functions 에서 이름을 "closet-ai" 로 만들고 이 파일 내용을 붙여넣어 배포하세요.
-// 비밀값: ANTHROPIC_API_KEY (Edge Functions → Secrets)
+// Supabase Edge Function "closet-ai" 로 배포돼요 (로그인한 사용자만 호출 가능).
+// 비밀값: ANTHROPIC_API_KEY (대시보드 Edge Functions → Secrets 에 직접 넣기)
 import Anthropic from "npm:@anthropic-ai/sdk";
 
 const MODEL = "claude-opus-5-5";
