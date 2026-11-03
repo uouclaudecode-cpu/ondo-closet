@@ -272,6 +272,28 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; fo
 .sheet-grp { font-weight: 700; margin-top: 4px; }
 .mini-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
 body.noscroll { overflow: hidden; }
+/* bulk register from a screenshot */
+.bulk-cta { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 0; border-radius: 18px; padding: 14px 16px; background: var(--primary); color: var(--on-primary); box-shadow: var(--shadow); }
+.bulk-cta b { font-size: .98rem; }
+.bulk-cta span { font-size: .78rem; opacity: .8; }
+.bulk .sheet-body { max-height: 92vh; }
+.gem-set { background: var(--sunken); border-radius: 14px; padding: 10px 14px; }
+.gem-set summary { cursor: pointer; font-weight: 600; font-size: .9rem; display: flex; justify-content: space-between; gap: 8px; }
+.drop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 110px; padding: 14px; border: 1.5px dashed var(--line); border-radius: 16px; background: var(--tile); color: #17181A; text-align: center; cursor: pointer; }
+.drop b { font-size: .95rem; padding: 6px 14px; border-radius: 999px; background: #17181A; color: #FFF; }
+.drop span { font-size: .78rem; color: #6B6E73; }
+.drop img { max-height: 140px; width: auto; border-radius: 10px; }
+.drop.over { border-color: var(--cold); box-shadow: inset 0 0 0 2px var(--cold); }
+.drop.busy { opacity: .6; pointer-events: none; }
+.bulk-list { gap: 10px; }
+.bulk-row { display: grid; grid-template-columns: auto 64px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px; border-radius: 14px; background: var(--sunken); }
+.bulk-row.off { opacity: .5; }
+.bulk-check { padding-top: 22px; }
+.bulk-check input { width: 18px; height: 18px; }
+.bulk-fields { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.bulk-fields input, .bulk-fields select { padding: 6px 8px; font-size: .82rem; }
+.bulk-sel { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+#bulkSave { border-radius: 999px; padding: 12px; }
 #toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 50; max-width: min(92vw, 480px); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: .85rem; box-shadow: 0 6px 20px rgb(0 0 0 / .2); }
 </style>
 </head>
@@ -302,6 +324,8 @@ body.noscroll { overflow: hidden; }
   <datalist id="brandList"></datalist>
 </div>
 <div id="toast" role="status" hidden></div>
+<div id="bulk" class="sheet bulk" hidden><div class="sheet-bg" data-bclose="1"></div><div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="bulkTitle"></div></div>
+<input type="file" id="bulkIn" accept="image/jpeg,image/png,image/webp" hidden>
 <div id="sheet" class="sheet" hidden><div class="sheet-bg" data-close="1"></div><div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -1685,6 +1709,7 @@ function renderCloset() {
   const count = s => all.filter(i => TYPES[i.type]?.slot === s && pass(i, true)).length;
   const active = [F.brand, F.color, F.material, F.thickness, q].filter(Boolean).length;
   let h = `<div class="row between"><h2>내 옷장 <span class="muted num" style="font-size:.9rem">${list.length === all.length ? all.length : list.length + " / " + all.length}벌</span></h2><button class="btn" data-go="add">+ 옷 추가</button></div>
+    <button class="bulk-cta" id="bulkOpen"><b>📸 주문내역 캡처로 AI 일괄 등록</b><span>무신사·29CM 주문 내역이나 옷 사진 한 장으로 여러 벌을 한 번에. 이 화면에서 Ctrl+V로 붙여넣어도 돼요.</span></button>
     <div class="row"><button class="chip" data-filter="all" aria-pressed="${F.slot === "all"}">전체</button>${SLOT_ORDER.map(s => `<button class="chip" data-filter="${s}" aria-pressed="${F.slot === s}">${SLOTS[s]} ${count(s)}</button>`).join("")}</div>`;
   const nPicked = S.anchors.filter(id => S.items.has(id)).length;
   if (nPicked) h += `<div class="banner row between"><span>입고 싶은 옷 <b>${nPicked}</b>벌을 골랐어요. 같은 종류를 여러 벌 고르면 코디마다 나눠 넣어요.</span><button class="btn primary small" data-go="today">코디 보기</button></div>`;
@@ -1894,6 +1919,7 @@ document.addEventListener("submit", e => {
 });
 document.addEventListener("paste", e => {
   const file = [...(e.clipboardData?.files || [])].find(f => f.type.startsWith("image/"));
+  if (file && (B.open || S.tab === "closet")) { e.preventDefault(); bulkFile(file); return; }
   if (!file || S.tab !== "add") return;
   e.preventDefault();
   if (S.add.method === "manual" && S.add.draft) replacePhoto("d", file);
@@ -2050,6 +2076,203 @@ document.addEventListener("change", e => {
   saveTrip(t, { packed: { ...(t.packed || {}), [el.dataset.packed]: el.checked } });
 });
 document.addEventListener("submit", e => { if (e.target.id === "tripForm") { e.preventDefault(); createTrip(); } });
+
+/* ---------- Gemini: register many items from one order screenshot ---------- */
+// The key lives only in this browser (localStorage) and is sent with each request to the router below.
+const GEMINI_BASE = "https://monogpt.kr/api/monorouter/v1/gemini";
+const GEMINI_DEFAULT_MODEL = "gemini-3.5-flash-lite";
+const LS = {
+  get: k => { try { return localStorage.getItem(k) || ""; } catch { return ""; } },
+  set: (k, v) => { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); return true; } catch { return false; } },
+};
+const gemKey = () => LS.get("ondo.geminiKey"), gemModel = () => LS.get("ondo.geminiModel") || GEMINI_DEFAULT_MODEL;
+const B = { open: false, busy: false, msg: "", err: false, preview: null, items: [], settings: false };
+
+function bulkPrompt() {
+  const list = (o, f) => Object.entries(o).map(([k, v]) => `${k}(${f(v)})`).join(", ");
+  return `이 이미지는 무신사·29CM 같은 쇼핑몰의 주문 내역/장바구니 캡처이거나, 옷 사진이에요.
+안에 있는 패션 아이템(옷, 신발, 가방, 모자, 벨트, 양말, 머플러, 장갑, 시계·주얼리)을 하나도 빠짐없이 찾아 items 배열에 하나씩 넣어 주세요.
+같은 상품이 두 번 보이면 하나만 넣고, 배송비·쿠폰·광고 배너·추천 상품·로고는 넣지 마세요. 패션 아이템이 없으면 빈 배열.
+
+필드 규칙
+- brand: 브랜드명. 없으면 "".
+- name: 핵심 상품명만 짧게. 브랜드, 품번(NJ1DR94A 같은 코드), 색상, 사이즈, "[당일발송]" "- 5color" 같은 수식어는 빼요. 예: "[W]여20MM소 가죽 캐주얼 벨트 - 5color" → "20mm 소가죽 캐주얼 벨트".
+- type: 아래 목록의 키 하나. 상품명의 '마지막 명사'(무엇인지)로 정하고, 소재 단어(가죽, 플리스, 울, 데님, 니트, 기모)로 정하지 마세요.
+  예: "소가죽 캐주얼 벨트" → belt (leather 아님), "플리스 레그워머"·"울 양말" → socks (fleece 아님), "눕시 숏 자켓"·"패딩 점퍼" → short_down,
+  "니트 가디건" → cardigan, "니트 비니" → beanie, "가죽 장갑" → gloves, "레더 자켓" → leather, "시계·팔찌" → jewelry.
+  자켓·재킷·점퍼·패딩·다운·파카·코트가 들어가면 반드시 아우터 종류예요.
+- color: 아래 목록의 키 하나. 옵션 텍스트(예: "색상: 블랙", "BLACK / M")를 먼저 보고, 없으면 썸네일 사진의 색으로.
+- material: 혼용률, 상품명, 사진 질감으로 가장 비중이 큰 소재.
+- thickness: thin(얇음) / normal(보통) / thick(두꺼움).
+- fit: 상품명과 사진의 실루엣. length: crop(짧음) / regular / long.
+- mood: 가장 가까운 스타일 하나.
+- box_2d: 이미지 안에서 이 상품의 썸네일 사진(상품 사진만, 글자 제외) 영역 [ymin, xmin, ymax, xmax]. 이미지 크기 대비 0~1000 정수.
+
+type 목록: ${list(TYPES, t => t.label)}
+color 목록: ${list(COLORS, c => c.label)}
+material 목록: ${list(MATERIALS, m => m.label)}
+fit 목록: ${list(FITS, x => x)}
+mood 목록: ${list(MOODS, x => x)}`;
+}
+const bulkSchema = () => {
+  const E = o => ({ type: "STRING", enum: Object.keys(o) });
+  return { type: "OBJECT", required: ["items"], properties: { items: { type: "ARRAY", items: { type: "OBJECT",
+    required: ["brand", "name", "type", "color", "material", "thickness", "fit", "length", "mood", "box_2d"],
+    properties: { brand: { type: "STRING" }, name: { type: "STRING" }, type: E(TYPES), color: E(COLORS), material: E(MATERIALS),
+      thickness: E(THICK), fit: E(FITS), length: { type: "STRING", enum: ["crop", "regular", "long"] }, mood: E(MOODS),
+      box_2d: { type: "ARRAY", items: { type: "INTEGER" } } } } } } };
+};
+async function callGemini(data, mimeType) {
+  const key = gemKey(); if (!key) throw { code: "no_key" };
+  const url = `${GEMINI_BASE}/v1beta/models/${encodeURIComponent(gemModel())}:generateContent`;
+  const send = async withSchema => {
+    const body = { contents: [{ role: "user", parts: [{ inlineData: { mimeType, data } }, { text: bulkPrompt() }] }],
+      generationConfig: { temperature: 0.2, responseMimeType: "application/json", ...(withSchema ? { responseSchema: bulkSchema() } : {}) } };
+    let r;
+    // The key goes in headers only (never in the URL, where it would end up in logs).
+    try { r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": key, Authorization: `Bearer ${key}` }, body: JSON.stringify(body) }); }
+    catch { throw { code: "network" }; }
+    return { r, j: await r.json().catch(() => null) };
+  };
+  let { r, j } = await send(true);
+  // Some routers reject responseSchema; JSON mode plus the prompt still works.
+  if (r.status === 400 && /schema|response_schema|responseSchema/i.test(JSON.stringify(j || ""))) ({ r, j } = await send(false));
+  if (!r.ok) throw { code: r.status === 401 || r.status === 403 ? "bad_key" : r.status === 404 ? "bad_model" : r.status === 429 ? "rate_limited" : "http", detail: j?.error?.message || "" };
+  if (j?.promptFeedback?.blockReason) throw { code: "blocked" };
+  const cand = j?.candidates?.[0], text = (cand?.content?.parts || []).map(p => p.text || "").join("");
+  if (!text) throw { code: cand?.finishReason === "SAFETY" ? "blocked" : "empty" };
+  let out;
+  try { out = JSON.parse(text.trim().replace(/^```(?:json)?\s*|\s*```$/g, "")); } catch { throw { code: "invalid_json" }; }
+  return Array.isArray(out) ? out : Array.isArray(out?.items) ? out.items : [];
+}
+function gemErr(e) {
+  switch (e?.code) {
+    case "no_key": return "먼저 위의 ⚙️ Gemini 설정에서 API 키를 저장해 주세요.";
+    case "bad_key": return "API 키가 맞지 않거나 권한이 없어요. 키를 다시 확인해 주세요.";
+    case "bad_model": return `'${gemModel()}' 모델을 찾지 못했어요. ⚙️ 설정에서 모델명을 확인해 주세요.`;
+    case "rate_limited": return "요청이 많아요. 잠시 후 다시 시도해 주세요.";
+    case "network": return "Gemini 라우터에 연결하지 못했어요. 인터넷 연결을 확인해 주세요. (라우터가 브라우저 호출을 막는 경우에도 이렇게 보여요)";
+    case "blocked": return "이 이미지는 분석할 수 없다고 응답했어요. 다른 캡처로 시도해 주세요.";
+    case "invalid_json": case "empty": return "분석 결과를 읽지 못했어요. 다시 시도하거나 다른 모델을 써 보세요.";
+    default: return "분석하지 못했어요." + (e?.detail ? ` (${String(e.detail).slice(0, 120)})` : " 잠시 후 다시 시도해 주세요.");
+  }
+}
+// Check what Gemini returned against our own catalog; an explicit item noun in the name wins over a slot mix-up.
+function cleanGemini(x, img) {
+  // Tidy shop noise the model may leave in: "[W]", "- 5color", product codes like NJ1DR94A / VR2597B-WT.
+  const name = String(x?.name || "").replace(/^\s*(\[[^\]]{0,12}\]\s*)+/, "").replace(/\s*[-·|/]\s*\d+\s*colou?rs?\s*$/i, "")
+    .replace(/\b(?=[A-Z0-9-]*\d)(?=[A-Z0-9-]*[A-Z])[A-Z0-9][A-Z0-9-]{5,}\b/g, "").replace(/\s+/g, " ").trim().slice(0, 40), g = guessItem(name);
+  let type = TYPES[x?.type] ? x.type : undefined;
+  const byName = guessType(name);
+  if (byName && (!type || TYPES[byName].slot !== TYPES[type].slot)) type = byName;
+  type = type || g.type || "tee_l";
+  let fit = FITS[x?.fit] ? x.fit : "";
+  if (["crop", "long"].includes(x?.length) && (!fit || fit === "regular")) fit = x.length;
+  const b = Array.isArray(x?.box_2d) && x.box_2d.length === 4 ? x.box_2d.map(Number) : null;
+  const box = b && b.every(isFinite) ? [b[1] / 1000, b[0] / 1000, b[3] / 1000, b[2] / 1000] : null;
+  return {
+    keep: true, brand: String(x?.brand || "").trim().slice(0, 30), name: name || TYPES[type].label, type,
+    color: COLORS[x?.color] ? x.color : g.color || "gray", material: MATERIALS[x?.material] ? x.material : g.material || "cotton",
+    thickness: THICK[x?.thickness] ? x.thickness : g.thickness || "normal", fit, mood: MOODS[x?.mood] ? x.mood : "",
+    photo: box ? cropTo(img, box) : null,
+  };
+}
+async function bulkFile(file) {
+  if (B.busy) return;
+  if (!file?.type?.startsWith("image/")) { B.open = true; B.msg = "이미지 파일(JPG, PNG, WEBP)을 올려 주세요."; B.err = true; renderBulk(); return; }
+  B.open = true; B.items = []; B.err = false;
+  let img;
+  try { img = await loadImg(file); } catch { B.msg = "이미지를 열 수 없어요. 다른 파일로 시도해 주세요."; B.err = true; renderBulk(); return; }
+  B.preview = cropTo(img);
+  if (!gemKey()) { B.settings = true; B.msg = gemErr({ code: "no_key" }); B.err = true; renderBulk(); return; }
+  B.busy = true; B.msg = `${gemModel()}로 캡처를 읽는 중이에요… (보통 5~20초)`; renderBulk();
+  try {
+    // Long order screenshots keep enough resolution for small product names (longest side 2048px).
+    const k = Math.min(1, 2048 / Math.max(img.width, img.height));
+    const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+    const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+    const data = c.toDataURL("image/jpeg", 0.9).split(",")[1];
+    const raw = (await callGemini(data, "image/jpeg")).slice(0, 30);
+    B.items = raw.map(x => cleanGemini(x, img));
+    B.msg = B.items.length ? `${B.items.length}벌을 찾았어요. 맞는지 확인하고 등록해 주세요.` : "이미지에서 패션 아이템을 찾지 못했어요. 다른 캡처로 시도해 주세요.";
+    B.err = !B.items.length;
+  } catch (e) { B.msg = gemErr(e); B.err = true; if (["no_key", "bad_key", "bad_model"].includes(e?.code)) B.settings = true; }
+  B.busy = false; renderBulk();
+}
+function renderBulk() {
+  const el = $("#bulk"); el.hidden = !B.open; document.body.classList.toggle("noscroll", B.open || !!S.sheet);
+  if (!B.open) return;
+  const n = B.items.filter(x => x.keep).length, hasKey = !!gemKey();
+  const typeOpts = x => SLOT_ORDER.map(s => `<optgroup label="${SLOTS[s]}">${Object.entries(TYPES).filter(([, t]) => t.slot === s).map(([k, t]) => `<option value="${k}" ${x.type === k ? "selected" : ""}>${t.label}</option>`).join("")}</optgroup>`).join("");
+  const opts = (o, v, f, auto) => (auto ? `<option value="">${auto}</option>` : "") + Object.entries(o).map(([k, x]) => `<option value="${k}" ${v === k ? "selected" : ""}>${f(x)}</option>`).join("");
+  el.querySelector(".sheet-body").innerHTML = `
+    <div class="sheet-top"><h3 id="bulkTitle">📸 주문내역 캡처로 일괄 등록</h3><button class="btn ghost" data-bclose="1">닫기</button></div>
+    <details class="gem-set" ${B.settings || !hasKey ? "open" : ""}><summary>⚙️ Gemini 설정 <span class="muted small">${hasKey ? `키 저장됨 · ${esc(gemModel())}` : "API 키가 필요해요"}</span></summary>
+      <div class="stack" style="margin-top:10px">
+        <label class="f" for="gemKey">Gemini API Key<input type="password" id="gemKey" autocomplete="off" spellcheck="false" placeholder="${hasKey ? "저장됨 (바꾸려면 새로 입력)" : "API 키 붙여넣기"}"></label>
+        <label class="f" for="gemModel">모델명<input type="text" id="gemModel" value="${esc(LS.get("ondo.geminiModel"))}" placeholder="${GEMINI_DEFAULT_MODEL}" spellcheck="false"></label>
+        <div class="row"><button class="btn primary" id="gemSave">저장</button>${hasKey ? `<button class="btn ghost danger" id="gemClear">키 지우기</button>` : ""}</div>
+        <p class="small muted">키는 이 브라우저(localStorage)에만 저장돼요. 캡처를 올릴 때마다 이미지와 함께 monogpt.kr 라우터로 보내져요. 다른 사람과 같이 쓰는 컴퓨터라면 다 쓴 뒤 '키 지우기'를 눌러 주세요.</p>
+      </div></details>
+    <label class="drop${B.busy ? " busy" : ""}" for="bulkIn" id="bulkDrop">
+      ${B.preview && !B.items.length ? `<img src="${esc(B.preview)}" alt="올린 캡처">` : `<b>캡처 선택</b>`}
+      <span>또는 Ctrl+V로 붙여넣기 · 여기에 끌어다 놓기</span></label>
+    ${B.msg ? `<p class="banner${B.err ? " err" : ""}">${esc(B.msg)}</p>` : ""}
+    ${B.items.length ? `<div class="sheet-scroll bulk-list">${B.items.map((x, i) => `
+      <div class="bulk-row${x.keep ? "" : " off"}">
+        <label class="bulk-check"><input type="checkbox" data-bkeep="${i}" ${x.keep ? "checked" : ""} aria-label="${esc(x.name)} 등록"></label>
+        <span class="tile-img sm">${x.photo ? `<img src="${esc(x.photo)}" alt="">` : silhouetteSVG(x)}</span>
+        <div class="bulk-fields">
+          <div class="grid2"><input type="text" data-bk="brand" data-bi="${i}" value="${esc(x.brand)}" placeholder="브랜드" aria-label="브랜드" list="brandList"><input type="text" data-bk="name" data-bi="${i}" value="${esc(x.name)}" placeholder="옷 이름" aria-label="옷 이름"></div>
+          <div class="bulk-sel">
+            <select data-bk="type" data-bi="${i}" aria-label="종류">${typeOpts(x)}</select>
+            <select data-bk="color" data-bi="${i}" aria-label="색상">${opts(COLORS, x.color, c => c.label)}</select>
+            <select data-bk="fit" data-bi="${i}" aria-label="핏">${opts(FITS, x.fit, f => f, "핏 자동")}</select>
+            <select data-bk="thickness" data-bi="${i}" aria-label="두께">${opts(THICK, x.thickness, t => t.label)}</select>
+          </div>
+        </div>
+      </div>`).join("")}</div>
+      <button class="btn primary" id="bulkSave" ${n ? "" : "disabled"}>선택한 옷 일괄 등록 (${n}개)</button>` : ""}`;
+}
+async function bulkSave() {
+  const keep = B.items.filter(x => x.keep && x.name.trim());
+  if (!keep.length) return;
+  for (const x of keep) await addItem(x, "capture");
+  B.open = false; B.items = []; B.preview = null; B.msg = ""; renderBulk();
+  S.tab = "closet"; render(); toast(`${keep.length}벌을 옷장에 등록했어요.`);
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("#bulkOpen, [data-bclose], #gemSave, #gemClear, #bulkSave"); if (!b) return;
+  if (b.id === "bulkOpen") { B.open = true; B.msg = ""; B.err = false; renderBulk(); }
+  else if (b.dataset.bclose) { if (!B.busy) { B.open = false; renderBulk(); } }
+  else if (b.id === "gemSave") {
+    const k = $("#gemKey").value.trim(), m = $("#gemModel").value.trim();
+    if (k) LS.set("ondo.geminiKey", k);
+    const ok = LS.set("ondo.geminiModel", m && m !== GEMINI_DEFAULT_MODEL ? m : "");
+    B.settings = false; B.err = !ok || !gemKey();
+    B.msg = !ok ? "이 브라우저에서는 설정을 저장할 수 없어요. (개인정보 보호 모드인지 확인해 주세요)" : gemKey() ? `저장했어요. 모델: ${gemModel()}` : "API 키를 입력해 주세요.";
+    renderBulk();
+  }
+  else if (b.id === "gemClear") { LS.set("ondo.geminiKey", ""); B.settings = true; B.msg = "API 키를 지웠어요."; B.err = false; renderBulk(); }
+  else if (b.id === "bulkSave") bulkSave();
+});
+document.addEventListener("change", e => {
+  const el = e.target;
+  if (el.id === "bulkIn" && el.files?.[0]) { bulkFile(el.files[0]); el.value = ""; return; }
+  if (el.dataset.bkeep !== undefined) { B.items[+el.dataset.bkeep].keep = el.checked; renderBulk(); return; }
+  if (el.dataset.bk && el.tagName === "SELECT") { B.items[+el.dataset.bi][el.dataset.bk] = el.value; if (el.dataset.bk === "type" || el.dataset.bk === "color") renderBulk(); }
+});
+document.addEventListener("input", e => { const el = e.target; if (el.dataset.bk && el.tagName === "INPUT") B.items[+el.dataset.bi][el.dataset.bk] = el.value; });
+// Drag & drop: onto the modal, or anywhere on the closet screen.
+document.addEventListener("dragover", e => { if (B.open || S.tab === "closet") { e.preventDefault(); $("#bulkDrop")?.classList.add("over"); } });
+document.addEventListener("dragleave", e => { if (!e.relatedTarget) $("#bulkDrop")?.classList.remove("over"); });
+document.addEventListener("drop", e => {
+  if (!(B.open || S.tab === "closet")) return;
+  e.preventDefault(); $("#bulkDrop")?.classList.remove("over");
+  const file = [...(e.dataTransfer?.files || [])].find(f => f.type.startsWith("image/"));
+  if (file) bulkFile(file);
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape" && B.open && !B.busy) { B.open = false; renderBulk(); } });
 
 boot();
 </script>
