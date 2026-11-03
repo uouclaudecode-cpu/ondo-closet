@@ -1,6 +1,7 @@
-// 온도 옷장 서버 기능: 상품 링크 읽기, (API 키가 있으면) 사진 분석과 코디 한마디.
+// 온도 옷장 서버 기능: 상품 링크 읽기, 상품 사진 검색(네이버 쇼핑), (API 키가 있으면) 사진 분석과 코디 한마디.
 // Supabase Edge Function "closet-ai" 로 배포돼요 (로그인한 사용자만 호출 가능).
 // 비밀값(선택): ANTHROPIC_API_KEY. 없으면 링크 읽기는 쇼핑몰의 공유 정보만으로 무료로 작동해요.
+// 비밀값(선택): NAVER_CLIENT_ID, NAVER_CLIENT_SECRET. 있으면 캡처 일괄 등록 때 고화질 상품 사진을 찾아요.
 import Anthropic from "npm:@anthropic-ai/sdk";
 
 const MODEL = "claude-opus-5-5";
@@ -13,10 +14,10 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
 // Keys must match the catalog in index.html (TYPES / MATERIALS / COLORS).
-const TYPES = ["tee_s", "tee_l", "shirt", "thermal", "sweat", "hood", "knit", "cardigan", "fleece", "vest", "windbreaker", "denim_jk", "blazer", "trench", "leather", "light_down", "coat", "short_down", "long_down", "shorts", "skirt", "slacks", "chino", "jeans", "lined_pants", "sneakers", "loafers", "sandals", "boots", "long_boots", "beanie", "beret", "cap", "scarf", "gloves", "bag"];
+const TYPES = ["tee_s", "tee_l", "shirt", "sleeveless", "thermal", "sweat", "hood", "knit", "zipup", "vest", "cardigan", "fleece", "windbreaker", "blouson", "denim_jk", "blazer", "trench", "leather", "light_down", "coat", "short_down", "long_down", "shorts", "skirt", "long_skirt", "slacks", "chino", "jeans", "sweatpants", "cargo", "lined_pants", "sneakers", "loafers", "flats", "sandals", "boots", "long_boots", "beanie", "beret", "cap", "scarf", "gloves", "bag", "belt", "socks", "jewelry"];
 const MATERIALS = ["cotton", "linen", "poly", "nylon", "rayon", "denim", "acrylic", "wool", "cashmere", "fleece", "down", "leather"];
 const COLORS = ["black", "white", "gray", "charcoal", "navy", "beige", "ivory", "denim", "brown", "khaki", "green", "blue", "skyblue", "red", "burgundy", "pink", "yellow", "purple"];
-const TYPE_HELP = "tee_s=반팔티, tee_l=긴팔티, shirt=셔츠·블라우스, thermal=발열내의, sweat=맨투맨, hood=후드티, knit=니트, cardigan=가디건, fleece=플리스, vest=조끼, windbreaker=바람막이, denim_jk=데님자켓, blazer=블레이저, trench=트렌치코트, leather=가죽자켓, light_down=경량패딩, coat=코트, short_down=숏패딩, long_down=롱패딩, shorts=반바지, skirt=치마, slacks=슬랙스, chino=면바지, jeans=청바지, lined_pants=기모바지, sneakers=운동화, loafers=로퍼·구두, sandals=샌들, boots=앵클부츠, long_boots=롱부츠, beanie=비니, beret=베레모, cap=볼캡, scarf=목도리, gloves=장갑, bag=가방";
+const TYPE_HELP = "tee_s=반팔티, tee_l=긴팔티, shirt=셔츠·블라우스, thermal=발열내의, sweat=맨투맨, hood=후드티, knit=니트, cardigan=가디건, fleece=플리스, vest=조끼, windbreaker=바람막이, denim_jk=데님자켓, blazer=블레이저, trench=트렌치코트, leather=가죽자켓, light_down=경량패딩, coat=코트, short_down=숏패딩, long_down=롱패딩, shorts=반바지, skirt=치마, slacks=슬랙스, chino=면바지, jeans=청바지, lined_pants=기모바지, sneakers=운동화, loafers=로퍼·구두, sandals=샌들, boots=앵클부츠, long_boots=롱부츠, beanie=비니, beret=베레모, cap=볼캡, scarf=목도리, gloves=장갑, bag=가방, sleeveless=나시, zipup=집업, blouson=블루종·자켓, long_skirt=롱스커트, sweatpants=트레이닝 팬츠, cargo=카고 팬츠, flats=플랫·메리제인, belt=벨트, socks=양말·레그워머, jewelry=시계·주얼리";
 const ITEM_RULES = `brand: 브랜드 이름 (한국어 표기가 있으면 한국어, 예: "미세키서울". 모르면 "")
 name: 브랜드와 색상을 뺀 상품 이름을 한국어로 짧게 (예: "언밸런스 카울 버튼 니트". 상품명이 없으면 "울 니트"처럼 종류 위주로)
 type 뜻: ${TYPE_HELP}
@@ -222,6 +223,41 @@ async function readLinkFree(page: URL, html: string, title: string, desc: string
   };
 }
 
+// Product photo search through the Naver Shopping Search API (free, needs NAVER_CLIENT_ID / NAVER_CLIENT_SECRET).
+async function findImages(query: string) {
+  const id = Deno.env.get("NAVER_CLIENT_ID"), secret = Deno.env.get("NAVER_CLIENT_SECRET");
+  if (!id || !secret) throw new ApiFail("search_not_configured");
+  const q = query.replace(/\s+/g, " ").trim().slice(0, 100);
+  if (!q) throw new ApiFail("bad_request");
+  let r: Response;
+  try {
+    r = await fetch(`https://openapi.naver.com/v1/search/shop.json?query=${encodeURIComponent(q)}&display=8&sort=sim`, {
+      headers: { "X-Naver-Client-Id": id, "X-Naver-Client-Secret": secret },
+    });
+  } catch { throw new ApiFail("upstream_error"); }
+  if (r.status === 401 || r.status === 403) throw new ApiFail("search_bad_key");
+  if (r.status === 429) throw new ApiFail("rate_limited");
+  if (!r.ok) throw new ApiFail("upstream_error");
+  const j = await r.json();
+  const strip = (s: string) => decode(String(s || "").replace(/<[^>]+>/g, ""));
+  const items = (j.items || []).filter((x: { image?: string }) => x.image).map((x: Record<string, string>) => ({
+    image: x.image, title: strip(x.title), brand: strip(x.brand || x.maker || ""), mall: strip(x.mallName), fashion: /패션/.test(x.category1 || ""),
+  }));
+  // Fashion categories first; the API's own relevance order is kept otherwise.
+  items.sort((a: { fashion: boolean }, b: { fashion: boolean }) => Number(b.fashion) - Number(a.fashion));
+  return { items: items.slice(0, 6) };
+}
+// Fetch one product photo server-side so the page can store it (and draw it on the outfit board) without CORS issues.
+async function getImage(url: string) {
+  let u: URL;
+  try { u = new URL(url); } catch { throw new ApiFail("bad_url"); }
+  // Only Naver's image CDN (where findImages results live), so this can't be used to fetch arbitrary addresses.
+  if (u.protocol !== "https:" || !/(^|\.)pstatic\.net$/.test(u.hostname)) throw new ApiFail("bad_url");
+  const im = await fetchImage(u.href, "https://search.shopping.naver.com/");
+  if (!im) throw new ApiFail("fetch_blocked");
+  return { image: `data:${im.type};base64,${im.data}` };
+}
+
 async function styleNote(outfit: string, weather: string) {
   const out = await ask([{ type: "text", text: `오늘 ${weather}. 아래 코디를 친구처럼 짧게 평가해 주세요. 어울리는 점 1가지와 더 좋아지는 팁 1가지, 한국어 두 문장, 이모지 없이.\n${outfit.slice(0, 2000)}` }],
     { type: "object", additionalProperties: false, required: ["text"], properties: { text: { type: "string" } } }, "low");
@@ -234,7 +270,9 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     switch (body?.action) {
-      case "status": return json({ ai: !!Deno.env.get("ANTHROPIC_API_KEY") });
+      case "status": return json({ ai: !!Deno.env.get("ANTHROPIC_API_KEY"), search: !!(Deno.env.get("NAVER_CLIENT_ID") && Deno.env.get("NAVER_CLIENT_SECRET")) });
+      case "find_images": return json(await findImages(String(body.query || "")));
+      case "image": return json(await getImage(String(body.url || "")));
       case "analyze_photo": return json(await analyzePhoto(String(body.image || ""), String(body.media_type || "image/jpeg")));
       case "read_link": return json(await readLink(String(body.url || "")));
       case "style_note": return json(await styleNote(String(body.outfit || ""), String(body.weather || "")));

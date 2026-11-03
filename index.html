@@ -70,15 +70,11 @@ header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; b
 .brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .brand h1 { font-size: 1.45rem; font-weight: 800; }
 .brand h1 span { color: var(--warm); }
+.logo { all: unset; cursor: pointer; border-radius: 6px; }
+.logo:focus-visible { outline: 2px solid var(--cold); outline-offset: 2px; }
 .brand-l { font-size: 0.72rem; font-weight: 700; letter-spacing: .04em; color: var(--muted); overflow-wrap: anywhere; }
 .brand-i { letter-spacing: .02em; text-transform: none; }
 .filters { gap: 10px; padding: 12px; }
-.trip-day { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: start; padding: 12px 0; border-top: 1px solid var(--line); }
-.trip-day:first-of-type { border-top: 0; }
-.trip-day .dt { font-family: var(--f-display); font-weight: 700; line-height: 1.2; }
-.trip-day .dt small { display: block; font-family: var(--f-data); font-weight: 500; font-size: .72rem; color: var(--muted); }
-.strip { display: flex; gap: 6px; flex-wrap: wrap; margin-block: 6px; }
-.strip .thumb, .strip .swatch { width: 40px; height: 40px; }
 .pack { display: flex; flex-direction: column; gap: 4px; }
 .pack label { display: flex; gap: 8px; align-items: center; font-size: .9rem; }
 .pack label.done span { text-decoration: line-through; color: var(--muted); }
@@ -131,39 +127,16 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; fo
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 /* outfit */
-.outfit { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--surface); }
-.outfit-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
-.outfit-head h3 { font-size: 1.05rem; }
-.piece { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; padding: 9px 14px; border-bottom: 1px solid var(--line); }
-.piece:last-of-type { border-bottom: 0; }
-.piece .slot { font-size: 0.7rem; font-weight: 700; color: var(--muted); letter-spacing: .06em; }
-.piece .name { font-weight: 600; overflow-wrap: anywhere; }
-.thumb { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; display: block; border: 1px solid var(--line); }
-.swatch { width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--line); display: grid; place-items: center; font-size: 0.7rem; font-weight: 700; }
-.pts { font-family: var(--f-data); font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
-.meter { padding: 12px 14px; background: var(--sunken); display: flex; flex-direction: column; gap: 6px; }
 .meter-bar { position: relative; height: 8px; border-radius: 999px; background: var(--line); }
 .meter-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: var(--ink); }
 .meter-bar .goal { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--warm); }
-.tips { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; }
-.tips li { margin-left: 1.1em; }
-.tips ul { margin: 0; padding: 0; }
-.outfit-foot { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 14px; border-top: 1px solid var(--line); }
-.board-wrap { padding: 14px; border-bottom: 1px solid var(--line); background: var(--sunken); }
 .board { display: block; width: 100%; max-width: 100%; aspect-ratio: 9 / 14; height: auto; border-radius: 10px; background: #FFFFFF; box-shadow: 0 1px 3px rgb(0 0 0 / .12); }
-.item .ph:not(.sw) { object-fit: contain; background: #FFFFFF; }
-.ai-note { font-size: 0.88rem; padding: 0 14px 12px; color: var(--ink); }
 
 /* wardrobe */
-.closet { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .item { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
-.item .ph { aspect-ratio: 1 / 1; max-width: 100%; width: 100%; object-fit: cover; display: block; background: var(--sunken); }
-.item .ph.sw { display: grid; place-items: center; font-family: var(--f-display); font-weight: 700; font-size: 1.1rem; }
 .item .body { padding: 10px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .item .name { font-weight: 600; font-size: 0.9rem; overflow-wrap: anywhere; }
 .item .meta { font-size: 0.75rem; color: var(--muted); }
-.item .acts { display: flex; gap: 4px; margin-top: auto; flex-wrap: wrap; }
-.item .acts .btn { padding: 5px 8px; font-size: 0.78rem; }
 .empty { text-align: center; padding: 28px 16px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
 
 /* add */
@@ -181,13 +154,10 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; fo
 .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); }
 .preview-w { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; }
 .preview-w .meter-bar { flex: 1; }
-.photo-prev { width: 96px; height: 96px; border-radius: 12px; object-fit: cover; border: 1px solid var(--line); }
+.photo-prev { width: 96px; height: 96px; border-radius: 12px; object-fit: contain; background: var(--tile); }
+.form-ph { width: 96px; }
 .found { display: flex; flex-direction: column; gap: 8px; }
 .found .card { padding: 12px; }
-.feedback { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.feedback .btn { padding: 10px 4px; }
-.log { display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; }
-.log div { display: flex; justify-content: space-between; gap: 8px; }
 @media (prefers-reduced-motion: no-preference) { .outfit { animation: rise .25s ease-out both; } @keyframes rise { from { transform: translateY(4px); } to { transform: none; } } }
 
 /* ---------- moodboard look ---------- */
@@ -201,7 +171,7 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; fo
 .badge-line { font-size: .78rem; color: var(--muted); }
 .pill { flex: none; font-size: .75rem; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--sunken); color: var(--ink); white-space: nowrap; }
 
-.outfit { border: 0; border-radius: 20px; box-shadow: var(--shadow); background: var(--surface); }
+.outfit { display: flex; flex-direction: column; overflow: hidden; border: 0; border-radius: 20px; box-shadow: var(--shadow); background: var(--surface); }
 .o-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 16px 16px 10px; }
 .o-title { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .o-title h3 { font-size: 1.05rem; }
@@ -231,17 +201,20 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; fo
 .o-foot { display: flex; gap: 6px; flex-wrap: wrap; padding: 14px 16px 16px; }
 .o-foot .btn { border-radius: 999px; padding: 8px 14px; }
 .o-foot .btn.icon { background: var(--sunken); border-color: transparent; }
-.ai-note { padding: 10px 16px 0; }
+.ai-note { font-size: 0.88rem; padding: 10px 16px 0; color: var(--ink); }
 .board-wrap { margin: 0 12px 10px; padding: 0; border: 0; background: transparent; }
 .day-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 6px 2px -8px; }
 .day-n { font-family: var(--f-display); font-weight: 700; }
+.trip-item { display: flex; gap: 6px; align-items: stretch; }
+.trip-item .trip-row { flex: 1; min-width: 0; }
+.trip-item .btn.icon { border-radius: var(--r); background: var(--surface); border: 1px solid var(--line); }
 .pick-box summary { cursor: pointer; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
 .pack-chip.must { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
 .pack-chip.skip { text-decoration: line-through; color: var(--muted); background: var(--sunken); }
 .pack label { min-width: 0; }
 
 /* closet */
-.closet { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.closet { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
 .item { position: relative; border: 0; border-radius: 18px; box-shadow: var(--shadow); }
 .item.on { box-shadow: 0 0 0 2px var(--ink), var(--shadow); }
 .item-img { display: grid; place-items: center; aspect-ratio: 1 / 1; background: var(--tile); }
@@ -273,10 +246,15 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; fo
 .mini-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
 body.noscroll { overflow: hidden; }
 /* bulk register from a screenshot */
-.bulk-cta { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; border: 0; border-radius: 18px; padding: 14px 16px; background: var(--primary); color: var(--on-primary); box-shadow: var(--shadow); }
-.bulk-cta b { font-size: .98rem; }
-.bulk-cta span { font-size: .78rem; opacity: .8; }
-.bulk .sheet-body { max-height: 92vh; }
+.method.wide { grid-column: 1 / -1; background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+.method.wide span { color: inherit; opacity: .75; }
+.method.wide[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--primary); }
+.bulk-ph { display: flex; flex-direction: column; gap: 4px; align-items: center; width: 72px; }
+.bulk-ph .tile-img.sm { width: 72px; }
+.bulk-ph-acts { display: flex; flex-direction: column; gap: 2px; align-items: center; font-size: .7rem; color: var(--muted); }
+.bulk-ph-acts button { border: 0; background: none; padding: 0; font-size: .7rem; font-weight: 600; color: var(--muted); text-decoration: underline; }
+.searching { animation: pulse 1.1s ease-in-out infinite alternate; }
+@keyframes pulse { from { opacity: .45; } to { opacity: 1; } }
 .gem-set { background: var(--sunken); border-radius: 14px; padding: 10px 14px; }
 .gem-set summary { cursor: pointer; font-weight: 600; font-size: .9rem; display: flex; justify-content: space-between; gap: 8px; }
 .drop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 110px; padding: 14px; border: 1.5px dashed var(--line); border-radius: 16px; background: var(--tile); color: #17181A; text-align: center; cursor: pointer; }
@@ -286,7 +264,7 @@ body.noscroll { overflow: hidden; }
 .drop.over { border-color: var(--cold); box-shadow: inset 0 0 0 2px var(--cold); }
 .drop.busy { opacity: .6; pointer-events: none; }
 .bulk-list { gap: 10px; }
-.bulk-row { display: grid; grid-template-columns: auto 64px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px; border-radius: 14px; background: var(--sunken); }
+.bulk-row { display: grid; grid-template-columns: auto 72px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px; border-radius: 14px; background: var(--sunken); }
 .bulk-row.off { opacity: .5; }
 .bulk-check { padding-top: 22px; }
 .bulk-check input { width: 18px; height: 18px; }
@@ -302,7 +280,7 @@ body.noscroll { overflow: hidden; }
 <div class="wrap">
   <header class="top">
     <div class="brand">
-      <h1>온도<span>·</span>옷장</h1>
+      <h1><button class="logo" data-tab="today" aria-label="온도 옷장, 오늘 코디로">온도<span>·</span>옷장</button></h1>
       <button id="saveMode" class="tag acct" type="button">불러오는 중</button>
     </div>
     <nav class="tabs" role="tablist" id="tabs">
@@ -323,9 +301,7 @@ body.noscroll { overflow: hidden; }
   <input type="file" id="replaceIn" accept="image/jpeg,image/png,image/webp" hidden>
   <datalist id="brandList"></datalist>
 </div>
-<div id="toast" role="status" hidden></div>
-<div id="bulk" class="sheet bulk" hidden><div class="sheet-bg" data-bclose="1"></div><div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="bulkTitle"></div></div>
-<input type="file" id="bulkIn" accept="image/jpeg,image/png,image/webp" hidden>
+<div id="toast" role="status" hidden></div><input type="file" id="bulkIn" accept="image/jpeg,image/png,image/webp" hidden>
 <div id="sheet" class="sheet" hidden><div class="sheet-bg" data-close="1"></div><div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -467,8 +443,8 @@ const S = {
   cf: { slot: "all", brand: "", color: "", material: "", thickness: "", q: "", sort: "recent" },
   trips: new Map(), trip: { open: null, form: null, busy: false, msg: "" },
 };
-// sample: AI available (logged in + backend configured); caps mirrors the old image-capability check.
-let sb = null, me = null, sample = null, caps = null, downloads = true, photoFor = null;
+// sample: logged in, so the server functions (closet-ai) can be called. photoFor: which form gets the next picked photo.
+let sb = null, me = null, sample = null, downloads = true, photoFor = null;
 const CFG = window.ONDO_CONFIG || {};
 const CONFIGURED = /^https:\/\/.+\.supabase\.co/.test(CFG.supabaseUrl || "") && (CFG.supabaseAnonKey || "").length > 20;
 
@@ -538,7 +514,7 @@ async function loadAll() {
 function onSession(session) {
   const was = me?.id;
   me = session?.user || null;
-  sample = me ? true : null; caps = me ? { images: true } : null;
+  sample = me ? true : null;
   if (me) {
     S.mode = "db"; S.guest = false;
     if (was !== me.id) { loadAll(); ai("status").then(r => { S.aiOn = !!r?.ai; render(); }).catch(() => {}); }
@@ -936,15 +912,29 @@ function bestOf(cands, P, chosen = [], pred = () => true) {
   for (const need of [2, 1]) { const c = sorted.find(c => chosen.every(x => mainDiff(c, x) >= need)); if (c) return c; }
   return null;
 }
-// Card 1 weather fit, card 2 best style (may be a little chilly), card 3 a different mood.
+// The three cards. Balance: weather fit, best style (may be chilly), different mood.
+// Weather first: the warmth-closest outfits lead. Style first: the most stylish outfit leads.
 function pickCards(cands, P) {
-  const c1 = bestOf(cands, P, [], c => c.warm.gap <= 1) || bestOf(cands, P);
-  if (!c1) return [];
-  c1.role = "weather";
-  const styled = cands.filter(c => c !== c1 && c.warm.gap <= P.chillyMax && mainDiff(c, c1) >= 1).sort((a, b) => b.style.sum - a.style.sum)[0];
-  let c2;
-  if (styled && styled.style.sum >= c1.style.sum + 0.5) { c2 = styled; c2.role = "style"; }
-  else { c2 = bestOf(cands, P, [c1]); if (c2) c2.role = "next"; }
+  const mode = S.prefs.mode || "balance";
+  const warmOnly = (a, b) => (a.warm.pen + a.func) - (b.warm.pen + b.func);
+  const stylish = (except) => cands.filter(c => c.warm.gap <= P.chillyMax && except.every(x => mainDiff(c, x) >= 1)).sort((a, b) => b.style.sum - a.style.sum)[0];
+  let c1, c2;
+  if (mode === "style") {
+    c1 = stylish([]) || bestOf(cands, P); if (!c1) return [];
+    c1.role = "style";
+    c2 = bestOf(cands, P, [c1], c => c.warm.gap <= 1) || bestOf(cands, P, [c1]); if (c2) c2.role = "weather";
+  } else if (mode === "weather") {
+    const byWarm = cands.slice().sort(warmOnly);
+    c1 = byWarm[0]; if (!c1) return [];
+    c1.role = "weather";
+    c2 = byWarm.find(c => mainDiff(c, c1) >= 2) || byWarm.find(c => mainDiff(c, c1) >= 1); if (c2) c2.role = "next";
+  } else {
+    c1 = bestOf(cands, P, [], c => c.warm.gap <= 1) || bestOf(cands, P); if (!c1) return [];
+    c1.role = "weather";
+    const styled = stylish([c1]);
+    if (styled && styled.style.sum >= c1.style.sum + 0.5) { c2 = styled; c2.role = "style"; }
+    else { c2 = bestOf(cands, P, [c1]); if (c2) c2.role = "next"; }
+  }
   const chosen = [c1, c2].filter(Boolean), moods = new Set(chosen.map(c => c.style.mood));
   let c3 = bestOf(cands, P, chosen, c => !moods.has(c.style.mood));
   if (c3) c3.role = "mood"; else { c3 = bestOf(cands, P, chosen); if (c3) c3.role = "next"; }
@@ -1480,7 +1470,7 @@ function renderTrip() {
     const t = S.trips.get(T.open), plan = tripPlan(t);
     const srcs = new Set(t.days.map(d => d.src));
     const srcLabel = srcs.has("forecast") && srcs.size === 1 ? `<span class="tag live">예보</span>` : srcs.has("lastyear") ? `<span class="tag example">작년 같은 날 기준</span>` : srcs.has("manual") ? `<span class="tag">직접 입력</span>` : `<span class="tag">기록된 날씨</span>`;
-    h += `<div class="row between"><button class="btn ghost" id="tripBack">← 여행 목록</button>${srcLabel}</div>
+    h += `<div class="row between"><button class="btn ghost" id="tripBack">← 여행 목록</button><div class="row" style="gap:6px">${srcLabel}<button class="btn" data-tripedit="${t.id}">✏️ 수정</button></div></div>
       <div class="card"><h2>${esc(t.name)}</h2><p class="muted small">${esc(t.place?.name || "")} · ${t.start.slice(5).replace("-", ".")} ~ ${t.end.slice(5).replace("-", ".")} · ${t.days.length}일</p>
       ${srcs.has("lastyear") ? `<p class="small muted">16일보다 먼 날짜는 작년 같은 날의 실제 날씨로 계획했어요. 여행이 가까워지면 '날씨 새로 받기'로 예보를 받아 보세요.</p>` : ""}</div>`;
     if (!S.items.size) h += emptyCloset();
@@ -1522,7 +1512,7 @@ function renderTrip() {
   } else {
     const list = [...S.trips.values()].sort((a, b) => a.start.localeCompare(b.start));
     h += `<div class="row between"><h2>여행</h2><button class="btn primary" id="tripNew">+ 새 여행</button></div>`;
-    h += list.length ? `<div class="trip-list">${list.map(t => `<button class="trip-row" data-tripopen="${t.id}"><span><b>${esc(t.name)}</b><br><span class="small muted">${esc(t.place?.name || "")} · ${t.start.slice(5).replace("-", ".")} ~ ${t.end.slice(5).replace("-", ".")}</span></span><span class="tag">${t.days?.length || 0}일</span></button>`).join("")}</div>`
+    h += list.length ? `<div class="trip-list">${list.map(t => `<div class="trip-item"><button class="trip-row" data-tripopen="${t.id}"><span class="ell"><b>${esc(t.name)}</b><br><span class="small muted">${esc(t.place?.name || "")} · ${t.start.slice(5).replace("-", ".")} ~ ${t.end.slice(5).replace("-", ".")}</span></span><span class="tag">${t.days?.length || 0}일</span></button><button class="btn icon" data-tripedit="${t.id}" aria-label="${esc(t.name)} 수정">✏️</button></div>`).join("")}</div>`
       : `<div class="card empty"><h3>여행을 계획해 보세요</h3><p class="small muted">여행지와 날짜를 넣으면 날마다 그곳 날씨에 맞는 코디와, 돌려 입기 좋은 짐 리스트를 만들어 드려요.</p><button class="btn primary" id="tripNew">새 여행 만들기</button></div>`;
   }
   $("#view-trip").innerHTML = h;
@@ -1572,12 +1562,6 @@ async function rate(r) {
 }
 
 /* ---------- render ---------- */
-function visual(it, cls) {
-  if (it.photo) return `<img class="${cls}" src="${esc(it.photo)}" alt="">`;
-  const c = COLORS[it.color] || COLORS.gray;
-  const dark = ["black", "charcoal", "navy", "brown", "khaki", "green", "blue", "red", "burgundy", "purple", "denim"].includes(it.color);
-  return `<div class="${cls} ${cls === "ph" ? "ph sw" : "swatch"}" style="background:${c.hex};color:${dark ? "#F4F4F4" : "#1E1F22"}">${esc((TYPES[it.type]?.label || "").slice(0, cls === "ph" ? 6 : 2))}</div>`;
-}
 function scaleHTML(lo, hi, pin) {
   const P = t => Math.max(0, Math.min(100, (t + 10) / 45 * 100));
   return `<div class="scale" aria-hidden="true"><span class="range" style="left:${P(lo)}%;width:${Math.max(2, P(hi) - P(lo))}%"></span><span class="pin" style="left:${P(pin)}%"></span></div>
@@ -1709,7 +1693,6 @@ function renderCloset() {
   const count = s => all.filter(i => TYPES[i.type]?.slot === s && pass(i, true)).length;
   const active = [F.brand, F.color, F.material, F.thickness, q].filter(Boolean).length;
   let h = `<div class="row between"><h2>내 옷장 <span class="muted num" style="font-size:.9rem">${list.length === all.length ? all.length : list.length + " / " + all.length}벌</span></h2><button class="btn" data-go="add">+ 옷 추가</button></div>
-    <button class="bulk-cta" id="bulkOpen"><b>📸 주문내역 캡처로 AI 일괄 등록</b><span>무신사·29CM 주문 내역이나 옷 사진 한 장으로 여러 벌을 한 번에. 이 화면에서 Ctrl+V로 붙여넣어도 돼요.</span></button>
     <div class="row"><button class="chip" data-filter="all" aria-pressed="${F.slot === "all"}">전체</button>${SLOT_ORDER.map(s => `<button class="chip" data-filter="${s}" aria-pressed="${F.slot === s}">${SLOTS[s]} ${count(s)}</button>`).join("")}</div>`;
   const nPicked = S.anchors.filter(id => S.items.has(id)).length;
   if (nPicked) h += `<div class="banner row between"><span>입고 싶은 옷 <b>${nPicked}</b>벌을 골랐어요. 같은 종류를 여러 벌 고르면 코디마다 나눠 넣어요.</span><button class="btn primary small" data-go="today">코디 보기</button></div>`;
@@ -1746,7 +1729,7 @@ function formHTML(x, prefix) {
   const w = warmth(x);
   return `<div class="stack" data-form="${prefix}">
     <div class="row" style="align-items:flex-start;flex-wrap:nowrap">
-      <div class="stack" style="gap:4px;align-items:center">${x.photo ? `<img class="photo-prev" src="${esc(x.photo)}" alt="">` : visual(x, "swatch")}<button type="button" class="btn ghost small" data-photo="${prefix}">${x.photo ? "사진 바꾸기" : "사진 넣기"}</button></div>
+      <div class="stack" style="gap:4px;align-items:center">${x.photo ? `<img class="photo-prev" src="${esc(x.photo)}" alt="">` : `<span class="tile-img form-ph">${silhouetteSVG(x)}</span>`}<button type="button" class="btn ghost small" data-photo="${prefix}">${x.photo ? "사진 바꾸기" : "사진 넣기"}</button></div>
       <div class="stack" style="flex:1;min-width:0;gap:8px">
         <label class="f" for="${prefix}-brand">브랜드<input type="text" id="${prefix}-brand" data-k="brand" value="${esc(x.brand || "")}" maxlength="30" placeholder="예: 미세키서울 (없으면 비워 두기)" list="brandList"></label>
         <label class="f" for="${prefix}-name">옷 이름<input type="text" id="${prefix}-name" data-k="name" value="${esc(x.name)}" maxlength="40" placeholder="예: 언밸런스 카울 버튼 니트"></label>
@@ -1767,14 +1750,17 @@ function formHTML(x, prefix) {
 function renderAdd() {
   const A = S.add;
   const M = [
-    ["template", "템플릿", "자주 입는 기본템을 탭 한 번에"],
-    ["photo", "사진으로", S.aiOn ? "여러 벌을 한 장에 찍어도 돼요" : "내가 찍은 사진이나 캡처로"],
-    ["link", "상품 링크", "주문내역의 링크를 붙여넣기"],
+    ["capture", "📸 AI 캡처로 한 번에 등록", "주문내역 캡처 한 장으로 여러 벌을, 선명한 상품 사진과 함께"],
     ["manual", "직접 입력", "이름을 적으면 나머지를 추측해요"],
+    ["link", "상품 링크", "상품 페이지 주소 붙여넣기"],
+    ["photo", "사진으로", S.aiOn ? "여러 벌을 한 장에 찍어도 돼요" : "내가 찍은 사진이나 캡처로"],
+    ["template", "템플릿", "자주 입는 기본템을 탭 한 번에"],
   ];
-  let h = `<h2>옷 추가</h2><div class="methods">${M.map(([k, b, s]) => `<button class="method" data-method="${k}" aria-pressed="${A.method === k}"><b>${b}</b><span>${s}</span></button>`).join("")}</div>`;
+  let h = `<h2>옷 추가</h2><div class="methods">${M.map(([k, b, s]) => `<button class="method${k === "capture" ? " wide" : ""}" data-method="${k}" aria-pressed="${A.method === k}"><b>${b}</b><span>${s}</span></button>`).join("")}</div>`;
   if (A.msg) h += `<p class="banner">${esc(A.msg)}</p>`;
-  if (A.method === "template") {
+  if (A.method === "capture") {
+    h += bulkHTML();
+  } else if (A.method === "template") {
     h += `<div class="card"><h3>탭해서 바로 넣기</h3><div class="templates">${TEMPLATES.map((t, i) => `<button class="chip" data-tpl="${i}">${esc(t.name)}</button>`).join("")}</div>
       <p class="small muted">넣은 뒤 옷장에서 지우거나 같은 옷을 직접 입력으로 다시 등록할 수 있어요.</p></div>`;
   } else if (A.method === "photo") {
@@ -1831,7 +1817,11 @@ function formTarget(el) {
 document.addEventListener("click", e => {
   const b = e.target.closest("button, [data-tab]"); if (!b) return;
   const ds = b.dataset;
-  if (ds.tab) { S.tab = ds.tab; S.confirmDel = null; render(); return; }
+  if (ds.tab) {
+    // The logo always goes home: today's outfits, nothing half-open.
+    if (b.classList.contains("logo")) { S.trip.open = null; S.trip.form = null; S.sheet = null; renderSheet(); window.scrollTo({ top: 0 }); }
+    S.tab = ds.tab; S.confirmDel = null; render(); return;
+  }
   if (ds.go) { S.tab = ds.go; render(); return; }
   if (ds.day) { S.day = +ds.day; render(); return; }
   if (ds.place) { loadWeather(PLACES[+ds.place]); return; }
@@ -1855,10 +1845,12 @@ document.addEventListener("click", e => {
   if (b.id === "clearAnchor") { S.anchors = []; render(); return; }
   if (ds.anchor) { toggleAnchor(ds.anchor); return; }
   if (ds.unanchor) { S.anchors = S.anchors.filter(x => x !== ds.unanchor); render(); return; }
-  if (ds.mode) { S.prefs.mode = ds.mode; render(); if (me) savePrefs(); return; }
+  if (ds.mode) {
+    if (S.prefs.mode !== ds.mode) { S.prefs.mode = ds.mode; S.recCache = null; render(); toast(`'${MODES[ds.mode].label}' 기준으로 다시 골랐어요.`); if (me) savePrefs(); }
+    return;
+  }
   if (ds.ask) { S.confirmDel = ds.ask; render(); return; }
   if (ds.cancel) { S.confirmDel = null; render(); return; }
-  if (ds.del) { S.anchors = S.anchors.filter(x => x !== ds.del); S.confirmDel = null; del(ds.del); return; }
   if (ds.wear) { wear(S.results[+ds.wear]); return; }
   if (ds.note) { styleNote(S.results[+ds.note]); return; }
   if (ds.boardbtn) { const k = S.results[+ds.boardbtn].key; S.boardOpen = S.boardOpen === k ? null : k; render(); return; }
@@ -1919,7 +1911,7 @@ document.addEventListener("submit", e => {
 });
 document.addEventListener("paste", e => {
   const file = [...(e.clipboardData?.files || [])].find(f => f.type.startsWith("image/"));
-  if (file && (B.open || S.tab === "closet")) { e.preventDefault(); bulkFile(file); return; }
+  if (file && dropOK()) { e.preventDefault(); bulkFile(file); return; }
   if (!file || S.tab !== "add") return;
   e.preventDefault();
   if (S.add.method === "manual" && S.add.draft) replacePhoto("d", file);
@@ -1932,13 +1924,6 @@ document.addEventListener("click", e => {
   else if (ds.cft) { F.thickness = F.thickness === ds.cft ? "" : ds.cft; render(); }
   else if (ds.cfc) { F.color = F.color === ds.cfc ? "" : ds.cfc; render(); }
   else if (b.id === "cfReset") { Object.assign(F, { brand: "", color: "", material: "", thickness: "", q: "" }); render(); }
-  else if (ds.dup) {
-    const it = S.items.get(ds.dup); if (!it) return;
-    const { id, createdAt, source, ...rest } = it;
-    S.add.editing = null; S.add.draft = { ...rest, _t: { type: true, material: true, thickness: true } }; S.add.method = "manual"; S.tab = "add";
-    S.add.msg = `'${fullName(it)}'을(를) 복사했어요. 색이나 이름만 바꿔서 저장하세요.`; render(); window.scrollTo({ top: 0 });
-  }
-  else if (ds.edit) { const it = S.items.get(ds.edit); if (!it) return; S.add.editing = it.id; S.add.draft = { ...it }; S.add.method = "manual"; S.add.msg = ""; S.tab = "add"; render(); window.scrollTo({ top: 0 }); }
 });
 document.addEventListener("change", e => { const el = e.target; if (el.dataset.cf) { S.cf[el.dataset.cf] = el.value; render(); } });
 document.addEventListener("toggle", e => { if (e.target.id === "cfBox") S.cf.open = e.target.open; if (e.target.classList?.contains("pick-box")) S.trip.pickOpen = e.target.open; }, true);
@@ -1978,6 +1963,15 @@ function renderSheet() {
       <input type="text" id="sheetQ" value="${esc(s.q || "")}" placeholder="옷 이름, 브랜드로 찾기" aria-label="옷 찾기">
       <p class="small muted">같은 자리(예: 하의)에 이미 옷이 있으면 바꿔 넣고, 잡화는 더해요.</p>
       <div class="sheet-scroll">${SLOT_ORDER.map(sl => { const ps = list.filter(i => TYPES[i.type]?.slot === sl); return ps.length ? `<div class="small muted sheet-grp">${SLOTS[sl]}</div><div class="mini-grid">${ps.map(p => `<button class="tile mini" data-pickadd="${p.id}" title="${esc(fullName(p))}"><span class="tile-img">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : silhouetteSVG(p)}</span><span class="tile-cap"><span class="tile-n">${esc(p.name)}</span></span></button>`).join("")}</div>` : ""; }).join("") || `<p class="muted small">더 넣을 옷이 없어요.</p>`}</div>`;
+  } else if (s.kind === "tripedit") {
+    const t = S.trips.get(s.id); if (!t) { closeSheet(); return; }
+    const f = s.form || (s.form = { name: t.name, start: t.start, end: t.end });
+    h = `<div class="sheet-top"><h3 id="sheetTitle">여행 수정</h3><button class="btn ghost" data-close="1">닫기</button></div>
+      <label class="f" for="te-name">여행 이름<input type="text" id="te-name" data-te="name" value="${esc(f.name)}"></label>
+      <div class="grid2"><label class="f" for="te-start">시작일<input type="date" id="te-start" data-te="start" value="${f.start}"></label><label class="f" for="te-end">마지막 날<input type="date" id="te-end" data-te="end" value="${f.end}"></label></div>
+      <p class="small muted">날짜를 바꾸면 그 날짜의 날씨를 다시 받아서 날짜별 코디와 짐 리스트를 새로 짜요. 남는 날짜의 직접 고친 코디는 그대로 둬요.</p>
+      ${s.msg ? `<p class="banner${s.err ? " err" : ""}">${esc(s.msg)}</p>` : ""}
+      <button class="btn primary" id="tripEditSave" ${s.busy ? "disabled" : ""}>${s.busy ? "날씨 받는 중…" : "저장"}</button>`;
   } else if (s.kind === "item") {
     const p = S.items.get(s.id); if (!p) { closeSheet(); return; }
     h = `${sheetHead(withW(p))}
@@ -2043,6 +2037,35 @@ document.addEventListener("click", e => {
     closeSheet();
   }
 });
+// Rename a trip or move its dates. Weather is fetched again for the new dates; edits on dates that remain are kept.
+async function saveTripEdit() {
+  const s = S.sheet, t = S.trips.get(s.id), f = s.form;
+  if (!t) return closeSheet();
+  if (!f.name.trim() || !f.start || !f.end) { s.msg = "여행 이름과 날짜를 모두 넣어 주세요."; s.err = true; return renderSheet(); }
+  if (f.end < f.start) { s.msg = "마지막 날이 시작일보다 빨라요."; s.err = true; return renderSheet(); }
+  const dates = dateRange(f.start, f.end), keep = new Set(dates);
+  const sameDates = f.start === t.start && f.end === t.end;
+  let days = t.days;
+  if (!sameDates) {
+    s.busy = true; s.msg = ""; renderSheet();
+    let fresh = [];
+    if (t.place?.lat != null) { try { fresh = await tripWeather(t.place, dates); } catch { fresh = []; } }
+    // Dates the weather service could not give: reuse a day we already had, else the trip's average.
+    const old = new Map(t.days.map(d => [d.date, d])), got = new Map(fresh.map(d => [d.date, d]));
+    const avg = k => t.days.reduce((a, d) => a + d[k], 0) / Math.max(1, t.days.length);
+    days = dates.map(date => got.get(date) || old.get(date) || { date, max: avg("max"), min: avg("min"), fmax: avg("fmax"), fmin: avg("fmin"), pop: 0, code: 1, src: "manual" });
+    s.busy = false;
+  }
+  const pick = o => Object.fromEntries(Object.entries(o || {}).filter(([d]) => keep.has(d)));
+  await saveTrip(t, { name: f.name.trim(), start: f.start, end: f.end, days, edits: pick(t.edits), ranks: pick(t.ranks) });
+  closeSheet(); toast("여행을 수정했어요.");
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-tripedit], #tripEditSave"); if (!b) return;
+  if (b.dataset.tripedit) openSheet({ kind: "tripedit", id: b.dataset.tripedit });
+  else saveTripEdit();
+});
+document.addEventListener("input", e => { if (e.target.dataset?.te && S.sheet?.form) S.sheet.form[e.target.dataset.te] = e.target.value; });
 document.addEventListener("input", e => { if (e.target.id === "sheetQ") { S.sheet.q = e.target.value; const pos = e.target.selectionStart; renderSheet(); const q = $("#sheetQ"); q.focus(); q.setSelectionRange(pos, pos); } });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && S.sheet) closeSheet(); });
 document.addEventListener("click", e => { if (e.target.id === "clearBan") { S.ban.clear(); S.recCache = null; render(); } });
@@ -2106,7 +2129,8 @@ function bulkPrompt() {
 - thickness: thin(얇음) / normal(보통) / thick(두꺼움).
 - fit: 상품명과 사진의 실루엣. length: crop(짧음) / regular / long.
 - mood: 가장 가까운 스타일 하나.
-- box_2d: 이미지 안에서 이 상품의 썸네일 사진(상품 사진만, 글자 제외) 영역 [ymin, xmin, ymax, xmax]. 이미지 크기 대비 0~1000 정수.
+- option: 캡처에 보이는 옵션 텍스트 그대로 (예: "블랙 / M"). 없으면 "".
+- search_query: 쇼핑 검색창에 넣으면 이 상품이 바로 나오도록 "브랜드 + 정확한 상품명 + 컬러" 한 줄. 캡처에 적힌 표기(한글/영문)를 그대로 쓰고, 사이즈·수량·가격·"[당일발송]" 같은 말은 빼요. 예: "노스페이스 여성 눕시 숏 자켓 블랙".
 
 type 목록: ${list(TYPES, t => t.label)}
 color 목록: ${list(COLORS, c => c.label)}
@@ -2117,10 +2141,10 @@ mood 목록: ${list(MOODS, x => x)}`;
 const bulkSchema = () => {
   const E = o => ({ type: "STRING", enum: Object.keys(o) });
   return { type: "OBJECT", required: ["items"], properties: { items: { type: "ARRAY", items: { type: "OBJECT",
-    required: ["brand", "name", "type", "color", "material", "thickness", "fit", "length", "mood", "box_2d"],
+    required: ["brand", "name", "type", "color", "material", "thickness", "fit", "length", "mood", "option", "search_query"],
     properties: { brand: { type: "STRING" }, name: { type: "STRING" }, type: E(TYPES), color: E(COLORS), material: E(MATERIALS),
       thickness: E(THICK), fit: E(FITS), length: { type: "STRING", enum: ["crop", "regular", "long"] }, mood: E(MOODS),
-      box_2d: { type: "ARRAY", items: { type: "INTEGER" } } } } } } };
+      option: { type: "STRING" }, search_query: { type: "STRING" } } } } } };
 };
 async function callGemini(data, mimeType) {
   const key = gemKey(); if (!key) throw { code: "no_key" };
@@ -2158,7 +2182,7 @@ function gemErr(e) {
   }
 }
 // Check what Gemini returned against our own catalog; an explicit item noun in the name wins over a slot mix-up.
-function cleanGemini(x, img) {
+function cleanGemini(x) {
   // Tidy shop noise the model may leave in: "[W]", "- 5color", product codes like NJ1DR94A / VR2597B-WT.
   const name = String(x?.name || "").replace(/^\s*(\[[^\]]{0,12}\]\s*)+/, "").replace(/\s*[-·|/]\s*\d+\s*colou?rs?\s*$/i, "")
     .replace(/\b(?=[A-Z0-9-]*\d)(?=[A-Z0-9-]*[A-Z])[A-Z0-9][A-Z0-9-]{5,}\b/g, "").replace(/\s+/g, " ").trim().slice(0, 40), g = guessItem(name);
@@ -2168,19 +2192,43 @@ function cleanGemini(x, img) {
   type = type || g.type || "tee_l";
   let fit = FITS[x?.fit] ? x.fit : "";
   if (["crop", "long"].includes(x?.length) && (!fit || fit === "regular")) fit = x.length;
-  const b = Array.isArray(x?.box_2d) && x.box_2d.length === 4 ? x.box_2d.map(Number) : null;
-  const box = b && b.every(isFinite) ? [b[1] / 1000, b[0] / 1000, b[3] / 1000, b[2] / 1000] : null;
+  const brand = String(x?.brand || "").trim().slice(0, 30), color = COLORS[x?.color] ? x.color : g.color || "gray";
+  const query = String(x?.search_query || "").replace(/\s+/g, " ").trim() || [brand, name, COLORS[color].label].filter(Boolean).join(" ");
   return {
-    keep: true, brand: String(x?.brand || "").trim().slice(0, 30), name: name || TYPES[type].label, type,
-    color: COLORS[x?.color] ? x.color : g.color || "gray", material: MATERIALS[x?.material] ? x.material : g.material || "cotton",
+    keep: true, brand, name: name || TYPES[type].label, type, color,
+    material: MATERIALS[x?.material] ? x.material : g.material || "cotton",
     thickness: THICK[x?.thickness] ? x.thickness : g.thickness || "normal", fit, mood: MOODS[x?.mood] ? x.mood : "",
-    photo: box ? cropTo(img, box) : null,
+    option: String(x?.option || "").slice(0, 40), query: query.slice(0, 100),
+    cands: [], ci: 0, search: "idle", photo: null,
   };
+}
+// High-res product photos: search the shop by brand + name + color (server-side, Naver Shopping).
+// No result, not logged in, or search not set up → the item keeps the category illustration.
+async function findPhotos() {
+  if (!me) { B.photoNote = "로그인하면 상품 사진을 자동으로 찾아 넣어요. 지금은 종류별 그림으로 넣어요."; return; }
+  B.photoNote = "";
+  await Promise.all(B.items.map(async x => {
+    x.search = "busy"; renderBulk();
+    try { const out = await ai("find_images", { query: x.query }); x.cands = (out?.items || []).map(r => r.image); x.search = x.cands.length ? "done" : "none"; }
+    catch (e) {
+      x.search = "none";
+      if (e?.code === "search_not_configured") B.photoNote = "상품 사진 검색이 아직 설정되지 않았어요. (Supabase에 네이버 검색 키를 넣으면 켜져요) 지금은 종류별 그림으로 넣어요.";
+    }
+    renderBulk();
+  }));
+}
+// Shrink a photo for storage (longest side 800px, JPEG).
+function shrink(img, max = 800) {
+  const k = Math.min(1, max / Math.max(img.width, img.height)), c = document.createElement("canvas");
+  c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+  const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL("image/jpeg", 0.86);
 }
 async function bulkFile(file) {
   if (B.busy) return;
-  if (!file?.type?.startsWith("image/")) { B.open = true; B.msg = "이미지 파일(JPG, PNG, WEBP)을 올려 주세요."; B.err = true; renderBulk(); return; }
-  B.open = true; B.items = []; B.err = false;
+  if (S.tab !== "add" || S.add.method !== "capture") { S.tab = "add"; S.add.method = "capture"; S.add.editing = null; render(); }
+  if (!file?.type?.startsWith("image/")) { B.msg = "이미지 파일(JPG, PNG, WEBP)을 올려 주세요."; B.err = true; renderBulk(); return; }
+  B.items = []; B.err = false; B.photoNote = "";
   let img;
   try { img = await loadImg(file); } catch { B.msg = "이미지를 열 수 없어요. 다른 파일로 시도해 주세요."; B.err = true; renderBulk(); return; }
   B.preview = cropTo(img);
@@ -2193,20 +2241,42 @@ async function bulkFile(file) {
     const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
     const data = c.toDataURL("image/jpeg", 0.9).split(",")[1];
     const raw = (await callGemini(data, "image/jpeg")).slice(0, 30);
-    B.items = raw.map(x => cleanGemini(x, img));
+    B.items = raw.map(cleanGemini);
     B.msg = B.items.length ? `${B.items.length}벌을 찾았어요. 맞는지 확인하고 등록해 주세요.` : "이미지에서 패션 아이템을 찾지 못했어요. 다른 캡처로 시도해 주세요.";
     B.err = !B.items.length;
   } catch (e) { B.msg = gemErr(e); B.err = true; if (["no_key", "bad_key", "bad_model"].includes(e?.code)) B.settings = true; }
   B.busy = false; renderBulk();
+  if (B.items.length) findPhotos();
 }
+const isCapture = () => S.tab === "add" && S.add.method === "capture";
+// Redraw the capture section (it lives in the 옷 추가 tab) without losing the field being typed in.
 function renderBulk() {
-  const el = $("#bulk"); el.hidden = !B.open; document.body.classList.toggle("noscroll", B.open || !!S.sheet);
-  if (!B.open) return;
+  if (!isCapture()) return;
+  const a = document.activeElement, sel = a?.dataset?.bk ? `[data-bk="${a.dataset.bk}"][data-bi="${a.dataset.bi}"]` : a?.id ? "#" + a.id : null;
+  const pos = a && "selectionStart" in a ? a.selectionStart : null;
+  renderAdd();
+  const n = sel && document.querySelector(sel);
+  if (n && n !== document.activeElement) { n.focus(); if (pos != null && n.setSelectionRange && n.type !== "checkbox") try { n.setSelectionRange(pos, pos); } catch {} }
+}
+function bulkPhoto(x, i) {
+  if (x.search === "busy") return `<span class="tile-img sm searching" aria-label="사진 찾는 중">${silhouetteSVG(x)}</span>`;
+  const url = !x.noPhoto && x.cands[x.ci];
+  return `<span class="tile-img sm">${url ? `<img src="${esc(url)}" alt="" referrerpolicy="no-referrer" onerror="bulkImgFail(${i}, this.getAttribute('src'))">` : silhouetteSVG(x)}</span>
+    <span class="bulk-ph-acts">${url && x.cands.length > 1 ? `<button type="button" data-bnext="${i}">다른 사진</button>` : ""}${url ? `<button type="button" data-bnophoto="${i}">사진 빼기</button>` : !x.noPhoto ? `<span>${x.search === "none" ? "사진 없음" : ""}</span>` : `<button type="button" data-bphoto="${i}">사진 넣기</button>`}</span>`;
+}
+// A found photo that does not load: try the next candidate, then fall back to the illustration.
+// The same broken image can report twice (one per redraw), so remove it by address, not by position.
+window.bulkImgFail = (i, src) => {
+  const x = B.items[i], k = x ? x.cands.indexOf(src) : -1; if (k < 0) return;
+  x.cands.splice(k, 1); if (x.ci >= x.cands.length) x.ci = 0; if (!x.cands.length) x.search = "none"; renderBulk();
+};
+function bulkHTML() {
   const n = B.items.filter(x => x.keep).length, hasKey = !!gemKey();
   const typeOpts = x => SLOT_ORDER.map(s => `<optgroup label="${SLOTS[s]}">${Object.entries(TYPES).filter(([, t]) => t.slot === s).map(([k, t]) => `<option value="${k}" ${x.type === k ? "selected" : ""}>${t.label}</option>`).join("")}</optgroup>`).join("");
   const opts = (o, v, f, auto) => (auto ? `<option value="">${auto}</option>` : "") + Object.entries(o).map(([k, x]) => `<option value="${k}" ${v === k ? "selected" : ""}>${f(x)}</option>`).join("");
-  el.querySelector(".sheet-body").innerHTML = `
-    <div class="sheet-top"><h3 id="bulkTitle">📸 주문내역 캡처로 일괄 등록</h3><button class="btn ghost" data-bclose="1">닫기</button></div>
+  return `<div class="card capture">
+    <h3>주문내역 캡처로 한 번에 등록</h3>
+    <p class="small muted">무신사·29CM 주문 내역이나 옷 사진을 올리면 Gemini가 옷마다 브랜드·상품명·색을 읽고, 쇼핑몰에서 선명한 상품 사진을 찾아 넣어요.</p>
     <details class="gem-set" ${B.settings || !hasKey ? "open" : ""}><summary>⚙️ Gemini 설정 <span class="muted small">${hasKey ? `키 저장됨 · ${esc(gemModel())}` : "API 키가 필요해요"}</span></summary>
       <div class="stack" style="margin-top:10px">
         <label class="f" for="gemKey">Gemini API Key<input type="password" id="gemKey" autocomplete="off" spellcheck="false" placeholder="${hasKey ? "저장됨 (바꾸려면 새로 입력)" : "API 키 붙여넣기"}"></label>
@@ -2218,10 +2288,11 @@ function renderBulk() {
       ${B.preview && !B.items.length ? `<img src="${esc(B.preview)}" alt="올린 캡처">` : `<b>캡처 선택</b>`}
       <span>또는 Ctrl+V로 붙여넣기 · 여기에 끌어다 놓기</span></label>
     ${B.msg ? `<p class="banner${B.err ? " err" : ""}">${esc(B.msg)}</p>` : ""}
-    ${B.items.length ? `<div class="sheet-scroll bulk-list">${B.items.map((x, i) => `
+    ${B.photoNote ? `<p class="small muted">${esc(B.photoNote)}</p>` : ""}
+    ${B.items.length ? `<div class="bulk-list">${B.items.map((x, i) => `
       <div class="bulk-row${x.keep ? "" : " off"}">
         <label class="bulk-check"><input type="checkbox" data-bkeep="${i}" ${x.keep ? "checked" : ""} aria-label="${esc(x.name)} 등록"></label>
-        <span class="tile-img sm">${x.photo ? `<img src="${esc(x.photo)}" alt="">` : silhouetteSVG(x)}</span>
+        <div class="bulk-ph">${bulkPhoto(x, i)}</div>
         <div class="bulk-fields">
           <div class="grid2"><input type="text" data-bk="brand" data-bi="${i}" value="${esc(x.brand)}" placeholder="브랜드" aria-label="브랜드" list="brandList"><input type="text" data-bk="name" data-bi="${i}" value="${esc(x.name)}" placeholder="옷 이름" aria-label="옷 이름"></div>
           <div class="bulk-sel">
@@ -2230,21 +2301,37 @@ function renderBulk() {
             <select data-bk="fit" data-bi="${i}" aria-label="핏">${opts(FITS, x.fit, f => f, "핏 자동")}</select>
             <select data-bk="thickness" data-bi="${i}" aria-label="두께">${opts(THICK, x.thickness, t => t.label)}</select>
           </div>
+          ${x.option ? `<div class="small muted ell">옵션: ${esc(x.option)}</div>` : ""}
         </div>
       </div>`).join("")}</div>
-      <button class="btn primary" id="bulkSave" ${n ? "" : "disabled"}>선택한 옷 일괄 등록 (${n}개)</button>` : ""}`;
+      <button class="btn primary" id="bulkSave" ${n && !B.busy ? "" : "disabled"}>${B.busy ? "등록하는 중…" : `선택한 옷 일괄 등록 (${n}개)`}</button>` : ""}
+  </div>`;
 }
+// Download each chosen photo through the server (so it can be stored and drawn on the outfit board), then save.
 async function bulkSave() {
   const keep = B.items.filter(x => x.keep && x.name.trim());
-  if (!keep.length) return;
-  for (const x of keep) await addItem(x, "capture");
-  B.open = false; B.items = []; B.preview = null; B.msg = ""; renderBulk();
-  S.tab = "closet"; render(); toast(`${keep.length}벌을 옷장에 등록했어요.`);
+  if (!keep.length || B.busy) return;
+  B.busy = true; B.msg = "옷장에 넣는 중이에요… (상품 사진 내려받는 중)"; B.err = false; renderBulk();
+  let noPhoto = 0;
+  for (const x of keep) {
+    const url = !x.noPhoto && x.cands[x.ci];
+    let photo = null;
+    if (url && me) {
+      try { const out = await ai("image", { url }); photo = shrink(await loadImg(await (await fetch(out.image)).blob())); } catch { photo = null; }
+    }
+    if (!photo) noPhoto++;
+    await addItem({ ...x, photo }, "capture");
+  }
+  B.busy = false; B.items = []; B.preview = null; B.msg = ""; B.photoNote = "";
+  S.tab = "closet"; render();
+  toast(`${keep.length}벌을 옷장에 등록했어요.${noPhoto ? ` (${noPhoto}벌은 종류별 그림으로 넣었어요)` : ""}`);
 }
 document.addEventListener("click", e => {
-  const b = e.target.closest("#bulkOpen, [data-bclose], #gemSave, #gemClear, #bulkSave"); if (!b) return;
-  if (b.id === "bulkOpen") { B.open = true; B.msg = ""; B.err = false; renderBulk(); }
-  else if (b.dataset.bclose) { if (!B.busy) { B.open = false; renderBulk(); } }
+  const b = e.target.closest("#gemSave, #gemClear, #bulkSave, [data-bnext], [data-bnophoto], [data-bphoto]"); if (!b) return;
+  const ds = b.dataset;
+  if (ds.bnext) { const x = B.items[+ds.bnext]; x.ci = (x.ci + 1) % x.cands.length; renderBulk(); }
+  else if (ds.bnophoto) { B.items[+ds.bnophoto].noPhoto = true; renderBulk(); }
+  else if (ds.bphoto) { B.items[+ds.bphoto].noPhoto = false; renderBulk(); }
   else if (b.id === "gemSave") {
     const k = $("#gemKey").value.trim(), m = $("#gemModel").value.trim();
     if (k) LS.set("ondo.geminiKey", k);
@@ -2263,16 +2350,16 @@ document.addEventListener("change", e => {
   if (el.dataset.bk && el.tagName === "SELECT") { B.items[+el.dataset.bi][el.dataset.bk] = el.value; if (el.dataset.bk === "type" || el.dataset.bk === "color") renderBulk(); }
 });
 document.addEventListener("input", e => { const el = e.target; if (el.dataset.bk && el.tagName === "INPUT") B.items[+el.dataset.bi][el.dataset.bk] = el.value; });
-// Drag & drop: onto the modal, or anywhere on the closet screen.
-document.addEventListener("dragover", e => { if (B.open || S.tab === "closet") { e.preventDefault(); $("#bulkDrop")?.classList.add("over"); } });
+// Drag & drop: onto the capture section, or anywhere on the closet screen (it opens the capture section).
+const dropOK = () => isCapture() || S.tab === "closet";
+document.addEventListener("dragover", e => { if (dropOK()) { e.preventDefault(); $("#bulkDrop")?.classList.add("over"); } });
 document.addEventListener("dragleave", e => { if (!e.relatedTarget) $("#bulkDrop")?.classList.remove("over"); });
 document.addEventListener("drop", e => {
-  if (!(B.open || S.tab === "closet")) return;
+  if (!dropOK()) return;
   e.preventDefault(); $("#bulkDrop")?.classList.remove("over");
   const file = [...(e.dataTransfer?.files || [])].find(f => f.type.startsWith("image/"));
   if (file) bulkFile(file);
 });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && B.open && !B.busy) { B.open = false; renderBulk(); } });
 
 boot();
 </script>
