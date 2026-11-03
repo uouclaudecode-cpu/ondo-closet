@@ -1,0 +1,7 @@
+# Claude 앱 안에서 쓰던 예전 프로토타입 (사이트에는 필요 없음)
+ondo-closet.html
+
+# 로컬 비밀값
+.env
+.env.*
+supabase/.temp/

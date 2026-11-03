@@ -1,0 +1,1247 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>온도 옷장</title>
+<meta name="description" content="내 옷장의 옷과 오늘 체감온도로 코디를 추천해 주는 옷장 앱">
+<meta name="theme-color" content="#F2F4F6">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231D3550'/%3E%3Cpath d='M32 22 L68 22 L88 36 L80 50 L70 44 L70 82 L30 82 L30 44 L20 50 L12 36 Z' fill='%23E9C46A'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one phone-width column; a thermal scale (cold blue → warm amber) is the only loud element, everything else is ink on cool paper. */
+:root {
+  --bg: #F2F4F6;
+  --surface: #FFFFFF;
+  --sunken: #E8ECF0;
+  --ink: #16202A;
+  --muted: #5D6976;
+  --line: #D6DCE3;
+  --primary: #1D3550;
+  --on-primary: #FFFFFF;
+  --cold: #3D6FD6;
+  --cool: #8DB3E6;
+  --mild: #E9C46A;
+  --warm: #E2683C;
+  --good: #2E8B57;
+  --bad: #C2413A;
+  --f-display: "Hahmlet", "Noto Serif KR", Georgia, serif;
+  --f-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --r: 14px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0E1318; --surface: #171E26; --sunken: #212A34; --ink: #E7ECF1; --muted: #93A0AD; --line: #2C3743;
+  --primary: #CFE0F5; --on-primary: #0E1318; --cold: #6E97EC; --cool: #9DBDEB; --mild: #E7C66F; --warm: #EE8460;
+  --good: #5CC08A; --bad: #EE7B73; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0E1318; --surface: #171E26; --sunken: #212A34; --ink: #E7ECF1; --muted: #93A0AD; --line: #2C3743;
+  --primary: #CFE0F5; --on-primary: #0E1318; --cold: #6E97EC; --cool: #9DBDEB; --mild: #E7C66F; --warm: #EE8460;
+  --good: #5CC08A; --bad: #EE7B73; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; -webkit-text-size-adjust: 100%; }
+img { max-width: 100%; }
+.acct { border: 0; cursor: pointer; }
+.auth { max-width: 420px; margin: 24px auto 0; }
+.auth h2 { font-size: 1.5rem; }
+.auth .lede { color: var(--muted); }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 560px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 12px 64px; display: flex; flex-direction: column; gap: 18px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; font-weight: 700; }
+h3 { font-size: 1rem; font-weight: 700; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 0.85rem; }
+.num { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--cold); outline-offset: 2px; }
+
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); display: flex; flex-direction: column; gap: 10px; padding-block: 6px 4px; }
+.brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.brand h1 { font-size: 1.45rem; font-weight: 800; }
+.brand h1 span { color: var(--warm); }
+.brand-l { font-size: 0.72rem; font-weight: 700; letter-spacing: .04em; color: var(--muted); overflow-wrap: anywhere; }
+.brand-i { letter-spacing: .02em; text-transform: none; }
+.filters { gap: 10px; padding: 12px; }
+.trip-day { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: start; padding: 12px 0; border-top: 1px solid var(--line); }
+.trip-day:first-of-type { border-top: 0; }
+.trip-day .dt { font-family: var(--f-display); font-weight: 700; line-height: 1.2; }
+.trip-day .dt small { display: block; font-family: var(--f-data); font-weight: 500; font-size: .72rem; color: var(--muted); }
+.strip { display: flex; gap: 6px; flex-wrap: wrap; margin-block: 6px; }
+.strip .thumb, .strip .swatch { width: 40px; height: 40px; }
+.pack { display: flex; flex-direction: column; gap: 4px; }
+.pack label { display: flex; gap: 8px; align-items: center; font-size: .9rem; }
+.pack label.done span { text-decoration: line-through; color: var(--muted); }
+.trip-list { display: flex; flex-direction: column; gap: 8px; }
+.trip-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; text-align: left; width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 12px 14px; }
+.tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background: var(--sunken); padding: 4px; border-radius: 12px; }
+.tabs button { border: 0; background: transparent; padding: 8px 4px; border-radius: 9px; font-weight: 600; color: var(--muted); }
+.tabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .08); }
+
+.banner { font-size: 0.85rem; padding: 10px 12px; border-radius: 10px; background: var(--sunken); color: var(--muted); }
+.banner.err { color: var(--bad); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.between { justify-content: space-between; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 8px 14px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--muted); padding-inline: 8px; }
+.btn.danger { color: var(--bad); }
+.btn:disabled { opacity: .5; cursor: default; }
+.chip { border: 1px solid var(--line); background: var(--surface); padding: 5px 11px; border-radius: 999px; font-size: 0.85rem; font-weight: 500; }
+.chip[aria-pressed="true"] { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+.tag { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--sunken); color: var(--muted); letter-spacing: .02em; }
+.tag.example { background: color-mix(in srgb, var(--mild) 30%, transparent); color: var(--ink); }
+.tag.live { background: color-mix(in srgb, var(--good) 20%, transparent); color: var(--good); }
+
+/* weather hero */
+.wx { display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; align-items: end; }
+.wx .big { font-family: var(--f-display); font-weight: 800; font-size: 3.6rem; line-height: .95; letter-spacing: -0.03em; }
+.wx .big small { font-size: 1.4rem; font-weight: 700; }
+.wx dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-size: 0.85rem; }
+.wx dt { color: var(--muted); }
+.wx dd { margin: 0; font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+
+.scale { position: relative; height: 10px; border-radius: 999px; background: linear-gradient(90deg, var(--cold), var(--cool) 35%, var(--mild) 68%, var(--warm)); }
+.scale .pin { position: absolute; top: 50%; width: 18px; height: 18px; border-radius: 50%; background: var(--surface); border: 3px solid var(--ink); transform: translate(-50%, -50%); }
+.scale .range { position: absolute; top: -4px; bottom: -4px; border: 2px solid var(--ink); border-radius: 999px; opacity: .35; }
+.scale-labels { display: flex; justify-content: space-between; font-family: var(--f-data); font-size: 0.7rem; color: var(--muted); }
+.band { font-size: 0.9rem; }
+.band b { font-weight: 700; }
+
+.places { display: flex; gap: 6px; flex-wrap: wrap; }
+.search { display: flex; gap: 6px; }
+.search input { flex: 1; min-width: 0; }
+input[type="text"], input[type="url"], input[type="number"], input[type="email"], input[type="date"], select { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 10px; width: 100%; }
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; font-weight: 600; color: var(--muted); letter-spacing: .02em; min-width: 0; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* outfit */
+.outfit { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--surface); }
+.outfit-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.outfit-head h3 { font-size: 1.05rem; }
+.piece { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; padding: 9px 14px; border-bottom: 1px solid var(--line); }
+.piece:last-of-type { border-bottom: 0; }
+.piece .slot { font-size: 0.7rem; font-weight: 700; color: var(--muted); letter-spacing: .06em; }
+.piece .name { font-weight: 600; overflow-wrap: anywhere; }
+.thumb { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; display: block; border: 1px solid var(--line); }
+.swatch { width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--line); display: grid; place-items: center; font-size: 0.7rem; font-weight: 700; }
+.pts { font-family: var(--f-data); font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.meter { padding: 12px 14px; background: var(--sunken); display: flex; flex-direction: column; gap: 6px; }
+.meter-bar { position: relative; height: 8px; border-radius: 999px; background: var(--line); }
+.meter-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: var(--ink); }
+.meter-bar .goal { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--warm); }
+.tips { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; }
+.tips li { margin-left: 1.1em; }
+.tips ul { margin: 0; padding: 0; }
+.outfit-foot { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 14px; border-top: 1px solid var(--line); }
+.board-wrap { padding: 14px; border-bottom: 1px solid var(--line); background: var(--sunken); }
+.board { display: block; width: 100%; max-width: 100%; aspect-ratio: 9 / 14; height: auto; border-radius: 10px; background: #FFFFFF; box-shadow: 0 1px 3px rgb(0 0 0 / .12); }
+.item .ph:not(.sw) { object-fit: contain; background: #FFFFFF; }
+.ai-note { font-size: 0.88rem; padding: 0 14px 12px; color: var(--ink); }
+
+/* wardrobe */
+.closet { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.item { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+.item .ph { aspect-ratio: 1 / 1; max-width: 100%; width: 100%; object-fit: cover; display: block; background: var(--sunken); }
+.item .ph.sw { display: grid; place-items: center; font-family: var(--f-display); font-weight: 700; font-size: 1.1rem; }
+.item .body { padding: 10px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.item .name { font-weight: 600; font-size: 0.9rem; overflow-wrap: anywhere; }
+.item .meta { font-size: 0.75rem; color: var(--muted); }
+.item .acts { display: flex; gap: 4px; margin-top: auto; flex-wrap: wrap; }
+.item .acts .btn { padding: 5px 8px; font-size: 0.78rem; }
+.empty { text-align: center; padding: 28px 16px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+
+/* add */
+.methods { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.method { border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 12px; text-align: left; display: flex; flex-direction: column; gap: 2px; }
+.method b { font-size: 0.95rem; }
+.method span { font-size: 0.78rem; color: var(--muted); }
+.method[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.templates { display: flex; flex-wrap: wrap; gap: 6px; }
+.colors { display: flex; flex-wrap: wrap; gap: 6px; }
+.colors button { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); padding: 0; }
+.colors button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: var(--sunken); padding: 3px; border-radius: 10px; }
+.seg button { border: 0; background: transparent; padding: 6px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); }
+.preview-w { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; }
+.preview-w .meter-bar { flex: 1; }
+.photo-prev { width: 96px; height: 96px; border-radius: 12px; object-fit: cover; border: 1px solid var(--line); }
+.found { display: flex; flex-direction: column; gap: 8px; }
+.found .card { padding: 12px; }
+.feedback { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.feedback .btn { padding: 10px 4px; }
+.log { display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem; }
+.log div { display: flex; justify-content: space-between; gap: 8px; }
+@media (prefers-reduced-motion: no-preference) { .outfit { animation: rise .25s ease-out both; } @keyframes rise { from { transform: translateY(4px); } to { transform: none; } } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>온도<span>·</span>옷장</h1>
+      <button id="saveMode" class="tag acct" type="button">불러오는 중</button>
+    </div>
+    <nav class="tabs" role="tablist" id="tabs">
+      <button role="tab" id="tab-today" aria-selected="true" data-tab="today">오늘 코디</button>
+      <button role="tab" id="tab-closet" aria-selected="false" data-tab="closet">내 옷장</button>
+      <button role="tab" id="tab-trip" aria-selected="false" data-tab="trip">여행</button>
+      <button role="tab" id="tab-add" aria-selected="false" data-tab="add">옷 추가</button>
+    </nav>
+  </header>
+
+  <div id="notice" class="banner" hidden></div>
+
+  <section id="view-auth" class="stack" hidden></section>
+  <section id="view-today" class="stack"></section>
+  <section id="view-closet" class="stack" hidden></section>
+  <section id="view-trip" class="stack" hidden></section>
+  <section id="view-add" class="stack" hidden></section>
+  <input type="file" id="replaceIn" accept="image/jpeg,image/png,image/webp" hidden>
+  <datalist id="brandList"></datalist>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script>
+/* ---------- catalog ---------- */
+const SLOTS = { outer: "아우터", mid: "중간 레이어", inner: "이너·상의", bottom: "하의", shoes: "신발", acc: "잡화" };
+const SLOT_ORDER = ["outer", "mid", "inner", "bottom", "shoes", "acc"];
+const MAIN = ["outer", "mid", "inner", "bottom"];
+const TYPES = {
+  tee_s: { label: "반팔 티셔츠", slot: "inner", base: 1 },
+  tee_l: { label: "긴팔 티셔츠", slot: "inner", base: 2 },
+  shirt: { label: "셔츠·블라우스", slot: "inner", base: 2 },
+  thermal: { label: "발열 내의", slot: "inner", base: 2.5 },
+  sweat: { label: "맨투맨", slot: "mid", base: 3 },
+  hood: { label: "후드티", slot: "mid", base: 3.5 },
+  knit: { label: "니트", slot: "mid", base: 3.5 },
+  cardigan: { label: "가디건", slot: "mid", base: 2.5 },
+  fleece: { label: "플리스", slot: "mid", base: 4 },
+  vest: { label: "조끼·패딩조끼", slot: "mid", base: 2.5 },
+  windbreaker: { label: "바람막이", slot: "outer", base: 2 },
+  denim_jk: { label: "데님 자켓", slot: "outer", base: 2.5 },
+  blazer: { label: "블레이저", slot: "outer", base: 2.5 },
+  trench: { label: "트렌치코트", slot: "outer", base: 3 },
+  leather: { label: "가죽 자켓", slot: "outer", base: 3.5 },
+  light_down: { label: "경량 패딩", slot: "outer", base: 3.5 },
+  coat: { label: "코트", slot: "outer", base: 5 },
+  short_down: { label: "숏패딩", slot: "outer", base: 6 },
+  long_down: { label: "롱패딩", slot: "outer", base: 8 },
+  shorts: { label: "반바지", slot: "bottom", base: 0.5 },
+  skirt: { label: "치마", slot: "bottom", base: 1 },
+  slacks: { label: "슬랙스", slot: "bottom", base: 1.5 },
+  chino: { label: "면바지", slot: "bottom", base: 1.5 },
+  jeans: { label: "청바지", slot: "bottom", base: 2 },
+  lined_pants: { label: "기모 바지", slot: "bottom", base: 3 },
+  sneakers: { label: "운동화", slot: "shoes", base: 0.5, shape: "sneaker" },
+  loafers: { label: "로퍼·구두", slot: "shoes", base: 0.3, shape: "sneaker" },
+  sandals: { label: "샌들", slot: "shoes", base: 0, shape: "sneaker" },
+  boots: { label: "앵클부츠", slot: "shoes", base: 1, shape: "boot" },
+  long_boots: { label: "롱부츠", slot: "shoes", base: 1.5, shape: "longboot" },
+  beanie: { label: "비니", slot: "acc", base: 1, warm: true, hat: true, shape: "beanie" },
+  beret: { label: "베레모", slot: "acc", base: 0.8, hat: true, shape: "beret" },
+  cap: { label: "볼캡", slot: "acc", base: 0.2, hat: true, shape: "cap" },
+  scarf: { label: "목도리·머플러", slot: "acc", base: 1.5, warm: true, shape: "scarf" },
+  gloves: { label: "장갑", slot: "acc", base: 0.8, warm: true, shape: "gloves" },
+  bag: { label: "가방", slot: "acc", base: 0, shape: "bag" },
+};
+const MATERIALS = {
+  cotton: { label: "면", mult: 1 }, linen: { label: "린넨", mult: 0.7 }, poly: { label: "폴리에스터", mult: 0.95 },
+  nylon: { label: "나일론", mult: 0.9 }, rayon: { label: "레이온", mult: 0.85 }, denim: { label: "데님", mult: 1.05 },
+  acrylic: { label: "아크릴", mult: 1.05 }, wool: { label: "울", mult: 1.25 }, cashmere: { label: "캐시미어", mult: 1.35 },
+  fleece: { label: "기모·플리스", mult: 1.25 }, down: { label: "다운(오리·거위털)", mult: 1.3 }, leather: { label: "가죽", mult: 1.1 },
+};
+const THICK = { thin: { label: "얇음", mult: 0.75 }, normal: { label: "보통", mult: 1 }, thick: { label: "두꺼움", mult: 1.3 } };
+const COLORS = {
+  black: { label: "검정", hex: "#1E1F22", neutral: true }, white: { label: "흰색", hex: "#F7F7F5", neutral: true },
+  gray: { label: "회색", hex: "#9A9EA4", neutral: true }, charcoal: { label: "차콜", hex: "#45484D", neutral: true },
+  navy: { label: "네이비", hex: "#22304F", neutral: true }, beige: { label: "베이지", hex: "#D9C7A7", neutral: true },
+  ivory: { label: "아이보리", hex: "#EFE8D8", neutral: true }, denim: { label: "청색", hex: "#4F6F9C", neutral: true },
+  brown: { label: "브라운", hex: "#7A5134", neutral: false }, khaki: { label: "카키", hex: "#6F6A43", neutral: false },
+  green: { label: "그린", hex: "#3F7A55", neutral: false }, blue: { label: "블루", hex: "#3E73C9", neutral: false },
+  skyblue: { label: "하늘색", hex: "#A9CBEB", neutral: false }, red: { label: "레드", hex: "#B93A32", neutral: false },
+  burgundy: { label: "버건디", hex: "#6E2433", neutral: false }, pink: { label: "핑크", hex: "#E7A9B8", neutral: false },
+  yellow: { label: "옐로", hex: "#E8C547", neutral: false }, purple: { label: "퍼플", hex: "#7158A6", neutral: false },
+};
+const TEMPLATES = [
+  { name: "검정 롱패딩", type: "long_down", color: "black", material: "down", thickness: "thick" },
+  { name: "베이지 트렌치코트", type: "trench", color: "beige", material: "cotton", thickness: "normal" },
+  { name: "차콜 울 코트", type: "coat", color: "charcoal", material: "wool", thickness: "normal" },
+  { name: "네이비 경량 패딩", type: "light_down", color: "navy", material: "down", thickness: "thin" },
+  { name: "청 데님 자켓", type: "denim_jk", color: "denim", material: "denim", thickness: "normal" },
+  { name: "회색 울 니트", type: "knit", color: "gray", material: "wool", thickness: "normal" },
+  { name: "아이보리 꽈배기 니트", type: "knit", color: "ivory", material: "acrylic", thickness: "thick" },
+  { name: "네이비 맨투맨", type: "sweat", color: "navy", material: "cotton", thickness: "normal" },
+  { name: "카키 가디건", type: "cardigan", color: "khaki", material: "wool", thickness: "thin" },
+  { name: "흰색 반팔 티", type: "tee_s", color: "white", material: "cotton", thickness: "normal" },
+  { name: "검정 긴팔 티", type: "tee_l", color: "black", material: "cotton", thickness: "normal" },
+  { name: "하늘색 옥스포드 셔츠", type: "shirt", color: "skyblue", material: "cotton", thickness: "normal" },
+  { name: "발열 내의", type: "thermal", color: "black", material: "poly", thickness: "thin" },
+  { name: "연청 청바지", type: "jeans", color: "denim", material: "denim", thickness: "normal" },
+  { name: "검정 슬랙스", type: "slacks", color: "black", material: "poly", thickness: "normal" },
+  { name: "베이지 면바지", type: "chino", color: "beige", material: "cotton", thickness: "normal" },
+  { name: "회색 기모 조거", type: "lined_pants", color: "gray", material: "fleece", thickness: "thick" },
+  { name: "네이비 데님 미니스커트", type: "skirt", color: "navy", material: "denim", thickness: "normal" },
+  { name: "흰색 운동화", type: "sneakers", color: "white", material: "leather", thickness: "normal" },
+  { name: "검정 로퍼", type: "loafers", color: "black", material: "leather", thickness: "normal" },
+  { name: "브라운 롱부츠", type: "long_boots", color: "brown", material: "leather", thickness: "normal" },
+  { name: "검정 비니", type: "beanie", color: "black", material: "acrylic", thickness: "normal" },
+  { name: "브라운 베레모", type: "beret", color: "brown", material: "wool", thickness: "normal" },
+  { name: "회색 울 머플러", type: "scarf", color: "gray", material: "wool", thickness: "normal" },
+  { name: "검정 가죽 장갑", type: "gloves", color: "black", material: "leather", thickness: "normal" },
+  { name: "브라운 가죽 토트백", type: "bag", color: "brown", material: "leather", thickness: "normal" },
+];
+const STARTER = ["검정 롱패딩", "베이지 트렌치코트", "청 데님 자켓", "회색 울 니트", "네이비 맨투맨", "카키 가디건", "흰색 반팔 티", "검정 긴팔 티", "하늘색 옥스포드 셔츠", "연청 청바지", "검정 슬랙스", "베이지 면바지", "흰색 운동화", "브라운 롱부츠", "검정 비니", "회색 울 머플러", "브라운 가죽 토트백"];
+const PLACES = [
+  { name: "서울", lat: 37.57, lon: 126.98 }, { name: "부산", lat: 35.18, lon: 129.08 }, { name: "제주", lat: 33.5, lon: 126.53 },
+  { name: "도쿄", lat: 35.68, lon: 139.69 }, { name: "오사카", lat: 34.69, lon: 135.5 }, { name: "삿포로", lat: 43.06, lon: 141.35 },
+];
+const WMO = c => c === 0 ? "맑음" : c <= 2 ? "구름 조금" : c === 3 ? "흐림" : c <= 48 ? "안개" : c <= 57 ? "이슬비" : c <= 67 ? "비" : c <= 77 ? "눈" : c <= 82 ? "소나기" : c <= 86 ? "눈 소나기" : "뇌우";
+const BANDS = [
+  [28, "민소매, 반팔, 반바지, 원피스"], [23, "반팔, 얇은 셔츠, 면바지"], [20, "얇은 가디건, 긴팔, 면바지, 청바지"],
+  [17, "얇은 니트, 맨투맨, 가디건, 청바지"], [12, "자켓, 가디건, 야상, 니트"], [9, "자켓, 트렌치코트, 니트"],
+  [5, "코트, 가죽자켓, 히트텍, 니트"], [-99, "패딩, 두꺼운 코트, 목도리, 기모 제품"],
+];
+const bandFor = t => BANDS.find(b => t >= b[0])[1];
+
+/* ---------- warmth model ---------- */
+const warmth = it => Math.round((TYPES[it.type]?.base ?? 2) * (MATERIALS[it.material]?.mult ?? 1) * (THICK[it.thickness]?.mult ?? 1) * 10) / 10;
+const targetFor = t => Math.max(1.5, 1.5 + (28 - t) * 0.5);
+
+/* ---------- state ---------- */
+const EXAMPLE_WX = { source: "example", place: "서울", fetchedAt: "2026-11-03 14:30",
+  cur: { t: 15, feel: 13.8, code: 2, wind: 5.4 },
+  days: [{ date: "2026-11-03", max: 15.2, min: 5.4, fmax: 14.5, fmin: 2.7, pop: 14, code: 3 },
+         { date: "2026-11-04", max: 17.5, min: 7.8, fmax: 16.6, fmin: 6.4, pop: 1, code: 3 }] };
+const S = {
+  tab: "today", items: new Map(), logs: new Map(), prefs: { offset: 0, place: null },
+  wx: EXAMPLE_WX, day: 0, anchor: null, mode: "memory", loading: true,
+  wxBusy: false, wxMsg: "", manual: false, results: [], aiNotes: {}, boardOpen: null,
+  add: { method: "template", draft: null, found: [], busy: false, msg: "", photo: null },
+  confirmDel: null,
+  cf: { slot: "all", brand: "", color: "", material: "", thickness: "", q: "", sort: "recent" },
+  trips: new Map(), trip: { open: null, form: null, busy: false, msg: "" },
+};
+// sample: AI available (logged in + backend configured); caps mirrors the old image-capability check.
+let sb = null, me = null, sample = null, caps = null, downloads = true, photoFor = null;
+const CFG = window.ONDO_CONFIG || {};
+const CONFIGURED = /^https:\/\/.+\.supabase\.co/.test(CFG.supabaseUrl || "") && (CFG.supabaseAnonKey || "").length > 20;
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const today = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+const fmt = n => (Math.round(n * 10) / 10).toFixed(1).replace(/\.0$/, "");
+function notice(msg, err) { const n = $("#notice"); n.hidden = !msg; n.textContent = msg || ""; n.classList.toggle("err", !!err); }
+
+/* ---------- storage ---------- */
+// Every record is one row in closet_docs (user_id, id, data). The UI updates first, then the row is written.
+async function put(id, data) {
+  applyDoc(id, data); render();
+  if (S.mode !== "db") return;
+  const { error } = await sb.from("closet_docs").upsert({ user_id: me.id, id, data, updated_at: new Date().toISOString() });
+  if (error) notice("저장하지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.", true);
+}
+async function del(id) {
+  S.items.delete(id); S.logs.delete(id); S.trips.delete(id); render();
+  if (S.mode !== "db") return;
+  const { error } = await sb.from("closet_docs").delete().eq("user_id", me.id).eq("id", id);
+  if (error) notice("삭제하지 못했어요. 새로고침 후 다시 시도해 주세요.", true);
+}
+function applyDoc(id, d) {
+  if (id.startsWith("it_")) S.items.set(id, { ...d, id });
+  else if (id.startsWith("log_")) S.logs.set(id, { ...d, id });
+  else if (id.startsWith("trip_")) S.trips.set(id, { ...d, id });
+  else if (id === "prefs") S.prefs = { offset: 0, place: null, ...d };
+}
+const savePrefs = () => put("prefs", { offset: S.prefs.offset, place: S.prefs.place });
+
+/* ---------- accounts (Supabase) ---------- */
+async function loadAll() {
+  S.loading = true; render();
+  const { data, error } = await sb.from("closet_docs").select("id,data");
+  S.items.clear(); S.logs.clear(); S.trips.clear(); S.prefs = { offset: 0, place: null };
+  if (error) notice("옷장을 불러오지 못했어요. 새로고침해 주세요.", true);
+  else data.forEach(r => applyDoc(r.id, r.data));
+  S.loading = false; render();
+  if (S.prefs.place && S.wx.source === "example") loadWeather(S.prefs.place);
+}
+function onSession(session) {
+  const was = me?.id;
+  me = session?.user || null;
+  sample = me ? true : null; caps = me ? { images: true } : null;
+  if (me) { S.mode = "db"; S.guest = false; if (was !== me.id) loadAll(); }
+  else { S.mode = "memory"; S.items.clear(); S.logs.clear(); S.trips.clear(); S.loading = false; render(); }
+}
+async function boot() {
+  S.loading = false;
+  if (!CONFIGURED) { S.auth = "unconfigured"; render(); return; }
+  sb = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey);
+  const { data } = await sb.auth.getSession();
+  onSession(data.session);
+  sb.auth.onAuthStateChange((_e, session) => onSession(session));
+}
+async function sendLoginLink(email) {
+  S.authMsg = "로그인 링크를 보내는 중이에요…"; render();
+  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
+  S.authMsg = error ? (error.status === 429 ? "잠시 후 다시 시도해 주세요. 링크는 몇 분에 한 번만 보낼 수 있어요." : "링크를 보내지 못했어요. 이메일 주소를 확인해 주세요.") : `${email}로 로그인 링크를 보냈어요. 메일함에서 링크를 누르면 바로 로그인돼요.`;
+  render();
+}
+
+/* ---------- weather (Open-Meteo, called directly) ---------- */
+async function browserJSON(url) {
+  let r;
+  try { r = await fetch(url); } catch { throw { code: "network" }; }
+  if (!r.ok) throw { code: "http" };
+  return r.json();
+}
+function browserErr(e) {
+  switch (e?.code) {
+    case "network": return "인터넷에 연결되지 않았어요. 연결을 확인하고 다시 시도해 주세요.";
+    case "geo_denied": return "위치 권한이 꺼져 있어요. 브라우저 설정에서 위치를 허용하거나 도시를 골라 주세요.";
+    case "geo_fail": return "현재 위치를 찾지 못했어요. 도시를 골라 주세요.";
+    default: return "날씨를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.";
+  }
+}
+function hereWeather() {
+  if (!navigator.geolocation) { S.wxMsg = browserErr({ code: "geo_fail" }); render(); return; }
+  S.wxBusy = true; S.wxMsg = ""; render();
+  navigator.geolocation.getCurrentPosition(
+    p => { S.wxBusy = false; loadWeather({ name: "현재 위치", lat: +p.coords.latitude.toFixed(3), lon: +p.coords.longitude.toFixed(3) }); },
+    e => { S.wxBusy = false; S.wxMsg = browserErr({ code: e.code === 1 ? "geo_denied" : "geo_fail" }); render(); },
+    { timeout: 10000, maximumAge: 600000 });
+}
+
+/* ---------- AI (Supabase Edge Function "closet-ai") ---------- */
+async function ai(action, payload) {
+  if (!sb || !me) throw { code: "not_granted" };
+  const { data, error } = await sb.functions.invoke("closet-ai", { body: { action, ...payload } });
+  if (error) {
+    let code = "upstream_error";
+    try { const j = await error.context?.json(); code = j?.code || code; } catch {}
+    throw { code };
+  }
+  if (data?.error) throw { code: data.error };
+  return data;
+}
+const blobToB64 = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1]); r.onerror = rej; r.readAsDataURL(b); });
+// Shrink a photo before sending it to the server (max 1400px, JPEG).
+async function toUpload(file) {
+  const img = await loadImg(file), k = Math.min(1, 1400 / Math.max(img.width, img.height));
+  const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+  const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+  const blob = await new Promise(r => c.toBlob(r, "image/jpeg", 0.85));
+  return { img, data: await blobToB64(blob), media_type: "image/jpeg" };
+}
+async function loadWeather(place) {
+  S.wxBusy = true; S.wxMsg = ""; render();
+  try {
+    const u = `https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,weather_code&timezone=auto&forecast_days=3`;
+    const j = await browserJSON(u);
+    const d = j.daily;
+    S.wx = { source: "live", place: place.name, fetchedAt: (j.current?.time || "").replace("T", " "),
+      cur: { t: j.current.temperature_2m, feel: j.current.apparent_temperature, code: j.current.weather_code, wind: j.current.wind_speed_10m },
+      days: d.time.map((t, i) => ({ date: t, max: d.temperature_2m_max[i], min: d.temperature_2m_min[i], fmax: d.apparent_temperature_max[i], fmin: d.apparent_temperature_min[i], pop: d.precipitation_probability_max[i], code: d.weather_code[i] })) };
+    S.manual = false; S.prefs.place = place; savePrefs();
+  } catch (e) { S.wxMsg = browserErr(e); }
+  S.wxBusy = false; render();
+}
+async function searchPlace(q) {
+  if (!q.trim()) return;
+  S.wxBusy = true; S.wxMsg = ""; render();
+  try {
+    const j = await browserJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q.trim())}&count=1&language=ko`);
+    const r = j.results?.[0];
+    if (!r) { S.wxBusy = false; S.wxMsg = `'${q}'을(를) 찾지 못했어요. 도시 이름으로 다시 검색해 주세요.`; render(); return; }
+    S.wxBusy = false;
+    await loadWeather({ name: r.name + (r.country ? ", " + r.country : ""), lat: r.latitude, lon: r.longitude });
+  } catch (e) { S.wxBusy = false; S.wxMsg = browserErr(e); render(); }
+}
+
+/* ---------- recommendation ---------- */
+function dayInfo() {
+  const d = S.wx.days[S.day] || S.wx.days[0];
+  const dress = d.fmin + (d.fmax - d.fmin) * 0.35; // weighted toward the colder part of the day you're out
+  const off = S.prefs.offset || 0;
+  return { d, dress, eff: dress - off, effMax: d.fmax - off, range: d.max - d.min, off };
+}
+function colorPenalty(items) {
+  const accents = new Set(items.filter(i => !COLORS[i.color]?.neutral).map(i => i.color));
+  return accents.size > 2 ? 1.6 : accents.size === 2 ? 0.5 : 0;
+}
+function recommend(ctx = {}) {
+  const all = [...S.items.values()].map(i => ({ ...i, w: warmth(i) }));
+  const by = s => all.filter(i => TYPES[i.type]?.slot === s);
+  const inners = by("inner"), bottoms = by("bottom");
+  if (!inners.length || !bottoms.length) return { need: !inners.length ? "이너·상의" : "하의", list: [] };
+  const eff = ctx.eff ?? dayInfo().eff, target = targetFor(eff), bonus = ctx.reuse;
+  const recent = new Set([...S.logs.values()].filter(l => l.date !== today() && (Date.now() - new Date(l.date)) < 3 * 864e5).flatMap(l => l.itemIds || []));
+  const anchorId = "anchor" in ctx ? ctx.anchor : S.anchor;
+  const anchor = anchorId && all.find(i => i.id === anchorId);
+  const mainAnchor = anchor && MAIN.includes(TYPES[anchor.type]?.slot) ? anchor : null;
+  const combos = [];
+  for (const inner of inners) for (const mid of [null, ...by("mid")]) for (const outer of [null, ...by("outer")]) for (const bottom of bottoms) {
+    const pieces = [outer, mid, inner, bottom].filter(Boolean);
+    if (mainAnchor && !pieces.some(p => p.id === mainAnchor.id)) continue;
+    const w = pieces.reduce((a, p) => a + p.w, 0);
+    let pen = Math.abs(w - target) * (w < target ? 1.3 : 1);
+    pen += colorPenalty(pieces);
+    if (eff >= 23 && outer) pen += 3;
+    if (eff >= 25 && mid) pen += 2;
+    if (eff <= 8 && !outer) pen += 4;
+    if (eff < 15 && inner.type === "tee_s") pen += 2.5;
+    if (eff < 15 && bottom.type === "shorts") pen += 4;
+    // On trips: reuse outerwear and bottoms (fewer things to pack), but rotate the tops so days don't repeat.
+    if (bonus) pen += [outer, bottom].filter(p => p && bonus.has(p.id)).length * -0.6 + [inner, mid].reduce((a, p) => a + (p ? (ctx.used.get(p.id) || 0) * 1.2 : 0), 0);
+    else pen += pieces.filter(p => recent.has(p.id)).length * 0.4;
+    combos.push({ outer, mid, inner, bottom, w, pen, key: pieces.map(p => p.id).join("|") });
+  }
+  combos.sort((a, b) => a.pen - b.pen);
+  const pick = [];
+  for (const c of combos) {
+    if (pick.length >= 3) break;
+    if (pick.every(p => MAIN.filter(s => (p[s]?.id) !== (c[s]?.id)).length >= 2)) pick.push(c);
+  }
+  pick.forEach((c, i) => addExtras(c, by("shoes"), by("acc"), eff, target, anchor, i));
+  return { target, list: pick };
+}
+// Shoes and accessories are chosen after the clothes: warm ones close the remaining gap, the rest follow the palette.
+function addExtras(c, shoes, accs, eff, target, anchor, rank) {
+  const clothes = MAIN.map(s => c[s]).filter(Boolean);
+  const fit = (it, base) => base + colorPenalty([...clothes, it]) - (COLORS[it.color]?.neutral ? 0 : 0.2);
+  const anchorSlot = anchor && TYPES[anchor.type]?.slot;
+  const shoePref = t => eff <= 5 ? ({ long_boots: 0, boots: 0.3, sneakers: 1.2, loafers: 1.5, sandals: 9 })[t]
+    : eff <= 15 ? ({ boots: 0, long_boots: 0.2, sneakers: 0.2, loafers: 0.3, sandals: 6 })[t]
+    : eff <= 23 ? ({ sneakers: 0, loafers: 0, boots: 1, long_boots: 2.5, sandals: 2 })[t]
+    : ({ sandals: 0, sneakers: 0.2, loafers: 0.5, boots: 5, long_boots: 8 })[t];
+  c.shoes = anchorSlot === "shoes" ? anchor : shoes.slice().sort((a, b) => fit(a, shoePref(a.type) ?? 1) - fit(b, shoePref(b.type) ?? 1))[rank % Math.max(1, Math.min(2, shoes.length))] || null;
+  const acc = [];
+  if (anchorSlot === "acc") acc.push(anchor);
+  const has = t => acc.some(a => a.type === t), hasHat = () => acc.some(a => TYPES[a.type].hat);
+  let gap = target - c.w;
+  const warmOrder = ["scarf", "beanie", "gloves"];
+  for (const t of warmOrder) {
+    const need = t === "scarf" ? (eff <= 7 || gap > 1) : (eff <= 2 || gap > 2);
+    if (!need || has(t) || (t === "beanie" && hasHat())) continue;
+    const it = accs.filter(a => a.type === t).sort((a, b) => fit(a, 0) - fit(b, 0))[0];
+    if (it) { acc.push(it); gap -= it.w; }
+  }
+  if (!hasHat() && eff > 2 && eff < 22) {
+    const hat = accs.filter(a => ["beret", "cap"].includes(a.type)).sort((a, b) => fit(a, 0) - fit(b, 0))[0];
+    if (hat && fit(hat, 0) < 0.6 && rank !== 1) acc.push(hat);
+  }
+  if (!has("bag")) { const bag = accs.filter(a => a.type === "bag").sort((a, b) => fit(a, 0) - fit(b, 0))[0]; if (bag) acc.push(bag); }
+  c.acc = acc;
+  c.extraW = [...acc, c.shoes].filter(Boolean).reduce((s, p) => s + (TYPES[p.type].warm ? p.w : 0), 0);
+  if (c.shoes) c.key += "|" + c.shoes.id;
+  acc.forEach(a => c.key += "|" + a.id);
+}
+function tipsFor(c) {
+  const { d, effMax, range } = dayInfo(), tips = [];
+  if (range >= 8 && c.outer) {
+    const without = c.w - c.outer.w, need = targetFor(effMax);
+    if (without >= need - 2.5) tips.push(`일교차가 ${fmt(range)}°예요. 낮에는 ${c.outer.name}을(를) 벗어도 괜찮아요.`);
+    else tips.push(`일교차가 ${fmt(range)}°예요. 낮에도 아우터는 입는 게 좋아요.`);
+  }
+  if (d.pop >= 50) tips.push(`비 올 확률 ${d.pop}%예요. 우산을 챙기세요.`);
+  if (S.day === 0 && S.wx.cur.wind >= 25) tips.push("바람이 강해요. 바람을 막아주는 아우터가 좋아요.");
+  return tips;
+}
+
+/* ---------- AI helpers ---------- */
+function cleanItem(x) {
+  const type = TYPES[x?.type] ? x.type : "tee_l";
+  const name = String(x?.name || x?.product_name || x?.title || "").trim() || TYPES[type].label;
+  return { brand: String(x?.brand || "").trim().slice(0, 30), name: name.slice(0, 40), type, color: COLORS[x?.color] ? x.color : "gray",
+    material: MATERIALS[x?.material] ? x.material : "cotton", thickness: THICK[x?.thickness] ? x.thickness : "normal" };
+}
+const fullName = it => (it.brand ? it.brand + " " : "") + it.name;
+function aiErr(e) {
+  switch (e?.code) {
+    case "not_granted": return "로그인하면 자동 분석을 쓸 수 있어요. 지금은 직접 입력해 주세요.";
+    case "not_configured": return "AI 기능이 아직 설정되지 않았어요. (서버에 API 키가 없어요) 직접 입력해 주세요.";
+    case "refused": return "이 내용은 분석할 수 없어요. 다른 사진이나 링크로 시도해 주세요.";
+    case "bad_url": return "링크 주소가 올바르지 않아요. 상품 페이지 주소를 그대로 붙여넣어 주세요.";
+    case "rate_limited": return "요청이 많아요. 잠시 후 다시 시도해 주세요.";
+    case "image_rejected": return "이 사진은 읽을 수 없어요. JPG나 PNG 사진으로 다시 올려 주세요.";
+    case "invalid_json": case "empty_completion": return "분석 결과를 읽지 못했어요. 다시 시도해 주세요.";
+    case "cancelled": return "";
+    default: return "분석하지 못했어요. 잠시 후 다시 시도해 주세요.";
+  }
+}
+function loadImg(blob) {
+  return new Promise((res, rej) => {
+    const img = new Image(), url = URL.createObjectURL(blob);
+    img.onload = () => { URL.revokeObjectURL(url); res(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(); };
+    img.src = url;
+  });
+}
+// Crop an image to a normalized [x0,y0,x1,y1] box (or the whole image), keep its aspect, longest side 480px.
+function cropTo(img, box) {
+  let b = Array.isArray(box) && box.length === 4 && box.every(n => typeof n === "number" && isFinite(n)) ? box.slice() : [0, 0, 1, 1];
+  if (Math.max(...b) > 1.5) b = [b[0] / img.width, b[1] / img.height, b[2] / img.width, b[3] / img.height];
+  const pad = 0.02;
+  let x0 = Math.max(0, Math.min(b[0], b[2]) - pad), x1 = Math.min(1, Math.max(b[0], b[2]) + pad);
+  let y0 = Math.max(0, Math.min(b[1], b[3]) - pad), y1 = Math.min(1, Math.max(b[1], b[3]) + pad);
+  if (x1 - x0 < 0.05) { x0 = 0; x1 = 1; }
+  if (y1 - y0 < 0.05) { y0 = 0; y1 = 1; }
+  const sw = (x1 - x0) * img.width, sh = (y1 - y0) * img.height, k = 480 / Math.max(sw, sh);
+  const c = document.createElement("canvas"); c.width = Math.round(sw * Math.min(1, k)); c.height = Math.round(sh * Math.min(1, k));
+  const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
+  g.drawImage(img, x0 * img.width, y0 * img.height, sw, sh, 0, 0, c.width, c.height);
+  return c.toDataURL("image/jpeg", 0.8);
+}
+async function analyzePhoto(file) {
+  const A = S.add;
+  A.busy = true; A.msg = "사진을 살펴보는 중이에요…"; A.found = [];
+  let up;
+  try { up = await toUpload(file); A.photo = cropTo(up.img); } catch { A.busy = false; A.msg = "사진을 열 수 없어요. JPG나 PNG 사진으로 다시 올려 주세요."; render(); return; }
+  render();
+  if (!sample) {
+    A.busy = false; A.msg = "로그인하면 사진 자동 분석을 쓸 수 있어요. 지금은 정보를 직접 골라 주세요.";
+    A.draft = { ...cleanItem({}), photo: A.photo }; A.method = "manual"; render(); return;
+  }
+  try {
+    const out = await ai("analyze_photo", { image: up.data, media_type: up.media_type });
+    const arr = (Array.isArray(out?.items) ? out.items : []).slice(0, 10);
+    A.found = arr.map(x => ({ ...cleanItem(x), photo: arr.length === 1 && !x.box ? A.photo : cropTo(up.img, x.box), keep: true }));
+    A.msg = arr.length ? `${arr.length}벌을 찾았어요. 확인하고 옷장에 넣어 주세요.` : "옷을 찾지 못했어요. 직접 입력해 주세요.";
+  } catch (e) { A.msg = aiErr(e); }
+  A.busy = false; render();
+}
+async function readLink(url) {
+  const A = S.add;
+  if (!/^https?:\/\//i.test(url.trim())) { A.msg = "https:// 로 시작하는 상품 링크를 붙여넣어 주세요."; render(); return; }
+  if (!sample) { A.msg = "상품 링크 읽기는 로그인한 뒤에 쓸 수 있어요."; render(); return; }
+  A.busy = true; A.msg = "상품 페이지를 읽는 중이에요… (10~30초)"; A.found = []; render();
+  try {
+    const out = await ai("read_link", { url: url.trim() });
+    let photo = null;
+    if (out?.image) { try { const b = await (await fetch(out.image)).blob(); photo = cropTo(await loadImg(b)); } catch {} }
+    A.draft = { ...cleanItem(out?.item), photo, source: "link" }; A.method = "manual";
+    A.msg = (photo ? "상품 정보와 사진을 가져왔어요. 맞는지 확인하고 저장해 주세요." : "상품 정보를 채웠어요. 사진은 '사진 넣기'로 캡처를 넣을 수 있어요.") + (out?.note ? " (" + out.note + ")" : "");
+  } catch (e) { A.msg = e?.code === "fetch_blocked" ? "이 쇼핑몰이 자동 접근을 막아서 페이지를 읽지 못했어요. 상품 화면을 캡처해서 '사진으로' 올려 주세요." : aiErr(e); }
+  A.busy = false; render();
+}
+async function styleNote(c) {
+  if (!sample) return;
+  const k = c.key; S.aiNotes[k] = "생각하는 중…"; render();
+  const outfit = piecesOf(c).map(p => `${SLOTS[TYPES[p.type].slot]}: ${fullName(p)} (${COLORS[p.color].label}, ${MATERIALS[p.material].label})`).join("\n");
+  const { eff, d } = dayInfo();
+  try { const out = await ai("style_note", { outfit, weather: `체감 ${fmt(eff)}°C, ${WMO(d.code)}` }); S.aiNotes[k] = String(out?.text || "").trim(); }
+  catch (e) { S.aiNotes[k] = aiErr(e) || ""; }
+  render();
+}
+
+/* ---------- outfit board (flat lay) ---------- */
+const piecesOf = c => [...MAIN.map(s => c[s]), c.shoes, ...(c.acc || [])].filter(Boolean);
+const SHAPES = {
+  tee: "M32 8 L68 8 L96 28 L84 46 L74 38 L74 96 L26 96 L26 38 L16 46 L4 28 Z",
+  top: "M32 6 L68 6 L90 18 L99 80 L86 82 L77 36 L76 97 L24 97 L23 36 L14 82 L1 80 L10 18 Z",
+  jacket: "M32 6 L68 6 L90 18 L99 80 L86 82 L77 36 L76 97 L24 97 L23 36 L14 82 L1 80 L10 18 Z",
+  coat: "M34 2 L66 2 L88 14 L98 92 L85 93 L77 34 L80 99 L20 99 L23 34 L15 93 L2 92 L12 14 Z",
+  pants: "M24 3 L76 3 L84 98 L58 98 L50 32 L42 98 L16 98 Z",
+  shorts: "M20 25 L80 25 L88 75 L56 78 L50 50 L44 78 L12 75 Z",
+  skirt: "M28 18 L72 18 L90 82 L10 82 Z",
+  sneaker: "M6 58 L40 48 L56 56 L88 64 Q96 68 94 80 L6 80 Z",
+  boot: "M30 10 L62 10 L64 66 L92 76 Q96 84 92 90 L30 90 Z",
+  longboot: "M34 2 L64 2 L66 76 L92 84 Q96 92 92 97 L34 97 Z",
+  beanie: "M18 74 Q18 14 50 14 Q82 14 82 74 Z M14 66 L86 66 L86 84 L14 84 Z",
+  beret: "M8 60 Q10 28 50 26 Q90 28 92 60 Q50 74 8 60 Z M48 18 L52 18 L52 27 L48 27 Z",
+  cap: "M22 64 Q22 26 52 26 Q80 26 80 64 Z M70 58 L98 66 L96 72 L66 66 Z",
+  scarf: "M14 10 L86 10 L86 30 L62 30 L64 96 L44 96 L42 30 L14 30 Z",
+  gloves: "M10 30 Q10 18 22 18 L40 18 Q46 18 46 30 L46 92 L10 92 Z M54 30 Q54 18 66 18 L84 18 Q90 18 90 30 L90 92 L54 92 Z",
+  bag: "M12 40 L88 40 L82 96 L18 96 Z",
+};
+function shapeOf(it) {
+  const t = TYPES[it.type] || {};
+  if (t.shape) return t.shape;
+  if (t.slot === "outer") return ["coat", "trench", "long_down"].includes(it.type) ? "coat" : "jacket";
+  if (t.slot === "bottom") return it.type === "shorts" ? "shorts" : it.type === "skirt" ? "skirt" : "pants";
+  return it.type === "tee_s" || it.type === "vest" ? "tee" : "top";
+}
+const IMGS = new Map();
+function imgFrom(src) {
+  if (!IMGS.has(src)) IMGS.set(src, new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; }));
+  return IMGS.get(src);
+}
+async function drawPiece(g, it, [x, y, w, h]) {
+  const img = it.photo ? await imgFrom(it.photo) : null;
+  if (img) {
+    const k = Math.min(w / img.width, h / img.height), dw = img.width * k, dh = img.height * k;
+    g.save(); g.globalCompositeOperation = "multiply";
+    g.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh); g.restore();
+    return;
+  }
+  const s = Math.min(w, h) * 0.92, ox = x + (w - s) / 2, oy = y + (h - s) / 2, shape = shapeOf(it);
+  g.save(); g.translate(ox, oy); g.scale(s / 100, s / 100);
+  g.fillStyle = COLORS[it.color]?.hex || "#999"; g.strokeStyle = "rgba(0,0,0,.28)"; g.lineWidth = 1.2; g.lineJoin = "round";
+  const p = new Path2D(SHAPES[shape]); g.fill(p); g.stroke(p);
+  if (shape === "jacket" || shape === "coat") { g.beginPath(); g.moveTo(50, 8); g.lineTo(50, 98); g.stroke(); }
+  if (shape === "bag") { g.lineWidth = 4; g.strokeStyle = COLORS[it.color]?.hex || "#999"; g.beginPath(); g.moveTo(32, 40); g.quadraticCurveTo(32, 10, 50, 10); g.quadraticCurveTo(68, 10, 68, 40); g.stroke(); }
+  g.restore();
+}
+async function drawBoard(canvas, c) {
+  const g = canvas.getContext("2d"), W = canvas.width, H = canvas.height;
+  g.fillStyle = "#FFFFFF"; g.fillRect(0, 0, W, H);
+  const layers = ["outer", "mid", "inner"].map(s => c[s]).filter(Boolean);
+  const acc = c.acc || [], hat = acc.find(a => TYPES[a.type].hat);
+  const side = [...layers.slice(1), ...acc.filter(a => a !== hat && a.type !== "bag"), ...acc.filter(a => a.type === "bag")];
+  const jobs = [];
+  if (hat) jobs.push([hat, [90, 40, 360, 220]]);
+  jobs.push([layers[0], hat ? [40, 290, 500, 540] : [40, 50, 500, 780]]);
+  if (c.bottom) jobs.push([c.bottom, [60, 860, 460, 480]]);
+  if (c.shoes) jobs.push([c.shoes, [590, 980, 270, 360]]);
+  const n = side.length, slotH = n ? 900 / n : 0;
+  side.forEach((it, i) => jobs.push([it, [590, 50 + i * slotH, 270, slotH - 24]]));
+  for (const [it, box] of jobs) await drawPiece(g, it, box);
+  const { eff, d } = dayInfo();
+  g.fillStyle = "#5D6976"; g.font = "500 24px 'IBM Plex Mono', monospace";
+  g.fillText(`${d.date.slice(5).replace("-", ".")} · ${S.wx.place} · 체감 ${fmt(eff)}°`, 40, H - 24);
+}
+function drawBoards() {
+  document.querySelectorAll("canvas[data-board]").forEach(cv => { const c = S.results[+cv.dataset.board]; if (c) drawBoard(cv, c); });
+}
+async function saveBoard(i) {
+  const cv = document.querySelector(`canvas[data-board="${i}"]`); if (!cv || !downloads) return;
+  const blob = await new Promise(r => cv.toBlob(r, "image/png"));
+  const file = new File([blob], `착장-${today()}.png`, { type: "image/png" });
+  // Phones: share sheet (save to photos / send). Desktop: regular download.
+  if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file], title: "오늘의 착장" }); return; } catch (e) { if (e?.name === "AbortError") return; } }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+async function replacePhoto(target, file) {
+  let photo;
+  try { photo = cropTo(await loadImg(file)); } catch { notice("사진을 열 수 없어요. 다른 사진을 골라 주세요.", true); return; }
+  if (target === "d") { S.add.draft.photo = photo; render(); return; }
+  if (/^f\d+$/.test(target)) { S.add.found[+target.slice(1)].photo = photo; render(); return; }
+  const it = S.items.get(target); if (!it) return;
+  const { id, ...rest } = it;
+  await put(id, { ...rest, photo });
+}
+
+/* ---------- trips ---------- */
+const WD = ["일", "월", "화", "수", "목", "금", "토"];
+const addDays = (d, n) => { const x = new Date(d + "T00:00:00"); x.setDate(x.getDate() + n); return x.getFullYear() + "-" + String(x.getMonth() + 1).padStart(2, "0") + "-" + String(x.getDate()).padStart(2, "0"); };
+function dateRange(a, b) { const out = []; for (let d = a; d <= b && out.length < 14; d = addDays(d, 1)) out.push(d); return out; }
+const minusYear = d => (+d.slice(0, 4) - 1) + d.slice(4);
+const DAILY = "temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,weather_code";
+async function tripWeather(place, dates) {
+  const horizon = addDays(today(), 15), fc = dates.filter(d => d >= today() && d <= horizon), rest = dates.filter(d => !fc.includes(d));
+  const days = {};
+  if (fc.length) {
+    const j = await browserJSON(`https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&daily=${DAILY},precipitation_probability_max&timezone=auto&start_date=${fc[0]}&end_date=${fc[fc.length - 1]}`);
+    const d = j.daily; d.time.forEach((t, i) => days[t] = { max: d.temperature_2m_max[i], min: d.temperature_2m_min[i], fmax: d.apparent_temperature_max[i], fmin: d.apparent_temperature_min[i], pop: d.precipitation_probability_max[i] ?? 0, code: d.weather_code[i], src: "forecast" });
+  }
+  if (rest.length) {
+    const past = rest.map(d => d < today() ? d : minusYear(d));
+    const j = await browserJSON(`https://archive-api.open-meteo.com/v1/archive?latitude=${place.lat}&longitude=${place.lon}&daily=${DAILY},precipitation_sum&timezone=auto&start_date=${past.slice().sort()[0]}&end_date=${past.slice().sort().pop()}`);
+    const d = j.daily, idx = Object.fromEntries(d.time.map((t, i) => [t, i]));
+    rest.forEach((day, k) => { const i = idx[past[k]]; if (i == null) return; days[day] = { max: d.temperature_2m_max[i], min: d.temperature_2m_min[i], fmax: d.apparent_temperature_max[i], fmin: d.apparent_temperature_min[i], pop: (d.precipitation_sum[i] || 0) > 1 ? 60 : 10, code: d.weather_code[i], src: day < today() ? "past" : "lastyear" }; });
+  }
+  return dates.map(date => ({ date, ...(days[date] || {}) })).filter(x => x.fmin != null);
+}
+async function createTrip() {
+  const T = S.trip, f = T.form;
+  if (!f.name.trim() || !f.start || !f.end) { T.msg = "여행 이름과 날짜를 모두 넣어 주세요."; render(); return; }
+  if (f.end < f.start) { T.msg = "끝나는 날이 시작일보다 빨라요."; render(); return; }
+  const dates = dateRange(f.start, f.end);
+  T.busy = true; T.msg = "여행지 날씨를 불러오는 중이에요…"; render();
+  let place = f.place, days = [], note = "";
+  try {
+    if (!place && f.q.trim()) {
+      const g = await browserJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(f.q.trim())}&count=1&language=ko`);
+      const r = g.results?.[0]; if (!r) throw { code: "noplace" };
+      place = { name: r.name + (r.country ? ", " + r.country : ""), lat: r.latitude, lon: r.longitude };
+    }
+    if (!place) throw { code: "noplace" };
+    days = await tripWeather(place, dates);
+  } catch (e) {
+    if (e?.code === "noplace") { T.busy = false; T.msg = "여행지를 찾지 못했어요. 도시를 고르거나 이름을 다시 적어 주세요."; render(); return; }
+    note = browserErr(e);
+  }
+  if (days.length < dates.length) {
+    const lo = parseFloat(f.lo), hi = parseFloat(f.hi);
+    if (isNaN(lo) || isNaN(hi)) { T.busy = false; T.msg = (note ? note + " " : "") + "날씨를 다 불러오지 못했어요. 아래 '예상 체감온도'를 넣으면 그 기온으로 계획해요."; T.form.needManual = true; render(); return; }
+    const have = new Set(days.map(d => d.date));
+    dates.filter(d => !have.has(d)).forEach(date => days.push({ date, max: hi + 1, min: lo + 1, fmax: Math.max(lo, hi), fmin: Math.min(lo, hi), pop: 0, code: 1, src: "manual" }));
+    days.sort((a, b) => a.date.localeCompare(b.date));
+  }
+  const id = "trip_" + uid();
+  await put(id, { name: f.name.trim(), place: place || { name: f.q.trim() || "여행지" }, start: f.start, end: f.end, days, ranks: {}, packed: {}, createdAt: Date.now() });
+  T.busy = false; T.msg = ""; T.form = null; T.open = id; render();
+}
+function tripPlan(t) {
+  const reuse = new Set(), used = new Map(), off = S.prefs.offset || 0;
+  const days = (t.days || []).map(d => {
+    const eff = d.fmin + (d.fmax - d.fmin) * 0.35 - off;
+    const rec = recommend({ eff, reuse, used, anchor: null });
+    if (!rec.list.length) return { d, eff, rec, c: null };
+    const c = rec.list[(t.ranks?.[d.date] || 0) % rec.list.length];
+    piecesOf(c).forEach(p => { reuse.add(p.id); used.set(p.id, (used.get(p.id) || 0) + 1); });
+    return { d, eff, rec, c };
+  });
+  const pack = [...reuse].map(id => S.items.get(id)).filter(Boolean).map(i => ({ ...i, w: warmth(i) }));
+  return { days, pack };
+}
+function renderTrip() {
+  const T = S.trip;
+  let h = "";
+  if (T.open && S.trips.get(T.open)) {
+    const t = S.trips.get(T.open), plan = tripPlan(t);
+    const srcs = new Set(t.days.map(d => d.src));
+    const srcLabel = srcs.has("forecast") && srcs.size === 1 ? `<span class="tag live">예보</span>` : srcs.has("lastyear") ? `<span class="tag example">작년 같은 날 기준</span>` : srcs.has("manual") ? `<span class="tag">직접 입력</span>` : `<span class="tag">기록된 날씨</span>`;
+    h += `<div class="row between"><button class="btn ghost" id="tripBack">← 여행 목록</button>${srcLabel}</div>
+      <div class="card"><h2>${esc(t.name)}</h2><p class="muted small">${esc(t.place?.name || "")} · ${t.start.slice(5).replace("-", ".")} ~ ${t.end.slice(5).replace("-", ".")} · ${t.days.length}일</p>
+      ${srcs.has("lastyear") ? `<p class="small muted">16일보다 먼 날짜는 작년 같은 날의 실제 날씨로 계획했어요. 여행이 가까워지면 '날씨 새로 받기'로 예보를 받아 보세요.</p>` : ""}</div>`;
+    if (!S.items.size) h += emptyCloset();
+    h += `<div class="card"><h3>날짜별 코디</h3>${plan.days.map(({ d, eff, c }, i) => {
+      const dt = new Date(d.date + "T00:00:00");
+      return `<div class="trip-day"><div class="dt">${i + 1}일차<small>${d.date.slice(5).replace("-", ".")} (${WD[dt.getDay()]})</small></div><div style="min-width:0">
+        <div class="small">체감 <span class="num">${fmt(d.fmin)}° ~ ${fmt(d.fmax)}°</span> · ${WMO(d.code)}${d.pop >= 50 ? " · 우산 챙기기" : ""}</div>
+        ${c ? `<div class="strip">${piecesOf(c).map(p => visual(p, "thumb")).join("")}</div>
+        <div class="small muted" style="overflow-wrap:anywhere">${piecesOf(c).map(p => esc(p.name)).join(" · ")}</div>
+        <button class="btn ghost small" data-tripnext="${esc(d.date)}" style="padding-left:0">다른 코디</button>` : `<p class="small muted">옷장에 이너·상의와 하의가 있어야 코디를 만들 수 있어요.</p>`}
+      </div></div>`; }).join("")}</div>`;
+    const done = plan.pack.filter(p => t.packed?.[p.id]).length;
+    h += `<div class="card"><div class="row between"><h3>짐 리스트</h3><span class="tag">${done} / ${plan.pack.length} 챙김</span></div>
+      <p class="small muted">${t.days.length}일 동안 ${plan.pack.length}개로 돌려 입게 짰어요. 아우터·하의·신발은 겹쳐 쓰고, 상의는 날마다 바꿨어요.</p>
+      ${SLOT_ORDER.map(s => { const ps = plan.pack.filter(p => TYPES[p.type]?.slot === s); return ps.length ? `<div class="pack"><div class="slot small muted" style="font-weight:700">${SLOTS[s]}</div>${ps.map(p => `<label class="${t.packed?.[p.id] ? "done" : ""}"><input type="checkbox" data-packed="${p.id}" ${t.packed?.[p.id] ? "checked" : ""}><span>${esc(fullName(p))}</span></label>`).join("")}</div>` : ""; }).join("")}
+    </div>
+    <div class="row">${t.place?.lat != null ? `<button class="btn" id="tripRefresh" ${T.busy ? "disabled" : ""}>날씨 새로 받기</button>` : ""}
+      ${S.confirmDel === t.id ? `<button class="btn danger" data-deltrip="${t.id}">여행 삭제</button><button class="btn" data-cancel="1">취소</button>` : `<button class="btn ghost danger" data-ask="${t.id}">여행 삭제</button>`}</div>`;
+    if (T.msg) h += `<p class="banner">${esc(T.msg)}</p>`;
+  } else if (T.form) {
+    const f = T.form;
+    h += `<div class="row between"><h2>새 여행</h2><button class="btn ghost" id="tripCancel">취소</button></div>
+      <form class="card" id="tripForm">
+        <label class="f" for="tf-name">여행 이름<input type="text" id="tf-name" data-tf="name" value="${esc(f.name)}" placeholder="예: 일본 여행"></label>
+        <div class="f">여행지<div class="places">${PLACES.map((p, i) => `<button type="button" class="chip" data-tfplace="${i}" aria-pressed="${f.place?.name === p.name}">${p.name}</button>`).join("")}</div>
+          <input type="text" id="tf-q" data-tf="q" value="${esc(f.q)}" placeholder="다른 도시 이름 (예: 후쿠오카)" aria-label="다른 도시"></div>
+        <div class="grid2"><label class="f" for="tf-start">시작일<input type="date" id="tf-start" data-tf="start" value="${f.start}"></label><label class="f" for="tf-end">마지막 날<input type="date" id="tf-end" data-tf="end" value="${f.end}"></label></div>
+        <details ${f.needManual ? "open" : ""}><summary class="small" style="cursor:pointer;font-weight:600">예상 체감온도 직접 넣기 (날씨를 못 불러올 때)</summary>
+          <div class="grid2" style="margin-top:8px"><label class="f" for="tf-lo">아침 체감 (°C)<input type="number" id="tf-lo" data-tf="lo" value="${esc(f.lo)}" step="0.5"></label><label class="f" for="tf-hi">낮 체감 (°C)<input type="number" id="tf-hi" data-tf="hi" value="${esc(f.hi)}" step="0.5"></label></div></details>
+        <button class="btn primary" style="align-self:flex-start" ${T.busy ? "disabled" : ""}>계획 만들기</button>
+        <p class="small muted">최대 14일까지. 16일 안쪽은 예보로, 그보다 먼 날은 작년 같은 날 날씨로 계획해요.</p>
+      </form>`;
+    if (T.msg) h += `<p class="banner">${esc(T.msg)}</p>`;
+  } else {
+    const list = [...S.trips.values()].sort((a, b) => a.start.localeCompare(b.start));
+    h += `<div class="row between"><h2>여행</h2><button class="btn primary" id="tripNew">+ 새 여행</button></div>`;
+    h += list.length ? `<div class="trip-list">${list.map(t => `<button class="trip-row" data-tripopen="${t.id}"><span><b>${esc(t.name)}</b><br><span class="small muted">${esc(t.place?.name || "")} · ${t.start.slice(5).replace("-", ".")} ~ ${t.end.slice(5).replace("-", ".")}</span></span><span class="tag">${t.days?.length || 0}일</span></button>`).join("")}</div>`
+      : `<div class="card empty"><h3>여행을 계획해 보세요</h3><p class="small muted">여행지와 날짜를 넣으면 날마다 그곳 날씨에 맞는 코디와, 돌려 입기 좋은 짐 리스트를 만들어 드려요.</p><button class="btn primary" id="tripNew">새 여행 만들기</button></div>`;
+  }
+  $("#view-trip").innerHTML = h;
+}
+async function saveTrip(t, patch) { const { id, ...rest } = t; await put(id, { ...rest, ...patch }); }
+async function refreshTrip(t) {
+  const T = S.trip; T.busy = true; T.msg = "날씨를 새로 받는 중이에요…"; render();
+  try { const days = await tripWeather(t.place, dateRange(t.start, t.end)); if (days.length) await saveTrip(t, { days }); T.msg = "날씨를 새로 받았어요."; }
+  catch (e) { T.msg = browserErr(e); }
+  T.busy = false; render();
+}
+
+/* ---------- actions ---------- */
+async function addItem(x, source, editId) {
+  const id = editId || "it_" + uid(), prev = editId ? S.items.get(editId) : null;
+  await put(id, { brand: (x.brand || "").trim(), name: x.name.trim(), type: x.type, color: x.color, material: x.material, thickness: x.thickness,
+    photo: x.photo || null, source: prev?.source || source || "manual", createdAt: prev?.createdAt || Date.now() });
+}
+async function addStarter() {
+  for (const n of STARTER) { const t = TEMPLATES.find(t => t.name === n); await addItem(t, "template"); }
+  notice(`샘플 옷장 ${STARTER.length}벌을 넣었어요. 실제 내 옷으로 바꿔 가며 써 보세요.`);
+}
+async function wear(c) {
+  const { eff } = dayInfo();
+  const ps = piecesOf(c);
+  await put("log_" + today(), { date: today(), itemIds: ps.map(p => p.id), names: ps.map(p => p.name), feel: Math.round(eff * 10) / 10, rating: null });
+  notice("오늘 코디로 기록했어요. 다녀와서 어땠는지 알려 주세요.");
+}
+async function rate(r) {
+  const l = S.logs.get("log_" + today()); if (!l || l.rating) return;
+  const delta = r === "cold" ? 1 : r === "hot" ? -1 : 0;
+  S.prefs.offset = Math.max(-6, Math.min(6, (S.prefs.offset || 0) + delta));
+  await put(l.id, { date: l.date, itemIds: l.itemIds || [], names: l.names || [], feel: l.feel, rating: r });
+  await savePrefs();
+}
+
+/* ---------- render ---------- */
+function visual(it, cls) {
+  if (it.photo) return `<img class="${cls}" src="${esc(it.photo)}" alt="">`;
+  const c = COLORS[it.color] || COLORS.gray;
+  const dark = ["black", "charcoal", "navy", "brown", "khaki", "green", "blue", "red", "burgundy", "purple", "denim"].includes(it.color);
+  return `<div class="${cls} ${cls === "ph" ? "ph sw" : "swatch"}" style="background:${c.hex};color:${dark ? "#F4F4F4" : "#1E1F22"}">${esc((TYPES[it.type]?.label || "").slice(0, cls === "ph" ? 6 : 2))}</div>`;
+}
+function scaleHTML(lo, hi, pin) {
+  const P = t => Math.max(0, Math.min(100, (t + 10) / 45 * 100));
+  return `<div class="scale" aria-hidden="true"><span class="range" style="left:${P(lo)}%;width:${Math.max(2, P(hi) - P(lo))}%"></span><span class="pin" style="left:${P(pin)}%"></span></div>
+    <div class="scale-labels"><span>-10°</span><span>0°</span><span>10°</span><span>20°</span><span>35°</span></div>`;
+}
+function renderToday() {
+  const W = S.wx, { d, eff, dress, off } = dayInfo();
+  const rec = recommend();
+  const log = S.logs.get("log_" + today());
+  const anchorItem = S.anchor && S.items.get(S.anchor);
+  const srcTag = W.source === "live" ? `<span class="tag live">실시간 · ${esc(W.fetchedAt)}</span>` : W.source === "manual" ? `<span class="tag">직접 입력</span>` : `<span class="tag example">예시 날씨 · ${esc(W.fetchedAt)}</span>`;
+  const dayBtns = W.days.slice(0, 3).map((x, i) => `<button class="chip" data-day="${i}" aria-pressed="${S.day === i}">${i === 0 ? "오늘" : i === 1 ? "내일" : "모레"}</button>`).join("");
+  let h = `<div class="card">
+    <div class="row between"><h2>${esc(W.place)}</h2>${srcTag}</div>
+    <div class="row">${W.source !== "manual" ? dayBtns : ""}</div>
+    <div class="wx">
+      <div class="big num-d">${fmt(eff)}<small>°</small></div>
+      <dl>
+        <dt>코디 기준</dt><dd>체감 ${fmt(dress)}°${off ? ` → 내 보정 ${fmt(eff)}°` : ""}</dd>
+        <dt>아침 · 낮</dt><dd>체감 ${fmt(d.fmin)}° · ${fmt(d.fmax)}°</dd>
+        <dt>기온</dt><dd>${fmt(d.min)}° / ${fmt(d.max)}° · ${WMO(d.code)}</dd>
+        <dt>강수</dt><dd>${d.pop ?? 0}%</dd>
+      </dl>
+    </div>
+    ${scaleHTML(d.fmin - off, d.fmax - off, eff)}
+    <p class="band">이 온도엔 보통 <b>${bandFor(eff)}</b></p>
+    ${off ? `<p class="small muted">내 체감 보정: 남들보다 ${fmt(Math.abs(off))}° ${off > 0 ? "춥게" : "덥게"} 느끼는 편으로 계산하고 있어요.</p>` : ""}
+    <details ${S.wxMsg || S.manual ? "open" : ""}>
+      <summary class="small" style="cursor:pointer;font-weight:600">지역 바꾸기 · 날씨 불러오기</summary>
+      <div class="stack" style="margin-top:10px">
+        <div class="places"><button class="chip" id="hereBtn" ${S.wxBusy ? "disabled" : ""}>현재 위치</button>${PLACES.map((p, i) => `<button class="chip" data-place="${i}" ${S.wxBusy ? "disabled" : ""}>${p.name}</button>`).join("")}</div>
+        <form class="search" id="placeForm"><input type="text" id="placeQ" placeholder="도시 검색 (예: 후쿠오카, Paris)" aria-label="도시 검색"><button class="btn" ${S.wxBusy ? "disabled" : ""}>검색</button></form>
+        <p class="small muted">현재 위치를 허용하거나 도시를 골라요. 날씨는 Open-Meteo에서 받아와요.</p>
+        <button class="btn ghost small" id="manualToggle" style="align-self:flex-start">${S.manual ? "직접 입력 닫기" : "직접 입력하기"}</button>
+        ${S.manual ? `<div class="grid2">
+          <label class="f" for="mMin">아침 체감 (°C)<input type="number" id="mMin" value="${fmt(d.fmin)}" step="0.5"></label>
+          <label class="f" for="mMax">낮 체감 (°C)<input type="number" id="mMax" value="${fmt(d.fmax)}" step="0.5"></label>
+        </div><button class="btn" id="manualApply" style="align-self:flex-start">이 기온으로 추천</button>` : ""}
+      </div>
+    </details>
+    ${S.wxBusy ? `<p class="banner">날씨를 불러오는 중이에요…</p>` : ""}
+    ${S.wxMsg ? `<p class="banner err">${esc(S.wxMsg)}</p>` : ""}
+  </div>`;
+
+  if (log) {
+    const r = log.rating;
+    h += `<div class="card"><div class="row between"><h3>오늘 입은 코디</h3><span class="tag">체감 ${fmt(log.feel)}°</span></div>
+      <p class="small">${esc((log.names || []).join(" · "))}</p>
+      ${r ? `<p class="small muted">${r === "cold" ? "추웠다고 기록했어요. 다음부터 조금 더 따뜻하게 추천할게요." : r === "hot" ? "더웠다고 기록했어요. 다음부터 조금 더 가볍게 추천할게요." : "딱 좋았다고 기록했어요."}</p>`
+        : `<p class="small muted">다녀와서 어땠나요? 알려 주면 내 체감에 맞춰 보정돼요.</p>
+        <div class="feedback"><button class="btn" data-rate="cold">추웠어요</button><button class="btn" data-rate="ok">딱 좋았어요</button><button class="btn" data-rate="hot">더웠어요</button></div>`}
+    </div>`;
+  }
+
+  h += `<div class="row between"><h2>추천 코디</h2>${anchorItem ? `<button class="chip" id="clearAnchor" aria-pressed="true">고정: ${esc(anchorItem.name)} ✕</button>` : `<span class="small muted">옷장에서 '이 옷 입고 싶어'로 고정할 수 있어요</span>`}</div>`;
+  if (S.loading) h += `<div class="card"><p class="muted">옷장을 불러오는 중이에요…</p></div>`;
+  else if (!S.items.size) h += emptyCloset();
+  else if (rec.need) h += `<div class="card"><p>${rec.need}가 옷장에 없어서 코디를 만들 수 없어요.</p><button class="btn primary" data-go="add" style="align-self:flex-start">${rec.need} 추가하기</button></div>`;
+  else if (!rec.list.length) h += `<div class="card"><p>고정한 옷으로는 조합을 만들 수 없어요.</p></div>`;
+  else {
+    S.results = rec.list;
+    h += rec.list.map((c, i) => {
+      const pieces = piecesOf(c), total = c.w + c.extraW;
+      const diff = total - rec.target, verdict = Math.abs(diff) <= 1.5 ? "딱 맞아요" : diff > 0 ? "조금 따뜻해요" : "조금 추울 수 있어요";
+      const max = Math.max(rec.target, total) * 1.15, tips = tipsFor(c);
+      if (S.anchor && i === 0 && Math.abs(diff) > 4) tips.unshift(diff > 0 ? "고정한 옷이 오늘 날씨엔 꽤 따뜻해요." : "고정한 옷으로는 오늘 춥게 느껴질 수 있어요.");
+      return `<article class="outfit">
+        <div class="outfit-head"><h3>${i === 0 ? "가장 잘 맞는 조합" : `다른 조합 ${i}`}</h3><span class="tag">${verdict}</span></div>
+        ${S.boardOpen === c.key ? `<div class="board-wrap"><canvas class="board" data-board="${i}" width="900" height="1400" aria-label="착장 보드"></canvas></div>` : ""}
+        ${pieces.map(p => `<div class="piece">${visual(p, "thumb")}<div><div class="slot">${SLOTS[TYPES[p.type].slot]}${p.brand ? ` · <span class="brand-i">${esc(p.brand)}</span>` : ""}</div><div class="name">${esc(p.name)}</div></div><span class="pts">${MAIN.includes(TYPES[p.type].slot) || TYPES[p.type].warm ? fmt(p.w) + "점" : ""}</span></div>`).join("")}
+        <div class="meter">
+          <div class="row between small"><span>보온 합계 <b class="num">${fmt(total)}</b>점${c.extraW ? ` <span class="muted">(잡화 +${fmt(c.extraW)})</span>` : ""}</span><span class="muted">필요 <span class="num">${fmt(rec.target)}</span>점</span></div>
+          <div class="meter-bar"><i style="width:${total / max * 100}%"></i><span class="goal" style="left:${rec.target / max * 100}%"></span></div>
+          ${tips.length ? `<div class="tips"><ul>${tips.map(t => `<li>${esc(t)}</li>`).join("")}</ul></div>` : ""}
+        </div>
+        ${S.aiNotes[c.key] ? `<p class="ai-note" style="padding-top:12px">${esc(S.aiNotes[c.key])}</p>` : ""}
+        <div class="outfit-foot">
+          <button class="btn primary" data-wear="${i}" ${log && !log.rating ? "" : ""}>${log ? "이 코디로 바꿔 기록" : "이 코디 입을게요"}</button>
+          <button class="btn" data-boardbtn="${i}">${S.boardOpen === c.key ? "착장 보드 닫기" : "착장 보드 보기"}</button>
+          ${S.boardOpen === c.key && downloads ? `<button class="btn" data-saveboard="${i}">이미지로 저장</button>` : ""}
+          ${sample ? `<button class="btn" data-note="${i}">스타일 한마디</button>` : ""}
+        </div>
+      </article>`;
+    }).join("");
+  }
+  const past = [...S.logs.values()].filter(l => l.rating).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+  if (past.length) h += `<div class="card"><h3>최근 기록</h3><div class="log">${past.map(l => `<div><span class="num">${l.date.slice(5)}</span><span class="muted" style="flex:1;overflow-wrap:anywhere">${esc((l.names || []).join(", "))}</span><span>${l.rating === "cold" ? "추웠어요" : l.rating === "hot" ? "더웠어요" : "좋았어요"}</span></div>`).join("")}</div></div>`;
+  $("#view-today").innerHTML = h;
+  drawBoards();
+}
+function emptyCloset() {
+  return `<div class="card empty"><h3>옷장이 비어 있어요</h3><p class="muted small">샘플 옷 ${STARTER.length}벌로 바로 추천을 받아 보거나, 내 옷을 하나씩 추가해 보세요.</p>
+    <div class="row" style="justify-content:center"><button class="btn primary" id="starter">샘플 옷장으로 시작</button><button class="btn" data-go="add">내 옷 추가</button></div></div>`;
+}
+function wearStats() {
+  const m = new Map();
+  for (const l of S.logs.values()) for (const id of l.itemIds || []) {
+    const s = m.get(id) || { n: 0, last: "" }; s.n++; if (l.date > s.last) s.last = l.date; m.set(id, s);
+  }
+  return m;
+}
+const daysAgo = d => Math.round((new Date(today()) - new Date(d)) / 864e5);
+function renderCloset() {
+  const F = S.cf, stats = wearStats();
+  const all = [...S.items.values()];
+  const brands = [...new Set(all.map(i => (i.brand || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ko"));
+  const colorsHere = Object.keys(COLORS).filter(k => all.some(i => i.color === k));
+  const matsHere = Object.keys(MATERIALS).filter(k => all.some(i => i.material === k));
+  const q = F.q.trim().toLowerCase();
+  const pass = (i, skipSlot) => (skipSlot || F.slot === "all" || TYPES[i.type]?.slot === F.slot)
+    && (!F.brand || (F.brand === "_none" ? !i.brand : i.brand === F.brand)) && (!F.color || i.color === F.color)
+    && (!F.material || i.material === F.material) && (!F.thickness || i.thickness === F.thickness)
+    && (!q || [i.brand, i.name, TYPES[i.type]?.label, COLORS[i.color]?.label, MATERIALS[i.material]?.label].join(" ").toLowerCase().includes(q));
+  const sorters = {
+    recent: (a, b) => (b.createdAt || 0) - (a.createdAt || 0),
+    slot: (a, b) => SLOT_ORDER.indexOf(TYPES[a.type]?.slot) - SLOT_ORDER.indexOf(TYPES[b.type]?.slot) || (b.createdAt || 0) - (a.createdAt || 0),
+    warm: (a, b) => warmth(b) - warmth(a),
+    worn: (a, b) => (stats.get(b.id)?.n || 0) - (stats.get(a.id)?.n || 0),
+    idle: (a, b) => (stats.get(a.id)?.last || "0").localeCompare(stats.get(b.id)?.last || "0"),
+    brand: (a, b) => (a.brand || "힣").localeCompare(b.brand || "힣", "ko"),
+  };
+  const list = all.filter(i => pass(i)).sort(sorters[F.sort] || sorters.recent);
+  const count = s => all.filter(i => TYPES[i.type]?.slot === s && pass(i, true)).length;
+  const active = [F.brand, F.color, F.material, F.thickness, q].filter(Boolean).length;
+  let h = `<div class="row between"><h2>내 옷장 <span class="muted num" style="font-size:.9rem">${list.length === all.length ? all.length : list.length + " / " + all.length}벌</span></h2><button class="btn" data-go="add">+ 옷 추가</button></div>
+    <div class="row"><button class="chip" data-filter="all" aria-pressed="${F.slot === "all"}">전체</button>${SLOT_ORDER.map(s => `<button class="chip" data-filter="${s}" aria-pressed="${F.slot === s}">${SLOTS[s]} ${count(s)}</button>`).join("")}</div>`;
+  if (all.length) h += `<div class="card filters">
+      <div class="search"><input type="text" id="cq" value="${esc(F.q)}" placeholder="브랜드, 옷 이름, 색으로 찾기" aria-label="옷장 검색"></div>
+      <details id="cfBox" ${F.open || active ? "open" : ""}><summary class="small" style="cursor:pointer;font-weight:600">브랜드 · 색상 · 소재 · 두께 · 정렬${active ? ` (${active}개 적용)` : ""}</summary>
+      <div class="stack" style="margin-top:10px">
+      <div class="grid2">
+        <label class="f" for="cf-brand">브랜드<select id="cf-brand" data-cf="brand"><option value="">전체</option>${brands.map(b => `<option value="${esc(b)}" ${F.brand === b ? "selected" : ""}>${esc(b)} (${all.filter(i => i.brand === b).length})</option>`).join("")}<option value="_none" ${F.brand === "_none" ? "selected" : ""}>브랜드 없음</option></select></label>
+        <label class="f" for="cf-mat">소재<select id="cf-mat" data-cf="material"><option value="">전체</option>${matsHere.map(k => `<option value="${k}" ${F.material === k ? "selected" : ""}>${MATERIALS[k].label}</option>`).join("")}</select></label>
+        <label class="f" for="cf-sort">정렬<select id="cf-sort" data-cf="sort">${[["recent", "최근 추가순"], ["slot", "종류별"], ["brand", "브랜드순"], ["warm", "따뜻한 순"], ["worn", "많이 입은 순"], ["idle", "오래 안 입은 순"]].map(([k, l]) => `<option value="${k}" ${F.sort === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+        <div class="f">두께<div class="seg">${Object.entries(THICK).map(([k, t]) => `<button type="button" data-cft="${k}" aria-pressed="${F.thickness === k}">${t.label}</button>`).join("")}</div></div>
+      </div>
+      <div class="f">색상<div class="colors">${colorsHere.map(k => `<button type="button" data-cfc="${k}" aria-pressed="${F.color === k}" aria-label="${COLORS[k].label}" title="${COLORS[k].label}" style="background:${COLORS[k].hex}"></button>`).join("")}</div></div>
+      ${active ? `<button class="btn ghost small" id="cfReset" style="align-self:flex-start">필터 ${active}개 지우기</button>` : ""}
+      </div></details>
+    </div>`;
+  if (S.loading) h += `<div class="card"><p class="muted">옷장을 불러오는 중이에요…</p></div>`;
+  else if (!all.length) h += emptyCloset();
+  else if (!list.length) h += `<div class="card empty"><p class="muted">조건에 맞는 옷이 없어요.</p><button class="btn" id="cfReset">필터 지우기</button></div>`;
+  else h += `<div class="closet">${list.map(it => { const st = stats.get(it.id); return `<div class="item">${visual(it, "ph")}<div class="body">
+      ${it.brand ? `<div class="brand-l">${esc(it.brand)}</div>` : ""}
+      <div class="name">${esc(it.name)}</div>
+      <div class="meta">${esc(COLORS[it.color]?.label)} · ${esc(MATERIALS[it.material]?.label)} · ${esc(THICK[it.thickness]?.label)}</div>
+      <div class="meta">보온 <b class="num">${fmt(warmth(it))}</b>점 · ${st ? `${st.n}번 입음${daysAgo(st.last) === 0 ? " · 오늘" : ` · ${daysAgo(st.last)}일 전`}` : "아직 안 입음"}</div>
+      <div class="acts">${S.confirmDel === it.id
+        ? `<button class="btn danger" data-del="${it.id}">삭제</button><button class="btn" data-cancel="1">취소</button>`
+        : `<button class="btn" data-anchor="${it.id}">이 옷 입고 싶어</button><button class="btn ghost" data-edit="${it.id}">수정</button><button class="btn ghost" data-ask="${it.id}" aria-label="${esc(fullName(it))} 삭제">삭제</button>`}</div>
+    </div></div>`; }).join("")}</div>`;
+  $("#view-closet").innerHTML = h;
+}
+function formHTML(x, prefix) {
+  const types = SLOT_ORDER.map(s => `<optgroup label="${SLOTS[s]}">${Object.entries(TYPES).filter(([, t]) => t.slot === s).map(([k, t]) => `<option value="${k}" ${x.type === k ? "selected" : ""}>${t.label}</option>`).join("")}</optgroup>`).join("");
+  const w = warmth(x);
+  return `<div class="stack" data-form="${prefix}">
+    <div class="row" style="align-items:flex-start;flex-wrap:nowrap">
+      <div class="stack" style="gap:4px;align-items:center">${x.photo ? `<img class="photo-prev" src="${esc(x.photo)}" alt="">` : visual(x, "swatch")}<button type="button" class="btn ghost small" data-photo="${prefix}">${x.photo ? "사진 바꾸기" : "사진 넣기"}</button></div>
+      <div class="stack" style="flex:1;min-width:0;gap:8px">
+        <label class="f" for="${prefix}-brand">브랜드<input type="text" id="${prefix}-brand" data-k="brand" value="${esc(x.brand || "")}" maxlength="30" placeholder="예: 미세키서울 (없으면 비워 두기)" list="brandList"></label>
+        <label class="f" for="${prefix}-name">옷 이름<input type="text" id="${prefix}-name" data-k="name" value="${esc(x.name)}" maxlength="40" placeholder="예: 언밸런스 카울 버튼 니트"></label>
+      </div></div>
+    <div class="grid2">
+      <label class="f" for="${prefix}-type">종류<select id="${prefix}-type" data-k="type">${types}</select></label>
+      <label class="f" for="${prefix}-mat">소재<select id="${prefix}-mat" data-k="material">${Object.entries(MATERIALS).map(([k, m]) => `<option value="${k}" ${x.material === k ? "selected" : ""}>${m.label}</option>`).join("")}</select></label>
+    </div>
+    <div class="f">색상 <span style="font-weight:500">${esc(COLORS[x.color]?.label)}</span><div class="colors">${Object.entries(COLORS).map(([k, c]) => `<button type="button" data-color="${k}" aria-pressed="${x.color === k}" aria-label="${c.label}" title="${c.label}" style="background:${c.hex}"></button>`).join("")}</div></div>
+    <div class="f">두께<div class="seg">${Object.entries(THICK).map(([k, t]) => `<button type="button" data-thick="${k}" aria-pressed="${x.thickness === k}">${t.label}</button>`).join("")}</div></div>
+    <div class="preview-w"><span>보온 <b class="num">${fmt(w)}</b>점</span><div class="meter-bar"><i style="width:${Math.min(100, w / 11 * 100)}%"></i></div></div>
+  </div>`;
+}
+function renderAdd() {
+  const A = S.add;
+  const M = [
+    ["template", "템플릿", "자주 입는 기본템을 탭 한 번에"],
+    ["photo", "사진으로", "여러 벌을 한 장에 찍어도 돼요"],
+    ["link", "상품 링크", "주문내역의 링크를 붙여넣기"],
+    ["manual", "직접 입력", "종류·소재·두께를 골라서"],
+  ];
+  let h = `<h2>옷 추가</h2><div class="methods">${M.map(([k, b, s]) => `<button class="method" data-method="${k}" aria-pressed="${A.method === k}"><b>${b}</b><span>${s}</span></button>`).join("")}</div>`;
+  if (A.msg) h += `<p class="banner">${esc(A.msg)}</p>`;
+  if (A.method === "template") {
+    h += `<div class="card"><h3>탭해서 바로 넣기</h3><div class="templates">${TEMPLATES.map((t, i) => `<button class="chip" data-tpl="${i}">${esc(t.name)}</button>`).join("")}</div>
+      <p class="small muted">넣은 뒤 옷장에서 지우거나 같은 옷을 직접 입력으로 다시 등록할 수 있어요.</p></div>`;
+  } else if (A.method === "photo") {
+    h += `<div class="card"><h3>옷 사진 올리기</h3>
+      <p class="small muted">옷 사진이나 쇼핑몰 캡처를 올리면 Claude가 옷마다 잘라서 종류·색·소재를 채워요. 한 장에 여러 벌이 있어도 돼요. 캡처는 Ctrl+V로 붙여넣어도 돼요.</p>
+      <label class="btn primary" style="align-self:flex-start" for="photoIn">사진 선택</label><input type="file" id="photoIn" accept="image/jpeg,image/png,image/webp" hidden>
+      ${A.photo && !A.found.length ? `<img class="photo-prev" src="${esc(A.photo)}" alt="">` : ""}</div>`;
+    if (A.found.length) h += `<div class="found">${A.found.map((x, i) => `<div class="card"><div class="row between"><label class="row small" style="font-weight:600"><input type="checkbox" data-keep="${i}" ${x.keep ? "checked" : ""}> 옷장에 넣기</label><span class="tag">${i + 1}/${A.found.length}</span></div>${formHTML(x, "f" + i)}</div>`).join("")}
+      <button class="btn primary" id="saveFound" style="align-self:flex-start">선택한 ${A.found.filter(x => x.keep).length}벌 저장</button></div>`;
+  } else if (A.method === "link") {
+    h += `<div class="card"><h3>상품 링크 붙여넣기</h3>
+      <form class="search" id="linkForm"><input type="url" id="linkIn" placeholder="https://www.musinsa.com/products/..." aria-label="상품 링크"><button class="btn primary" ${A.busy ? "disabled" : ""}>읽기</button></form>
+      <p class="small muted">무신사, 29CM, 유니클로 같은 쇼핑몰 상품 페이지에서 브랜드, 상품명, 소재, 상품 사진을 가져와요. 쇼핑몰이 자동 접근을 막으면 실패할 수 있어요.</p></div>`;
+  } else {
+    A.draft = A.draft || cleanItem({});
+    h += `<div class="card"><h3>${A.editing ? "옷 정보 수정" : A.draft.source === "link" ? "상품 정보 확인" : "직접 입력"}</h3>${formHTML(A.draft, "d")}
+      <div class="row"><button class="btn primary" id="saveDraft">${A.editing ? "수정 저장" : "옷장에 저장"}</button><button class="btn ghost" id="resetDraft">${A.editing ? "취소" : "초기화"}</button></div></div>`;
+  }
+  $("#view-add").innerHTML = h;
+}
+function renderAuth() {
+  $("#view-auth").innerHTML = `<div class="card auth">
+    <h2>내 옷장을 만들어 볼까요</h2>
+    <p class="lede">이메일로 로그인하면 등록한 옷, 코디 기록, 여행 계획이 계정에 저장돼서 휴대폰과 컴퓨터 어디서든 이어서 쓸 수 있어요.</p>
+    <form class="stack" id="loginForm">
+      <label class="f" for="loginEmail">이메일<input type="email" id="loginEmail" required autocomplete="email" placeholder="you@example.com" value="${esc(S.loginEmail || "")}"></label>
+      <button class="btn primary">로그인 링크 받기</button>
+    </form>
+    ${S.authMsg ? `<p class="banner">${esc(S.authMsg)}</p>` : ""}
+    <p class="small muted">비밀번호 없이, 메일로 온 링크를 누르면 로그인돼요. 처음이면 계정이 자동으로 만들어져요.</p>
+    <button class="btn ghost" id="guestBtn" style="align-self:flex-start">로그인 없이 둘러보기 (저장 안 됨)</button>
+  </div>`;
+}
+function render() {
+  const gate = S.auth !== "unconfigured" && !me && !S.guest;
+  $("#tabs").hidden = gate; $("#view-auth").hidden = !gate;
+  ["today", "closet", "trip", "add"].forEach(t => { $("#view-" + t).hidden = gate || S.tab !== t; $("#tab-" + t).setAttribute("aria-selected", S.tab === t); });
+  const m = $("#saveMode");
+  m.textContent = S.auth === "unconfigured" ? "서버 설정 전 · 저장 안 됨" : me ? (S.loading ? "불러오는 중" : "로그아웃") : gate ? "로그인" : "로그인하고 저장하기";
+  m.title = me ? `${me.email} 계정으로 로그인됨` : "";
+  m.className = "tag acct" + (me && !S.loading ? " live" : "");
+  if (gate) { renderAuth(); return; }
+  const brands = [...new Set([...S.items.values()].map(i => (i.brand || "").trim()).filter(Boolean))];
+  $("#brandList").innerHTML = brands.map(b => `<option value="${esc(b)}">`).join("");
+  ({ today: renderToday, closet: renderCloset, trip: renderTrip, add: renderAdd })[S.tab]();
+}
+
+/* ---------- events ---------- */
+function formTarget(el) {
+  const f = el.closest("[data-form]"); if (!f) return null;
+  const p = f.dataset.form;
+  return p === "d" ? S.add.draft : S.add.found[+p.slice(1)];
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("button, [data-tab]"); if (!b) return;
+  const ds = b.dataset;
+  if (ds.tab) { S.tab = ds.tab; S.confirmDel = null; render(); return; }
+  if (ds.go) { S.tab = ds.go; render(); return; }
+  if (ds.day) { S.day = +ds.day; render(); return; }
+  if (ds.place) { loadWeather(PLACES[+ds.place]); return; }
+  if (b.id === "hereBtn") { hereWeather(); return; }
+  if (b.id === "guestBtn") { S.guest = true; render(); return; }
+  if (b.id === "saveMode") {
+    if (S.auth === "unconfigured") { notice("config.js에 Supabase 주소와 키를 넣으면 계정 저장이 켜져요."); return; }
+    if (me) { if (S.confirmLogout) { S.confirmLogout = false; sb.auth.signOut(); notice(""); } else { S.confirmLogout = true; notice(`${me.email} 계정에서 로그아웃하려면 오른쪽 위 버튼을 한 번 더 눌러 주세요.`); setTimeout(() => { S.confirmLogout = false; }, 5000); } }
+    else { S.guest = false; render(); }
+    return;
+  }
+  if (b.id === "manualToggle") { S.manual = !S.manual; render(); return; }
+  if (b.id === "manualApply") {
+    const lo = parseFloat($("#mMin").value), hi = parseFloat($("#mMax").value);
+    if (isNaN(lo) || isNaN(hi)) return;
+    const a = Math.min(lo, hi), z = Math.max(lo, hi);
+    S.wx = { source: "manual", place: S.wx.place, fetchedAt: "", cur: { t: z, feel: z, code: 0, wind: 0 }, days: [{ date: today(), max: z + 1, min: a + 1, fmax: z, fmin: a, pop: 0, code: S.wx.days[S.day]?.code ?? 0 }] };
+    S.day = 0; S.manual = false; S.wxMsg = ""; render(); return;
+  }
+  if (b.id === "starter") { addStarter(); return; }
+  if (b.id === "clearAnchor") { S.anchor = null; render(); return; }
+  if (ds.anchor) { S.anchor = ds.anchor; S.tab = "today"; render(); window.scrollTo({ top: 0 }); return; }
+  if (ds.ask) { S.confirmDel = ds.ask; render(); return; }
+  if (ds.cancel) { S.confirmDel = null; render(); return; }
+  if (ds.del) { if (S.anchor === ds.del) S.anchor = null; S.confirmDel = null; del(ds.del); return; }
+  if (ds.wear) { wear(S.results[+ds.wear]); return; }
+  if (ds.note) { styleNote(S.results[+ds.note]); return; }
+  if (ds.boardbtn) { const k = S.results[+ds.boardbtn].key; S.boardOpen = S.boardOpen === k ? null : k; render(); return; }
+  if (ds.saveboard) { saveBoard(+ds.saveboard); return; }
+  if (ds.photo) { photoFor = ds.photo; $("#replaceIn").value = ""; $("#replaceIn").click(); return; }
+  if (ds.rate) { rate(ds.rate); return; }
+  if (ds.method) { S.add.method = ds.method; S.add.msg = ""; if (S.add.editing) { S.add.editing = null; S.add.draft = null; } if (ds.method === "manual" && S.add.draft?.source === "link") {} render(); return; }
+  if (ds.tpl) { const t = TEMPLATES[+ds.tpl]; addItem(t, "template").then(() => { S.add.msg = `'${t.name}'을(를) 옷장에 넣었어요.`; render(); }); return; }
+  if (ds.color) { const x = formTarget(b); if (x) { x.color = ds.color; render(); } return; }
+  if (ds.thick) { const x = formTarget(b); if (x) { x.thickness = ds.thick; render(); } return; }
+  if (b.id === "saveDraft") {
+    const x = S.add.draft, ed = S.add.editing; if (!x.name.trim()) { S.add.msg = "옷 이름을 적어 주세요."; render(); return; }
+    addItem(x, x.source || (x.photo ? "photo" : "manual"), ed).then(() => {
+      S.add.draft = null; S.add.photo = null; S.add.editing = null;
+      if (ed) { S.add.msg = ""; S.tab = "closet"; notice(`'${fullName(x)}' 정보를 고쳤어요.`); } else S.add.msg = `'${fullName(x)}'을(를) 저장했어요.`;
+      render();
+    }); return;
+  }
+  if (b.id === "resetDraft") { const ed = S.add.editing; S.add.draft = null; S.add.editing = null; S.add.msg = ""; if (ed) S.tab = "closet"; render(); return; }
+  if (b.id === "saveFound") {
+    const keep = S.add.found.filter(x => x.keep);
+    Promise.all(keep.map(x => addItem(x, "photo"))).then(() => { S.add.msg = `${keep.length}벌을 저장했어요.`; S.add.found = []; S.add.photo = null; render(); }); return;
+  }
+});
+document.addEventListener("change", e => {
+  const el = e.target;
+  if (el.id === "photoIn" && el.files?.[0]) { analyzePhoto(el.files[0]); return; }
+  if (el.id === "replaceIn" && el.files?.[0] && photoFor) { replacePhoto(photoFor, el.files[0]); photoFor = null; return; }
+  if (el.dataset.keep !== undefined) { S.add.found[+el.dataset.keep].keep = el.checked; render(); return; }
+  if (el.dataset.k) { const x = formTarget(el); if (x) { x[el.dataset.k] = el.value; if (el.tagName === "SELECT") render(); } }
+});
+document.addEventListener("input", e => {
+  const el = e.target;
+  if (el.dataset.k === "name" || el.dataset.k === "brand") { const x = formTarget(el); if (x) x[el.dataset.k] = el.value; }
+  if (el.id === "cq") { S.cf.q = el.value; clearTimeout(window._cqT); window._cqT = setTimeout(() => { renderCloset(); const q = $("#cq"); if (q) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); } }, 250); }
+});
+document.addEventListener("submit", e => {
+  e.preventDefault();
+  if (e.target.id === "placeForm") searchPlace($("#placeQ").value);
+  if (e.target.id === "linkForm") readLink($("#linkIn").value);
+  if (e.target.id === "loginForm") { S.loginEmail = $("#loginEmail").value.trim(); if (S.loginEmail) sendLoginLink(S.loginEmail); }
+});
+document.addEventListener("paste", e => {
+  const file = [...(e.clipboardData?.files || [])].find(f => f.type.startsWith("image/"));
+  if (!file || S.tab !== "add") return;
+  e.preventDefault();
+  if (S.add.method === "manual" && S.add.draft) replacePhoto("d", file);
+  else { S.add.method = "photo"; analyzePhoto(file); }
+});
+document.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const ds = b.dataset, F = S.cf;
+  if (ds.filter) { F.slot = ds.filter; render(); }
+  else if (ds.cft) { F.thickness = F.thickness === ds.cft ? "" : ds.cft; render(); }
+  else if (ds.cfc) { F.color = F.color === ds.cfc ? "" : ds.cfc; render(); }
+  else if (b.id === "cfReset") { Object.assign(F, { brand: "", color: "", material: "", thickness: "", q: "" }); render(); }
+  else if (ds.edit) { const it = S.items.get(ds.edit); if (!it) return; S.add.editing = it.id; S.add.draft = { ...it }; S.add.method = "manual"; S.add.msg = ""; S.tab = "add"; render(); window.scrollTo({ top: 0 }); }
+});
+document.addEventListener("change", e => { const el = e.target; if (el.dataset.cf) { S.cf[el.dataset.cf] = el.value; render(); } });
+document.addEventListener("toggle", e => { if (e.target.id === "cfBox") S.cf.open = e.target.open; }, true);
+/* trip events */
+document.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const T = S.trip, ds = b.dataset, t = T.open && S.trips.get(T.open);
+  if (b.id === "tripNew") { const s = addDays(today(), 7); T.form = { name: "", place: null, q: "", start: s, end: addDays(s, 3), lo: "", hi: "" }; T.msg = ""; render(); }
+  else if (b.id === "tripCancel") { T.form = null; T.msg = ""; render(); }
+  else if (b.id === "tripBack") { T.open = null; T.msg = ""; S.confirmDel = null; render(); }
+  else if (ds.tripopen) { T.open = ds.tripopen; T.msg = ""; render(); window.scrollTo({ top: 0 }); }
+  else if (ds.tfplace) { const p = PLACES[+ds.tfplace]; T.form.place = T.form.place?.name === p.name ? null : p; if (T.form.place) T.form.q = ""; render(); }
+  else if (ds.tripnext && t) { saveTrip(t, { ranks: { ...(t.ranks || {}), [ds.tripnext]: ((t.ranks || {})[ds.tripnext] || 0) + 1 } }); }
+  else if (b.id === "tripRefresh" && t) refreshTrip(t);
+  else if (ds.deltrip) { S.confirmDel = null; T.open = null; del(ds.deltrip); }
+});
+document.addEventListener("input", e => {
+  const el = e.target; if (!el.dataset.tf || !S.trip.form) return;
+  S.trip.form[el.dataset.tf] = el.value;
+  if (el.dataset.tf === "q" && el.value.trim()) { if (S.trip.form.place) { S.trip.form.place = null; document.querySelectorAll("[data-tfplace]").forEach(c => c.setAttribute("aria-pressed", "false")); } }
+});
+document.addEventListener("change", e => {
+  const el = e.target; if (!el.dataset.packed) return;
+  const t = S.trips.get(S.trip.open); if (!t) return;
+  saveTrip(t, { packed: { ...(t.packed || {}), [el.dataset.packed]: el.checked } });
+});
+document.addEventListener("submit", e => { if (e.target.id === "tripForm") { e.preventDefault(); createTrip(); } });
+
+boot();
+</script>
+</body>
+</html>
