@@ -331,7 +331,7 @@ const EXAMPLE_WX = { source: "example", place: "서울", fetchedAt: "2026-11-03 
          { date: "2026-11-04", max: 17.5, min: 7.8, fmax: 16.6, fmin: 6.4, pop: 1, code: 3 }] };
 const S = {
   tab: "today", items: new Map(), logs: new Map(), prefs: { offset: 0, place: null },
-  wx: EXAMPLE_WX, day: 0, anchor: null, mode: "memory", loading: true,
+  wx: EXAMPLE_WX, day: 0, anchors: [], mode: "memory", loading: true,
   wxBusy: false, wxMsg: "", manual: false, results: [], aiNotes: {}, boardOpen: null,
   add: { method: "template", draft: null, found: [], busy: false, msg: "", photo: null },
   confirmDel: null,
@@ -370,7 +370,7 @@ function applyDoc(id, d) {
   else if (id.startsWith("trip_")) S.trips.set(id, { ...d, id });
   else if (id === "prefs") S.prefs = { offset: 0, place: null, ...d };
 }
-const savePrefs = () => put("prefs", { offset: S.prefs.offset, place: S.prefs.place });
+const savePrefs = () => put("prefs", { offset: S.prefs.offset, place: S.prefs.place, mode: S.prefs.mode || "balance" });
 
 /* ---------- accounts (Supabase) ---------- */
 async function loadAll() {
@@ -488,54 +488,371 @@ function colorPenalty(items) {
   const accents = new Set(items.filter(i => !COLORS[i.color]?.neutral).map(i => i.color));
   return accents.size > 2 ? 1.6 : accents.size === 2 ? 0.5 : 0;
 }
+/* ---------- style traits ---------- */
+// bulk: 부피 0~3, room: 아우터 안에 들어갈 수 있는 부피, wind/rain: 바람·비 막는 정도 0~2, form: 격식 0~3, len: 아우터 길이
+const TRAITS = {
+  tee_s: { bulk: 0, form: 0, mood: ["casual", "minimal", "sporty", "street"] },
+  tee_l: { bulk: 0, form: 0, mood: ["casual", "minimal", "street"] },
+  shirt: { bulk: 0, form: 2, mood: ["minimal", "classic", "cityboy", "casual"] },
+  thermal: { bulk: 0, form: 0, mood: [] },
+  sweat: { bulk: 1, form: 0, mood: ["casual", "cityboy", "street", "sporty"] },
+  hood: { bulk: 2, form: 0, hood: true, mood: ["street", "casual", "sporty", "gorpcore"] },
+  knit: { bulk: 1, form: 1, mood: ["minimal", "classic", "casual", "feminine", "cityboy"] },
+  cardigan: { bulk: 1, form: 1, mood: ["minimal", "classic", "feminine", "casual", "cityboy"] },
+  fleece: { bulk: 2, form: 0, mood: ["gorpcore", "casual", "street"] },
+  vest: { bulk: 1, form: 1, mood: ["gorpcore", "classic", "casual", "cityboy"] },
+  windbreaker: { bulk: 1, room: 2, hood: true, wind: 2, rain: 1, form: 0, mood: ["gorpcore", "sporty", "street", "cityboy"] },
+  denim_jk: { bulk: 1, room: 1, wind: 1, form: 0, mood: ["casual", "street"] },
+  blazer: { bulk: 1, room: 1, form: 3, mood: ["classic", "minimal", "cityboy"] },
+  trench: { bulk: 1, room: 2, wind: 1, rain: 1, form: 2, len: "long", mood: ["classic", "minimal", "feminine"] },
+  leather: { bulk: 1, room: 1, wind: 2, form: 1, mood: ["street", "classic"] },
+  light_down: { bulk: 1, room: 1, wind: 1, form: 0, mood: ["casual", "minimal", "gorpcore", "cityboy"] },
+  coat: { bulk: 2, room: 2, wind: 1, form: 2, len: "long", mood: ["minimal", "classic", "feminine", "cityboy"] },
+  short_down: { bulk: 3, room: 3, hood: true, wind: 2, rain: 1, form: 0, mood: ["casual", "street", "gorpcore"] },
+  long_down: { bulk: 3, room: 3, hood: true, wind: 2, rain: 1, form: 0, len: "long", mood: ["casual", "street", "sporty", "gorpcore"] },
+  shorts: { form: 0, mood: ["casual", "sporty", "street"] },
+  skirt: { form: 1, mood: ["feminine", "minimal", "casual"] },
+  slacks: { form: 2, mood: ["minimal", "classic", "cityboy"] },
+  chino: { form: 1, mood: ["casual", "cityboy", "classic", "minimal"] },
+  jeans: { form: 0, mood: ["casual", "street", "cityboy", "minimal"] },
+  lined_pants: { form: 0, fit: "tapered", mood: ["casual", "sporty"] },
+  sneakers: { form: 0, mood: ["casual", "street", "sporty", "minimal", "cityboy", "gorpcore"] },
+  loafers: { form: 2, mood: ["classic", "minimal", "cityboy", "feminine"] },
+  sandals: { form: 0, mood: ["casual"] },
+  boots: { form: 1, mood: ["classic", "street", "minimal", "feminine", "gorpcore"] },
+  long_boots: { form: 1, mood: ["feminine", "classic"] },
+  beanie: { mood: ["casual", "street", "gorpcore", "cityboy"] },
+  beret: { mood: ["feminine", "classic"] },
+  cap: { mood: ["casual", "sporty", "street", "cityboy"] },
+  scarf: { mood: ["classic", "minimal", "casual", "feminine"] },
+  gloves: { mood: [] },
+  bag: { mood: [] },
+};
+const MOODS = { minimal: "미니멀", classic: "클래식", feminine: "페미닌", cityboy: "시티보이", casual: "캐주얼", sporty: "스포티", street: "스트릿", gorpcore: "고프코어" };
+const FITS = { slim: "슬림", regular: "레귤러", oversized: "오버핏", wide: "와이드", tapered: "테이퍼드", crop: "크롭", long: "롱" };
+// 미니멀─클래식─페미닌 / 시티보이─캐주얼─스포티 / 스트릿─고프코어, 세로로 미니멀─시티보이─스트릿, 클래식─캐주얼─고프코어
+const MOOD_EDGES = [["minimal", "classic"], ["classic", "feminine"], ["minimal", "cityboy"], ["classic", "casual"], ["cityboy", "casual"], ["casual", "sporty"], ["cityboy", "street"], ["casual", "gorpcore"], ["street", "gorpcore"]];
+const MOOD_DIST = (() => {
+  const keys = Object.keys(MOODS), out = {};
+  for (const a of keys) {
+    const d = { [a]: 0 }, q = [a];
+    while (q.length) { const x = q.shift(); for (const [p, r] of MOOD_EDGES) for (const [u, v] of [[p, r], [r, p]]) if (u === x && d[v] == null) { d[v] = d[x] + 1; q.push(v); } }
+    out[a] = d;
+  }
+  return out;
+})();
+const moodRel = (a, b) => { const d = MOOD_DIST[a]?.[b] ?? 9; return d === 0 ? 1 : d === 1 ? 0.5 : d === 2 ? -0.5 : -1.5; };
+// [계열, 밝기 1~5, 채도 0~3]
+const TONES = {
+  black: ["mono", 1, 0], charcoal: ["mono", 2, 0], gray: ["mono", 3, 0], white: ["mono", 5, 0],
+  navy: ["cool", 1, 1], denim: ["cool", 3, 1], blue: ["cool", 3, 3], skyblue: ["cool", 4, 2],
+  brown: ["warm", 2, 1], khaki: ["warm", 2, 1], beige: ["warm", 4, 1], ivory: ["warm", 5, 1],
+  burgundy: ["red", 1, 2], red: ["red", 3, 3], pink: ["red", 4, 2], green: ["green", 2, 2], yellow: ["yellow", 4, 3], purple: ["purple", 2, 2],
+};
+const COMPLEMENT = [["red", "green"], ["cool", "yellow"], ["purple", "yellow"]];
+const PALETTE_LABEL = { tone_on_tone: "톤온톤", monotone: "모노톤", one_point: "원포인트", tone_in_tone: "톤인톤", neutral: "뉴트럴", complement: "보색 포인트" };
+// 시즌 트렌드 규칙: { id, when: c => boolean, score }. 시즌마다 채워 넣으세요 (합계는 +1.5까지만 반영돼요).
+const TRENDS = [];
+// 모드별 가중치. 보온 차이 1.5점까지는 soft로 완만하게, 넘으면 steep + curve로 가파르게 감점해요.
+const MODES = {
+  weather: { label: "날씨 우선", soft: 0.6, steep: 1.6, curve: 1.2, coldMul: 1.3, coldCut: 2.5, hotCut: 4, styleW: 0.35, chillyMax: 1 },
+  balance: { label: "밸런스", soft: 0.4, steep: 1, curve: 0.8, coldMul: 1.2, coldCut: 3, hotCut: 4, styleW: 0.6, chillyMax: 2 },
+  style: { label: "스타일 우선", soft: 0.25, steep: 0.7, curve: 0.5, coldMul: 1.1, coldCut: 3.5, hotCut: 4, styleW: 0.9, chillyMax: 2.5 },
+};
+
+const T = it => TRAITS[it.type] || {};
+const isMain = it => MAIN.includes(TYPES[it.type]?.slot);
+const slotKey = it => { const t = TYPES[it.type]; return t.slot !== "acc" ? t.slot : t.hat ? "acc:hat" : "acc:" + it.type; };
+const bulkOf = it => Math.max(0, Math.min(3, (T(it).bulk ?? 0) + (it.thickness === "thick" ? 1 : it.thickness === "thin" ? -1 : 0)));
+function fitOf(it) {
+  if (it.fit && FITS[it.fit]) return it.fit;
+  const n = it.name || "";
+  if (/와이드|벌룬|배기|부츠컷|플레어|wide/i.test(n)) return "wide";
+  if (/크롭|crop/i.test(n)) return "crop";
+  if (/오버|빅\s?핏|박시|루즈|oversize/i.test(n)) return "oversized";
+  if (/테이퍼드|조거|tapered/i.test(n)) return "tapered";
+  if (/슬림|스키니|머슬|타이트|핏티드|slim|skinny/i.test(n)) return "slim";
+  if (/롱|맥시|long|maxi/i.test(n)) return "long";
+  return T(it).fit || "regular";
+}
+const topFit = it => { const f = fitOf(it); return f === "wide" ? "oversized" : f === "long" ? "regular" : ["slim", "oversized", "crop"].includes(f) ? f : "regular"; };
+const bottomFit = it => { const f = fitOf(it); return f === "oversized" || (f === "long" && it.type === "skirt") ? "wide" : ["slim", "wide", "tapered"].includes(f) ? f : "regular"; };
+const outerLen = it => { const f = fitOf(it); return f === "long" || f === "crop" ? f : T(it).len || "regular"; };
+const roomOf = it => (T(it).room ?? 1) + (fitOf(it) === "oversized" ? 1 : 0);
+function moodsOf(it) {
+  if (it.mood && MOODS[it.mood]) return [it.mood];
+  const n = it.name || "", hit = [];
+  if (/고프|아웃도어|트레킹|하이킹|아노락|gorp/i.test(n)) hit.push("gorpcore");
+  if (/스트릿|그래픽|카고|street/i.test(n)) hit.push("street");
+  if (/미니멀|베이직|무지|minimal/i.test(n)) hit.push("minimal");
+  if (/트레이닝|져지|저지|트랙|스포츠/i.test(n)) hit.push("sporty");
+  if (/리본|프릴|레이스|플리츠|러플|셔링/i.test(n)) hit.push("feminine");
+  if (/테일러드|수트|정장|옥스포드|헤링본/i.test(n)) hit.push("classic");
+  return [...new Set([...hit, ...(T(it).mood || [])])];
+}
+
+/* ---------- scoring ---------- */
+// A thick middle layer is squashed under an outer, so it adds a bit less warmth.
+const effWarmth = c => [c.outer, c.mid, c.inner, c.bottom].filter(Boolean).reduce((s, p) => s + (p === c.mid && c.outer && bulkOf(p) >= 2 ? p.w * 0.85 : p.w), 0);
+// gap > 0: colder than needed. Gentle up to 1.5 points, then steep. hard = outside the season cutoff.
+function warmthPen(w, target, P) {
+  const gap = target - w, a = Math.abs(gap), over = Math.max(0, a - 1.5);
+  const pen = (gap > 0 ? P.coldMul : 1) * (Math.min(a, 1.5) * P.soft + over * P.steep + over * over * P.curve);
+  return { pen, gap, hard: gap > P.coldCut ? "too_cold" : -gap > P.hotCut ? "too_hot" : null };
+}
+// Functional rules. hard: true excludes the outfit unless every item involved was picked by the user.
+function funcRules(c, X) {
+  const R = [], { outer, mid, inner, bottom } = c, eff = X.eff;
+  const main = [outer, mid, inner, bottom].filter(Boolean);
+  if (eff >= 23) for (const p of main) if (["fleece", "down"].includes(p.material) || bulkOf(p) >= 3 || p.type === "lined_pants") R.push({ hard: true, code: "season", items: [p] });
+  if (eff >= 23 && outer) R.push({ pen: 3 });
+  if (eff >= 25 && mid) R.push({ pen: 2 });
+  if (eff <= 8 && !outer) R.push({ pen: eff <= 0 ? 5 : 3 });
+  if (eff < 15 && inner.type === "tee_s" && !mid) R.push({ pen: 2.5 });
+  if (eff < 15 && bottom.type === "shorts") R.push({ pen: 4 });
+  if (outer && mid) {
+    const room = roomOf(outer) - bulkOf(mid);
+    if (room < -1) R.push({ hard: true, code: "bulky_mid", items: [outer, mid] });
+    else if (room < 0) R.push({ pen: 2.5, code: "bulky_mid", items: [outer, mid] });
+    if (T(outer).hood && T(mid).hood) R.push({ pen: 0.8, code: "hood_on_hood", items: [outer, mid] });
+  }
+  // Open-Meteo's feels-like already includes wind, so wind and rain only decide which clothes fit better.
+  if (X.wind >= 25) {
+    if (outer && (T(outer).wind || 0) >= 2) R.push({ pen: -0.8 });
+    if (!outer && eff < 20 && mid && ["knit", "cardigan"].includes(mid.type)) R.push({ pen: 1.2 });
+  }
+  if (X.pop >= 50) {
+    if (outer && (T(outer).rain || 0) >= 1) R.push({ pen: -0.6 });
+    if (["white", "ivory"].includes(bottom.color)) R.push({ pen: 0.4 });
+  }
+  if (X.range >= 8 && eff < 20) {
+    if (outer && (!mid || bulkOf(mid) <= 1)) R.push({ pen: -0.6 });
+    if (!outer && mid && bulkOf(mid) >= 2) R.push({ pen: 0.5 });
+  }
+  // On trips: reuse outerwear and bottoms (fewer things to pack), but rotate the tops so days don't repeat.
+  if (X.reuse) R.push({ pen: [outer, bottom].filter(p => p && X.reuse.has(p.id)).length * -0.6 + [inner, mid].reduce((a, p) => a + (p ? (X.used.get(p.id) || 0) * 1.2 : 0), 0) });
+  else R.push({ pen: main.filter(p => X.recent.has(p.id)).length * 0.4 });
+  return R;
+}
+function palette(c, ps) {
+  const big = new Set([c.outer, c.bottom, c.outer ? null : c.mid || c.inner].filter(Boolean));
+  const ts = ps.filter(p => T(p).mood?.length || p.type === "bag").map(p => { const [f, L, C] = TONES[p.color] || ["mono", 3, 0]; return { f, L, C, big: big.has(p), p }; });
+  const range = a => Math.max(...a) - Math.min(...a);
+  const pts = ts.filter(t => t.C >= 2), ptColors = new Set(pts.map(t => t.p.color));
+  const vivid = new Set(ts.filter(t => t.C >= 3).map(t => t.f));
+  let r;
+  if (vivid.size >= 2) r = { name: "vivid", score: -1.5 };
+  for (const [a, b] of COMPLEMENT) {
+    if (r) break;
+    const A = ts.filter(t => t.f === a), B = ts.filter(t => t.f === b);
+    if (A.length && B.length && [...A, ...B].some(t => t.C >= 2)) r = [...A, ...B].some(t => t.C <= 1 || !t.big) ? { name: "complement", score: 1 } : { name: "complement_hard", score: -1.5 };
+  }
+  const color = ts.filter(t => t.f !== "mono"), fams = new Set(color.map(t => t.f));
+  if (r) {}
+  else if (!color.length) r = range(ts.map(t => t.L)) >= 2 ? { name: "monotone", score: 1.5 } : { name: "flat", score: -0.5 };
+  else if (fams.size === 1 && color.length >= 2 && range(color.map(t => t.L)) >= 2) r = { name: "tone_on_tone", score: 2 };
+  else if (ptColors.size === 1) r = { name: "one_point", score: pts.some(t => t.big) ? 1 : 2 };
+  else if (fams.size >= 2 && range(ts.map(t => t.L)) <= 1 && range(ts.map(t => t.C)) <= 1) r = { name: "tone_in_tone", score: 1.5 };
+  else if (!pts.length) r = { name: "neutral", score: 1 };
+  else r = ptColors.size >= 3 ? { name: "busy", score: -1.5 } : { name: "two_point", score: -0.5 };
+  // Same color top and bottom in one block looks flat (a matching suit is fine).
+  const top = c.mid || c.inner;
+  if (top.color === c.bottom.color && !(c.outer?.type === "blazer" && c.bottom.type === "slacks")) r.score -= 0.5;
+  if (r.score > 0 && ps.some(p => c.anchorIds.has(p.id))) r.score *= 1.2;
+  return r;
+}
+const SIL = {
+  slim: { slim: 0, regular: 1, wide: 2, tapered: 0.5 }, regular: { slim: 0.5, regular: 1, wide: 1, tapered: 1 },
+  oversized: { slim: 2, regular: 1, wide: 0.5, tapered: 1.5 }, crop: { slim: 0.5, regular: 1.5, wide: 2, tapered: 1 },
+};
+function silhouette(c, mood) {
+  const top = c.mid || c.inner, tf = topFit(top), bf = bottomFit(c.bottom);
+  let s = SIL[tf][bf];
+  if (tf === "oversized" && bf === "wide" && ["street", "cityboy"].includes(mood)) s = 1.5;
+  if (tf === "slim" && bf === "slim" && ["minimal", "classic"].includes(mood)) s = 0.5;
+  if (c.outer) {
+    const ol = outerLen(c.outer);
+    if (ol === "long" && bf === "wide") s += c.outer.type === "long_down" ? 0 : 1;
+    if (ol === "crop" && bf === "wide") s += 1.5;
+    if (ol === "long" && tf === "oversized" && bf === "wide") s -= 2;
+    if (fitOf(c.outer) === "oversized" && ["skirt", "shorts"].includes(c.bottom.type)) s += 0.5;
+  }
+  if (s > 0 && [c.outer, top, c.bottom].some(p => p && c.anchorIds.has(p.id))) s *= 1.2;
+  return s;
+}
+// The outfit's lead mood: when the user picked items, it must be one of their moods.
+function moodScore(c, ps) {
+  const xs = ps.map(p => ({ ms: moodsOf(p), k: isMain(p) ? 1 : 0.5, a: c.anchorIds.has(p.id) })).filter(x => x.ms.length);
+  const pool = new Set((xs.some(x => x.a) ? xs.filter(x => x.a) : xs).flatMap(x => x.ms));
+  let best = null;
+  for (const m of pool) {
+    let s = 0, k = 0;
+    for (const x of xs) { s += x.k * Math.max(...x.ms.map(pm => moodRel(m, pm))); k += x.k; }
+    s = k ? s / k * 3 : 0;
+    if (!best || s > best.score) best = { name: m, score: s };
+  }
+  return best || { name: "casual", score: 0 };
+}
+function styleScore(c) {
+  const ps = [c.outer, c.mid, c.inner, c.bottom, ...c.extrasFixed].filter(Boolean);
+  const mood = moodScore(c, ps), sil = silhouette(c, mood.name), color = palette(c, ps);
+  const forms = ps.filter(p => T(p).form != null).map(p => T(p).form);
+  const formPen = forms.length && Math.max(...forms) - Math.min(...forms) >= 3 ? -1 : 0;
+  const trend = Math.min(1.5, TRENDS.reduce((s, r) => s + (r.when(c) ? r.score : 0), 0));
+  return { sil, color: color.score, palette: color.name, mood: mood.name, moodScore: mood.score, trend, sum: 0.8 * sil + color.score + 0.9 * mood.score + trend + formPen };
+}
+// Score one outfit. Returns false when a hard rule excludes it. relaxed only lifts the warmth cutoff;
+// clashes are forgiven only between items the user picked.
+function evaluate(c, X, P) {
+  c.w = effWarmth(c);
+  c.warm = warmthPen(c.w, X.target, P);
+  c.warns = [];
+  const picked = r => r.items?.length && r.items.every(p => c.anchorIds.has(p.id));
+  if (c.warm.hard) { if (!X.relaxed) return false; c.warns.push({ code: c.warm.hard, items: [] }); }
+  let func = 0;
+  for (const r of funcRules(c, X)) {
+    if (r.hard) {
+      if (!picked(r)) return false;
+      func += 3; c.warns.push(r);
+    } else {
+      func += r.pen;
+      if (r.code && picked(r)) c.warns.push(r);
+    }
+  }
+  c.func = func;
+  c.style = styleScore(c);
+  return true;
+}
+const total = (c, P) => c.warm.pen + c.func - P.styleW * c.style.sum;
+
+/* ---------- anchors ("이 옷 입고 싶어", 여러 개) ---------- */
+// One set = the items fixed in one card. Several items in the same slot are spread over the cards.
+function anchorSets(anchors, X) {
+  const groups = new Map();
+  for (const it of anchors) groups.set(slotKey(it), [...(groups.get(slotKey(it)) || []), it]);
+  const singles = [...groups.values()].filter(g => g.length === 1).map(g => g[0]);
+  const multis = [...groups.values()].filter(g => g.length > 1);
+  const mk = (fixed, o = {}) => ({ fixed: [...fixed], exclude: new Set(o.exclude || []), noMid: !!o.noMid, role: o.role || "anchor", lead: o.lead || [] });
+  const one = k => groups.get(k)?.length === 1 ? groups.get(k)[0] : null;
+  const inner = one("inner"), mid = one("mid");
+  let sets;
+  if (inner && mid) {
+    // Inner + mid: layer them when the weather allows, otherwise treat them like two picks for the same top slot.
+    const rest = singles.filter(x => x !== inner && x !== mid), outer = one("outer");
+    const layerW = inner.w + mid.w + 1.5 + (outer ? outer.w : 0);
+    const fits = X.eff < 23 && layerW <= X.target + 1 && !(outer && roomOf(outer) - bulkOf(mid) < 0);
+    sets = fits
+      ? [mk([...rest, inner, mid], { role: "layered", lead: [inner, mid] }), mk([...rest, mid], { role: "mid_only", exclude: [inner.id], lead: [mid] }), mk([...rest, inner], { role: "inner_only", noMid: true, lead: [inner] })]
+      : [mk([...rest, inner], { role: "inner_only", noMid: true, lead: [inner] }), mk([...rest, mid], { role: "mid_only", exclude: [inner.id], lead: [mid] })];
+  } else if (multis.length) {
+    sets = Array.from({ length: Math.min(3, Math.max(...multis.map(g => g.length))) }, () => mk(singles));
+  } else return { shared: true, sets: [Object.assign(mk(singles), { ids: new Set(singles.map(x => x.id)) })] };
+  for (const g of multis) sets.forEach((s, i) => { const it = g[i % g.length]; s.fixed.push(it); s.lead.push(it); });
+  sets.forEach(s => { s.ids = new Set(s.fixed.map(x => x.id)); });
+  return { shared: false, sets };
+}
+function search(set, X, P, all) {
+  const fixed = new Map(set.fixed.filter(isMain).map(it => [TYPES[it.type].slot, it]));
+  const pool = s => { const a = all.filter(i => TYPES[i.type]?.slot === s); const b = a.filter(i => !set.exclude.has(i.id)); return b.length ? b : a; };
+  const opt = s => fixed.has(s) ? [fixed.get(s)] : s === "mid" && set.noMid ? [null] : s === "inner" || s === "bottom" ? pool(s) : [null, ...pool(s)];
+  const I = opt("inner"), B = opt("bottom");
+  if (!I.length || !B.length) return { need: !I.length ? "이너·상의" : "하의", list: [] };
+  const extrasFixed = set.fixed.filter(it => !isMain(it)), list = [];
+  for (const outer of opt("outer")) for (const mid of opt("mid")) for (const inner of I) for (const bottom of B) {
+    const c = { outer, mid, inner, bottom, anchorIds: set.ids, extrasFixed, set };
+    if (evaluate(c, X, P)) list.push(c);
+  }
+  // Nothing left because of what the user picked: loosen the cutoffs and warn instead of showing nothing.
+  if (!list.length && !X.relaxed) return search(set, { ...X, relaxed: true }, P, all);
+  return { list };
+}
+const mainDiff = (a, b) => MAIN.filter(s => a[s]?.id !== b[s]?.id).length;
+// Pick from cands the best by total that differs from the cards already chosen (2 slots if possible, else 1).
+function bestOf(cands, P, chosen = [], pred = () => true) {
+  const sorted = cands.filter(pred).sort((a, b) => total(a, P) - total(b, P));
+  for (const need of [2, 1]) { const c = sorted.find(c => chosen.every(x => mainDiff(c, x) >= need)); if (c) return c; }
+  return null;
+}
+// Card 1 weather fit, card 2 best style (may be a little chilly), card 3 a different mood.
+function pickCards(cands, P) {
+  const c1 = bestOf(cands, P, [], c => c.warm.gap <= 1) || bestOf(cands, P);
+  if (!c1) return [];
+  c1.role = "weather";
+  const styled = cands.filter(c => c !== c1 && c.warm.gap <= P.chillyMax && mainDiff(c, c1) >= 1).sort((a, b) => b.style.sum - a.style.sum)[0];
+  let c2;
+  if (styled && styled.style.sum >= c1.style.sum + 0.5) { c2 = styled; c2.role = "style"; }
+  else { c2 = bestOf(cands, P, [c1]); if (c2) c2.role = "next"; }
+  const chosen = [c1, c2].filter(Boolean), moods = new Set(chosen.map(c => c.style.mood));
+  let c3 = bestOf(cands, P, chosen, c => !moods.has(c.style.mood));
+  if (c3) c3.role = "mood"; else { c3 = bestOf(cands, P, chosen); if (c3) c3.role = "next"; }
+  return [c1, c2, c3].filter(Boolean);
+}
 function recommend(ctx = {}) {
   const all = [...S.items.values()].map(i => ({ ...i, w: warmth(i) }));
   const by = s => all.filter(i => TYPES[i.type]?.slot === s);
-  const inners = by("inner"), bottoms = by("bottom");
-  if (!inners.length || !bottoms.length) return { need: !inners.length ? "이너·상의" : "하의", list: [] };
-  const eff = ctx.eff ?? dayInfo().eff, target = targetFor(eff), bonus = ctx.reuse;
+  if (!by("inner").length || !by("bottom").length) return { need: !by("inner").length ? "이너·상의" : "하의", list: [] };
+  const info = dayInfo(), day = ctx.day || info.d;
+  const eff = ctx.eff ?? info.eff, target = targetFor(eff), P = MODES[S.prefs.mode] || MODES.balance;
   const recent = new Set([...S.logs.values()].filter(l => l.date !== today() && (Date.now() - new Date(l.date)) < 3 * 864e5).flatMap(l => l.itemIds || []));
-  const anchorId = "anchor" in ctx ? ctx.anchor : S.anchor;
-  const anchor = anchorId && all.find(i => i.id === anchorId);
-  const mainAnchor = anchor && MAIN.includes(TYPES[anchor.type]?.slot) ? anchor : null;
-  const combos = [];
-  for (const inner of inners) for (const mid of [null, ...by("mid")]) for (const outer of [null, ...by("outer")]) for (const bottom of bottoms) {
-    const pieces = [outer, mid, inner, bottom].filter(Boolean);
-    if (mainAnchor && !pieces.some(p => p.id === mainAnchor.id)) continue;
-    const w = pieces.reduce((a, p) => a + p.w, 0);
-    let pen = Math.abs(w - target) * (w < target ? 1.3 : 1);
-    pen += colorPenalty(pieces);
-    if (eff >= 23 && outer) pen += 3;
-    if (eff >= 25 && mid) pen += 2;
-    if (eff <= 8 && !outer) pen += 4;
-    if (eff < 15 && inner.type === "tee_s") pen += 2.5;
-    if (eff < 15 && bottom.type === "shorts") pen += 4;
-    // On trips: reuse outerwear and bottoms (fewer things to pack), but rotate the tops so days don't repeat.
-    if (bonus) pen += [outer, bottom].filter(p => p && bonus.has(p.id)).length * -0.6 + [inner, mid].reduce((a, p) => a + (p ? (ctx.used.get(p.id) || 0) * 1.2 : 0), 0);
-    else pen += pieces.filter(p => recent.has(p.id)).length * 0.4;
-    combos.push({ outer, mid, inner, bottom, w, pen, key: pieces.map(p => p.id).join("|") });
+  const X = { eff, target, wind: ctx.wind ?? (S.day === 0 ? S.wx.cur?.wind || 0 : 0), pop: day.pop || 0, range: (day.max ?? 0) - (day.min ?? 0), reuse: ctx.reuse, used: ctx.used, recent };
+  const anchors = (ctx.anchors ?? S.anchors).map(id => all.find(i => i.id === id)).filter(Boolean);
+  const { shared, sets } = anchorSets(anchors, X);
+  const runs = sets.map(s => ({ set: s, ...search(s, X, P, all) }));
+  if (runs.every(r => r.need)) return { need: runs[0].need, list: [] };
+  let cards;
+  if (shared) cards = pickCards(runs[0].list, P);
+  else {
+    cards = [];
+    for (const r of runs) { const c = bestOf(r.list, P, cards); if (c) { c.role = r.set.role; cards.push(c); } }
+    // Two sets: the third card is a different-mood runner-up from the better set.
+    if (cards.length && cards.length < 3) {
+      const top = runs.filter(r => r.list.length).sort((a, b) => total(bestOf(a.list, P), P) - total(bestOf(b.list, P), P))[0];
+      const moods = new Set(cards.map(c => c.style.mood));
+      const alt = bestOf(top.list, P, cards, c => !moods.has(c.style.mood)) || bestOf(top.list, P, cards);
+      if (alt && !cards.includes(alt)) { alt.role = "alt"; cards.push(alt); }
+    }
   }
-  combos.sort((a, b) => a.pen - b.pen);
-  const pick = [];
-  for (const c of combos) {
-    if (pick.length >= 3) break;
-    if (pick.every(p => MAIN.filter(s => (p[s]?.id) !== (c[s]?.id)).length >= 2)) pick.push(c);
+  cards.forEach((c, i) => { addExtras(c, by("shoes"), by("acc"), eff, target, c.extrasFixed, i); finishCard(c, target); });
+  return { target, list: cards };
+}
+// Labels and the warnings shown on a card.
+function finishCard(c, target) {
+  const nm = p => `'${p.name}'`, lead = c.set.lead;
+  const titles = {
+    weather: "날씨에 딱 맞는 코디", style: "스타일을 살린 코디", mood: `다른 무드 · ${MOODS[c.style.mood]}`, next: "다른 조합",
+    layered: "겹쳐 입기", mid_only: `${lead[0]?.name || ""} 중심 코디`, inner_only: `${lead[0]?.name || ""} 단품 코디`,
+    anchor: lead.length ? `${lead.map(p => p.name).join(" + ")} 코디` : "고른 옷 코디", alt: `차선책 · ${MOODS[c.style.mood]}`,
+  };
+  c.title = titles[c.role] || "추천 코디";
+  c.tags = [MOODS[c.style.mood], PALETTE_LABEL[c.style.palette]].filter(Boolean);
+  if (c.role === "style" && c.warm.gap > 0.7) c.chilly = true;
+  const msgs = new Map(), picked = [c.outer, c.mid, c.inner, c.bottom].filter(p => p && c.anchorIds.has(p.id));
+  for (const w of c.warns) {
+    const [a, b] = w.items || [];
+    if (w.code === "bulky_mid") msgs.set(w.code, `선택하신 ${nm(a)} 안에 입기엔 ${nm(b)}이(가) 다소 두꺼울 수 있어요.`);
+    if (w.code === "hood_on_hood") msgs.set(w.code, "후드가 두 겹이라 목 주변이 답답할 수 있어요.");
+    if (w.code === "season") msgs.set(w.code, `${nm(a)}은(는) 오늘 같은 날씨엔 많이 더울 수 있어요.`);
   }
-  pick.forEach((c, i) => addExtras(c, by("shoes"), by("acc"), eff, target, anchor, i));
-  return { target, list: pick };
+  // A picked outer that needs a real warm middle layer to be enough today.
+  const free = c.mid && !c.anchorIds.has(c.mid.id) ? c.mid : null;
+  if (c.outer && c.anchorIds.has(c.outer.id) && free && target - (c.w - free.w) > 3 && c.warm.gap <= 1)
+    msgs.set("compensated", `선택하신 ${nm(c.outer)}이(가) 오늘 날씨엔 쌀쌀할 수 있어서 따뜻한 ${nm(free)}(으)로 보완했어요.`);
+  if (picked.length && c.warm.gap > 1.5 && c.role !== "style") msgs.set("too_cold", "선택하신 옷으로는 오늘 추울 수 있어요. 목도리나 장갑을 꼭 챙기세요.");
+  if (picked.length && c.warm.gap < -1.5) msgs.set("too_hot", `선택하신 ${picked.map(nm).join(", ")}은(는) 오늘 날씨엔 더울 수 있어요. 나머지는 가볍게 맞췄어요.`);
+  c.warnings = [...msgs.values()];
+  c.key = piecesOf(c).map(p => p.id).join("|");
 }
 // Shoes and accessories are chosen after the clothes: warm ones close the remaining gap, the rest follow the palette.
-function addExtras(c, shoes, accs, eff, target, anchor, rank) {
+function addExtras(c, shoes, accs, eff, target, fixedExtras, rank) {
   const clothes = MAIN.map(s => c[s]).filter(Boolean);
   const fit = (it, base) => base + colorPenalty([...clothes, it]) - (COLORS[it.color]?.neutral ? 0 : 0.2);
-  const anchorSlot = anchor && TYPES[anchor.type]?.slot;
+  const fixedShoes = fixedExtras.find(it => TYPES[it.type].slot === "shoes");
   const shoePref = t => eff <= 5 ? ({ long_boots: 0, boots: 0.3, sneakers: 1.2, loafers: 1.5, sandals: 9 })[t]
     : eff <= 15 ? ({ boots: 0, long_boots: 0.2, sneakers: 0.2, loafers: 0.3, sandals: 6 })[t]
     : eff <= 23 ? ({ sneakers: 0, loafers: 0, boots: 1, long_boots: 2.5, sandals: 2 })[t]
     : ({ sandals: 0, sneakers: 0.2, loafers: 0.5, boots: 5, long_boots: 8 })[t];
-  c.shoes = anchorSlot === "shoes" ? anchor : shoes.slice().sort((a, b) => fit(a, shoePref(a.type) ?? 1) - fit(b, shoePref(b.type) ?? 1))[rank % Math.max(1, Math.min(2, shoes.length))] || null;
-  const acc = [];
-  if (anchorSlot === "acc") acc.push(anchor);
+  c.shoes = fixedShoes || shoes.slice().sort((a, b) => fit(a, shoePref(a.type) ?? 1) - fit(b, shoePref(b.type) ?? 1))[rank % Math.max(1, Math.min(2, shoes.length))] || null;
+  const acc = fixedExtras.filter(it => TYPES[it.type].slot === "acc");
   const has = t => acc.some(a => a.type === t), hasHat = () => acc.some(a => TYPES[a.type].hat);
   let gap = target - c.w;
   const warmOrder = ["scarf", "beanie", "gloves"];
@@ -552,8 +869,6 @@ function addExtras(c, shoes, accs, eff, target, anchor, rank) {
   if (!has("bag")) { const bag = accs.filter(a => a.type === "bag").sort((a, b) => fit(a, 0) - fit(b, 0))[0]; if (bag) acc.push(bag); }
   c.acc = acc;
   c.extraW = [...acc, c.shoes].filter(Boolean).reduce((s, p) => s + (TYPES[p.type].warm ? p.w : 0), 0);
-  if (c.shoes) c.key += "|" + c.shoes.id;
-  acc.forEach(a => c.key += "|" + a.id);
 }
 function tipsFor(c) {
   const { d, effMax, range } = dayInfo(), tips = [];
@@ -870,7 +1185,7 @@ function tripPlan(t) {
   const reuse = new Set(), used = new Map(), off = S.prefs.offset || 0;
   const days = (t.days || []).map(d => {
     const eff = d.fmin + (d.fmax - d.fmin) * 0.35 - off;
-    const rec = recommend({ eff, reuse, used, anchor: null });
+    const rec = recommend({ eff, day: d, wind: 0, reuse, used, anchors: [] });
     if (!rec.list.length) return { d, eff, rec, c: null };
     const c = rec.list[(t.ranks?.[d.date] || 0) % rec.list.length];
     piecesOf(c).forEach(p => { reuse.add(p.id); used.set(p.id, (used.get(p.id) || 0) + 1); });
@@ -940,7 +1255,17 @@ async function refreshTrip(t) {
 async function addItem(x, source, editId) {
   const id = editId || "it_" + uid(), prev = editId ? S.items.get(editId) : null;
   await put(id, { brand: (x.brand || "").trim(), name: x.name.trim(), type: x.type, color: x.color, material: x.material, thickness: x.thickness,
+    fit: FITS[x.fit] ? x.fit : "", mood: MOODS[x.mood] ? x.mood : "",
     photo: x.photo || null, source: prev?.source || source || "manual", createdAt: prev?.createdAt || Date.now() });
+}
+// "이 옷 입고 싶어": several picks; up to 3 per slot (the oldest one in that slot is dropped).
+function toggleAnchor(id) {
+  const it = S.items.get(id); if (!it) return;
+  if (S.anchors.includes(id)) { S.anchors = S.anchors.filter(x => x !== id); render(); return; }
+  const same = S.anchors.filter(x => S.items.get(x) && slotKey(S.items.get(x)) === slotKey(it));
+  if (same.length >= 3) { S.anchors = S.anchors.filter(x => x !== same[0]); notice(`같은 종류는 3개까지 고를 수 있어서 '${S.items.get(same[0]).name}' 선택을 해제했어요.`); }
+  else notice("");
+  S.anchors.push(id); render();
 }
 async function addStarter() {
   for (const n of STARTER) { const t = TEMPLATES.find(t => t.name === n); await addItem(t, "template"); }
@@ -976,7 +1301,7 @@ function renderToday() {
   const W = S.wx, { d, eff, dress, off } = dayInfo();
   const rec = recommend();
   const log = S.logs.get("log_" + today());
-  const anchorItem = S.anchor && S.items.get(S.anchor);
+  const picked = S.anchors.map(id => S.items.get(id)).filter(Boolean);
   const srcTag = W.source === "live" ? `<span class="tag live">실시간 · ${esc(W.fetchedAt)}</span>` : W.source === "manual" ? `<span class="tag">직접 입력</span>` : `<span class="tag example">예시 날씨 · ${esc(W.fetchedAt)}</span>`;
   const dayBtns = W.days.slice(0, 3).map((x, i) => `<button class="chip" data-day="${i}" aria-pressed="${S.day === i}">${i === 0 ? "오늘" : i === 1 ? "내일" : "모레"}</button>`).join("");
   let h = `<div class="card">
@@ -1021,7 +1346,11 @@ function renderToday() {
     </div>`;
   }
 
-  h += `<div class="row between"><h2>추천 코디</h2>${anchorItem ? `<button class="chip" id="clearAnchor" aria-pressed="true">고정: ${esc(anchorItem.name)} ✕</button>` : `<span class="small muted">옷장에서 '이 옷 입고 싶어'로 고정할 수 있어요</span>`}</div>`;
+  const mode = S.prefs.mode || "balance";
+  h += `<div class="row between"><h2>추천 코디</h2><div class="seg" style="min-width:240px" role="group" aria-label="추천 기준">${Object.entries(MODES).map(([k, m]) => `<button type="button" data-mode="${k}" aria-pressed="${mode === k}">${m.label}</button>`).join("")}</div></div>`;
+  h += picked.length
+    ? `<div class="places">${picked.map(it => `<button class="chip" data-unanchor="${it.id}" aria-pressed="true" aria-label="${esc(it.name)} 고정 해제">${esc(it.name)} ✕</button>`).join("")}${picked.length > 1 ? `<button class="chip" id="clearAnchor">모두 해제</button>` : ""}</div>`
+    : `<p class="small muted">옷장에서 '이 옷 입고 싶어'를 여러 벌 고르면 그 옷으로 코디를 짜 드려요.</p>`;
   if (S.loading) h += `<div class="card"><p class="muted">옷장을 불러오는 중이에요…</p></div>`;
   else if (!S.items.size) h += emptyCloset();
   else if (rec.need) h += `<div class="card"><p>${rec.need}가 옷장에 없어서 코디를 만들 수 없어요.</p><button class="btn primary" data-go="add" style="align-self:flex-start">${rec.need} 추가하기</button></div>`;
@@ -1031,10 +1360,9 @@ function renderToday() {
     h += rec.list.map((c, i) => {
       const pieces = piecesOf(c), total = c.w + c.extraW;
       const diff = total - rec.target, verdict = Math.abs(diff) <= 1.5 ? "딱 맞아요" : diff > 0 ? "조금 따뜻해요" : "조금 추울 수 있어요";
-      const max = Math.max(rec.target, total) * 1.15, tips = tipsFor(c);
-      if (S.anchor && i === 0 && Math.abs(diff) > 4) tips.unshift(diff > 0 ? "고정한 옷이 오늘 날씨엔 꽤 따뜻해요." : "고정한 옷으로는 오늘 춥게 느껴질 수 있어요.");
+      const max = Math.max(rec.target, total) * 1.15, tips = [...c.warnings, ...tipsFor(c)];
       return `<article class="outfit">
-        <div class="outfit-head"><h3>${i === 0 ? "가장 잘 맞는 조합" : `다른 조합 ${i}`}</h3><span class="tag">${verdict}</span></div>
+        <div class="outfit-head"><div><h3>${esc(c.title)}</h3><div class="row" style="gap:4px;margin-top:4px">${c.tags.map(t => `<span class="tag">${esc(t)}</span>`).join("")}${c.chilly ? `<span class="tag example">조금 쌀쌀할 수 있어요</span>` : ""}</div></div><span class="tag">${verdict}</span></div>
         ${S.boardOpen === c.key ? `<div class="board-wrap"><canvas class="board" data-board="${i}" width="900" height="1400" aria-label="착장 보드"></canvas></div>` : ""}
         ${pieces.map(p => `<div class="piece">${visual(p, "thumb")}<div><div class="slot">${SLOTS[TYPES[p.type].slot]}${p.brand ? ` · <span class="brand-i">${esc(p.brand)}</span>` : ""}</div><div class="name">${esc(p.name)}</div></div><span class="pts">${MAIN.includes(TYPES[p.type].slot) || TYPES[p.type].warm ? fmt(p.w) + "점" : ""}</span></div>`).join("")}
         <div class="meter">
@@ -1093,6 +1421,8 @@ function renderCloset() {
   const active = [F.brand, F.color, F.material, F.thickness, q].filter(Boolean).length;
   let h = `<div class="row between"><h2>내 옷장 <span class="muted num" style="font-size:.9rem">${list.length === all.length ? all.length : list.length + " / " + all.length}벌</span></h2><button class="btn" data-go="add">+ 옷 추가</button></div>
     <div class="row"><button class="chip" data-filter="all" aria-pressed="${F.slot === "all"}">전체</button>${SLOT_ORDER.map(s => `<button class="chip" data-filter="${s}" aria-pressed="${F.slot === s}">${SLOTS[s]} ${count(s)}</button>`).join("")}</div>`;
+  const nPicked = S.anchors.filter(id => S.items.has(id)).length;
+  if (nPicked) h += `<div class="banner row between"><span>입고 싶은 옷 <b>${nPicked}</b>벌을 골랐어요. 같은 종류를 여러 벌 고르면 코디마다 나눠 넣어요.</span><button class="btn primary small" data-go="today">코디 보기</button></div>`;
   if (all.length) h += `<div class="card filters">
       <div class="search"><input type="text" id="cq" value="${esc(F.q)}" placeholder="브랜드, 옷 이름, 색으로 찾기" aria-label="옷장 검색"></div>
       <details id="cfBox" ${F.open || active ? "open" : ""}><summary class="small" style="cursor:pointer;font-weight:600">브랜드 · 색상 · 소재 · 두께 · 정렬${active ? ` (${active}개 적용)` : ""}</summary>
@@ -1117,7 +1447,7 @@ function renderCloset() {
       <div class="meta">보온 <b class="num">${fmt(warmth(it))}</b>점 · ${st ? `${st.n}번 입음${daysAgo(st.last) === 0 ? " · 오늘" : ` · ${daysAgo(st.last)}일 전`}` : "아직 안 입음"}</div>
       <div class="acts">${S.confirmDel === it.id
         ? `<button class="btn danger" data-del="${it.id}">삭제</button><button class="btn" data-cancel="1">취소</button>`
-        : `<button class="btn" data-anchor="${it.id}">이 옷 입고 싶어</button><button class="btn ghost" data-edit="${it.id}">수정</button><button class="btn ghost" data-dup="${it.id}" aria-label="${esc(fullName(it))} 복제">복제</button><button class="btn ghost" data-ask="${it.id}" aria-label="${esc(fullName(it))} 삭제">삭제</button>`}</div>
+        : `<button class="btn${S.anchors.includes(it.id) ? " primary" : ""}" data-anchor="${it.id}" aria-pressed="${S.anchors.includes(it.id)}">${S.anchors.includes(it.id) ? "입고 싶어 ✓" : "이 옷 입고 싶어"}</button><button class="btn ghost" data-edit="${it.id}">수정</button><button class="btn ghost" data-dup="${it.id}" aria-label="${esc(fullName(it))} 복제">복제</button><button class="btn ghost" data-ask="${it.id}" aria-label="${esc(fullName(it))} 삭제">삭제</button>`}</div>
     </div></div>`; }).join("")}</div>`;
   $("#view-closet").innerHTML = h;
 }
@@ -1134,6 +1464,10 @@ function formHTML(x, prefix) {
     <div class="grid2">
       <label class="f" for="${prefix}-type">종류<select id="${prefix}-type" data-k="type">${types}</select></label>
       <label class="f" for="${prefix}-mat">소재<select id="${prefix}-mat" data-k="material">${Object.entries(MATERIALS).map(([k, m]) => `<option value="${k}" ${x.material === k ? "selected" : ""}>${m.label}</option>`).join("")}</select></label>
+    </div>
+    <div class="grid2">
+      <label class="f" for="${prefix}-fit">핏<select id="${prefix}-fit" data-k="fit"><option value="">자동 (${FITS[fitOf({ ...x, fit: "" })]})</option>${Object.entries(FITS).map(([k, l]) => `<option value="${k}" ${x.fit === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+      <label class="f" for="${prefix}-mood">무드<select id="${prefix}-mood" data-k="mood"><option value="">자동 (${(moodsOf({ ...x, mood: "" }).slice(0, 2).map(m => MOODS[m]).join("·")) || "없음"})</option>${Object.entries(MOODS).map(([k, l]) => `<option value="${k}" ${x.mood === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
     </div>
     <div class="f">색상 <span style="font-weight:500">${esc(COLORS[x.color]?.label)}</span><div class="colors">${Object.entries(COLORS).map(([k, c]) => `<button type="button" data-color="${k}" aria-pressed="${x.color === k}" aria-label="${c.label}" title="${c.label}" style="background:${c.hex}"></button>`).join("")}</div></div>
     <div class="f">두께<div class="seg">${Object.entries(THICK).map(([k, t]) => `<button type="button" data-thick="${k}" aria-pressed="${x.thickness === k}">${t.label}</button>`).join("")}</div></div>
@@ -1228,11 +1562,13 @@ document.addEventListener("click", e => {
     S.day = 0; S.manual = false; S.wxMsg = ""; render(); return;
   }
   if (b.id === "starter") { addStarter(); return; }
-  if (b.id === "clearAnchor") { S.anchor = null; render(); return; }
-  if (ds.anchor) { S.anchor = ds.anchor; S.tab = "today"; render(); window.scrollTo({ top: 0 }); return; }
+  if (b.id === "clearAnchor") { S.anchors = []; render(); return; }
+  if (ds.anchor) { toggleAnchor(ds.anchor); return; }
+  if (ds.unanchor) { S.anchors = S.anchors.filter(x => x !== ds.unanchor); render(); return; }
+  if (ds.mode) { S.prefs.mode = ds.mode; render(); if (me) savePrefs(); return; }
   if (ds.ask) { S.confirmDel = ds.ask; render(); return; }
   if (ds.cancel) { S.confirmDel = null; render(); return; }
-  if (ds.del) { if (S.anchor === ds.del) S.anchor = null; S.confirmDel = null; del(ds.del); return; }
+  if (ds.del) { S.anchors = S.anchors.filter(x => x !== ds.del); S.confirmDel = null; del(ds.del); return; }
   if (ds.wear) { wear(S.results[+ds.wear]); return; }
   if (ds.note) { styleNote(S.results[+ds.note]); return; }
   if (ds.boardbtn) { const k = S.results[+ds.boardbtn].key; S.boardOpen = S.boardOpen === k ? null : k; render(); return; }
