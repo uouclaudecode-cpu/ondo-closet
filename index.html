@@ -290,6 +290,15 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; fo
 .item .name { font-size: .85rem; }
 .item .meta { font-size: .72rem; }
 .more { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; border-radius: 50%; border: 0; background: rgb(255 255 255 / .85); color: #17181A; font-weight: 700; line-height: 1; box-shadow: 0 1px 3px rgb(0 0 0 / .12); }
+.item.pick { border: 0; padding: 0; text-align: left; cursor: pointer; }
+.item.pick .body { display: flex; flex-direction: column; }
+.item.picked { box-shadow: 0 0 0 2px var(--rose-ink), var(--shadow); }
+.item.picked .item-img { opacity: .8; }
+.pick-box { position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: rgb(255 255 255 / .9); box-shadow: inset 0 0 0 1.5px #8A817A; color: #fff; font-weight: 800; font-size: .85rem; }
+.item.picked .pick-box { background: var(--rose-ink); box-shadow: none; }
+.sel-bar { position: sticky; top: calc(54px + env(safe-area-inset-top, 0px)); z-index: 4; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 14px; border-radius: 18px; background: var(--ink); color: var(--bg); }
+.sel-bar .btn { background: var(--bg); color: var(--ink); border-color: transparent; }
+.sel-bar .btn.danger { background: #C0534D; color: #fff; }
 .want { margin-top: 8px; border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 6px 10px; font-size: .78rem; font-weight: 600; }
 .want.on { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
 
@@ -2300,6 +2309,29 @@ function wearStats() {
   return m;
 }
 const daysAgo = d => Math.round((new Date(today()) - new Date(d)) / 864e5);
+// Same item registered twice: same brand + name + color. A trailing color word in the name ("…, IVORY") is
+// dropped, since the color field already says it; the same name in another color is not a duplicate.
+const dupKey = i => {
+  const n = String(i.name || "").replace(/[,/·-]\s*([^,/·-]+)$/, (m, tail) => firstHit(GUESS_COLOR, tail.trim()) ? "" : m);
+  return ((i.brand || "") + " " + n).toLowerCase().replace(/[\s,·]+/g, " ").trim() + "|" + (i.color || "");
+};
+const dupCount = (all, it) => all.filter(x => dupKey(x) === dupKey(it)).length;
+// Extra copies to remove: in each same-name group keep the one with a photo (or the oldest) and pick the rest.
+function dupExtras(all) {
+  const groups = new Map();
+  for (const i of all) groups.set(dupKey(i), [...(groups.get(dupKey(i)) || []), i]);
+  return [...groups.values()].filter(g => g.length > 1).flatMap(g => g.sort((a, b) => !!b.photo - !!a.photo || (a.createdAt || 0) - (b.createdAt || 0)).slice(1));
+}
+function selBarHTML(all, list) {
+  const n = S.sel.size, dups = dupExtras(all).length;
+  return `<div class="sel-bar">
+    <span><b>${n}</b>벌 선택</span>
+    <div class="row" style="gap:6px">
+      <button class="btn small" id="selAll">${list.every(i => S.sel.has(i.id)) ? "선택 해제" : "보이는 옷 전체"}</button>
+      ${dups ? `<button class="btn small" id="selDups">중복 ${dups}벌 고르기</button>` : ""}
+      ${S.confirmSel ? `<button class="btn danger small" id="selDelOk">정말 ${n}벌 지우기</button>` : `<button class="btn danger small" id="selDel" ${n ? "" : "disabled"}>삭제</button>`}
+    </div></div>`;
+}
 function renderCloset() {
   const F = S.cf, stats = wearStats();
   const all = [...S.items.values()];
@@ -2322,7 +2354,10 @@ function renderCloset() {
   const list = all.filter(i => pass(i)).sort(sorters[F.sort] || sorters.recent);
   const count = s => all.filter(i => TYPES[i.type]?.slot === s && pass(i, true)).length;
   const active = [F.brand, F.color, F.material, F.thickness, q].filter(Boolean).length;
-  let h = `<div class="row between"><h2>내 옷장 <span class="muted num" style="font-size:.9rem">${list.length === all.length ? all.length : list.length + " / " + all.length}벌</span></h2><button class="btn" data-go="add">+ 옷 추가</button></div>
+  const sel = S.sel; // Set of picked item ids while in select mode, else null
+  let h = `<div class="row between"><h2>내 옷장 <span class="muted num" style="font-size:.9rem">${list.length === all.length ? all.length : list.length + " / " + all.length}벌</span></h2>
+    <div class="row" style="gap:6px">${all.length ? `<button class="btn${sel ? " primary" : ""}" id="selToggle">${sel ? "선택 끝내기" : "선택"}</button>` : ""}${sel ? "" : `<button class="btn" data-go="add">+ 옷 추가</button>`}</div></div>
+    ${sel ? selBarHTML(all, list) : ""}
     <div class="row"><button class="chip" data-filter="all" aria-pressed="${F.slot === "all"}">전체</button>${SLOT_ORDER.map(s => `<button class="chip" data-filter="${s}" aria-pressed="${F.slot === s}">${SLOTS[s]} ${count(s)}</button>`).join("")}</div>`;
   // Sample clothes (from 샘플 옷장으로 시작) can be cleared in one go once real clothes come in.
   const samples = all.filter(isSample);
@@ -2348,6 +2383,10 @@ function renderCloset() {
   if (S.loading) h += `<div class="card"><p class="muted">옷장을 불러오는 중이에요…</p></div>`;
   else if (!all.length) h += emptyCloset();
   else if (!list.length) h += `<div class="card empty"><p class="muted">조건에 맞는 옷이 없어요.</p><button class="btn" id="cfReset">필터 지우기</button></div>`;
+  else if (sel) h += `<div class="closet">${list.map(it => { const on = sel.has(it.id); return `<button class="item pick${on ? " picked" : ""}" data-selitem="${it.id}" aria-pressed="${on}" title="${esc(fullName(it))}">
+      <span class="item-img">${it.photo ? `<img src="${esc(it.photo)}" alt="">` : silhouetteSVG(it)}</span>
+      <span class="pick-box" aria-hidden="true">${on ? "✓" : ""}</span>
+      <span class="body">${it.brand ? `<span class="brand-l ell">${esc(it.brand)}</span>` : ""}<span class="name ell">${esc(it.name)}</span><span class="meta ell">${esc(TYPES[it.type]?.label || "")}${dupCount(all, it) > 1 ? ` · 같은 이름 ${dupCount(all, it)}벌` : ""}</span></span></button>`; }).join("")}</div>`;
   else h += `<div class="closet">${list.map(it => { const st = stats.get(it.id), on = S.anchors.includes(it.id); return `<div class="item${on ? " on" : ""}" title="${esc(fullName(it))}">
       <span class="item-img">${it.photo ? `<img src="${esc(it.photo)}" alt="">` : silhouetteSVG(it)}</span>
       <button class="more" data-more="${it.id}" aria-label="${esc(fullName(it))} 메뉴">⋯</button>
@@ -2471,6 +2510,15 @@ document.addEventListener("click", e => {
   if (ds.day) { S.day = +ds.day; render(); return; }
   if (ds.place) { loadWeather(PLACES[+ds.place]); return; }
   if (b.id === "hereBtn" || b.id === "locYes") { hereWeather(); return; }
+  if (b.id === "selToggle") { S.sel = S.sel ? null : new Set(); S.confirmSel = false; render(); return; }
+  if (ds.selitem && S.sel) { S.sel.has(ds.selitem) ? S.sel.delete(ds.selitem) : S.sel.add(ds.selitem); S.confirmSel = false; render(); return; }
+  if (b.id === "selAll" && S.sel) {
+    const shown = [...document.querySelectorAll("[data-selitem]")].map(x => x.dataset.selitem), allOn = shown.every(id => S.sel.has(id));
+    shown.forEach(id => allOn ? S.sel.delete(id) : S.sel.add(id)); S.confirmSel = false; render(); return;
+  }
+  if (b.id === "selDups" && S.sel) { S.sel = new Set(dupExtras([...S.items.values()]).map(i => i.id)); S.confirmSel = false; render(); toast("같은 이름 옷 중 하나씩만 남기고 골랐어요. 확인하고 삭제를 눌러 주세요."); return; }
+  if (b.id === "selDel" && S.sel?.size) { S.confirmSel = true; render(); return; }
+  if (b.id === "selDelOk" && S.sel?.size) { const ids = [...S.sel]; S.sel = null; S.confirmSel = false; delMany(ids).then(() => toast(`${ids.length}벌을 옷장에서 지웠어요.`)); return; }
   if (b.id === "samplesDel") { S.confirmSamples = true; render(); return; }
   if (b.id === "samplesDelNo") { S.confirmSamples = false; render(); return; }
   if (b.id === "samplesDelOk") {
