@@ -354,6 +354,28 @@ body.noscroll { overflow: hidden; }
 .q-head .q-ico { width: 56px; height: 56px; border-radius: 18px; background: var(--sunken); display: grid; place-items: center; }
 .q-head .q-ico svg { width: 38px; height: 38px; }
 .q-save { border-radius: 999px; padding: 14px; font-size: .95rem; }
+/* today: greeting, location question, hourly strip, at-a-glance tiles */
+.hello { padding: 6px 2px 0; display: flex; flex-direction: column; gap: 2px; }
+.hello h2 { font-size: 1.55rem; font-weight: 800; letter-spacing: -.03em; }
+.hello-line { font-size: 1.02rem; color: var(--ink); }
+.hello-line b { color: var(--rose-ink); font-weight: 700; }
+.loc-ask { background: linear-gradient(160deg, var(--surface), var(--mauve-soft)); }
+.loc-ask h3 { font-size: 1rem; margin-bottom: 4px; }
+.loc-ico { flex: none; width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--surface); font-size: 1.3rem; box-shadow: var(--shadow); }
+.hours { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-inline: -4px; padding: 2px 4px; }
+.hours::-webkit-scrollbar { display: none; }
+.hr { flex: 1 0 54px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border-radius: 14px; background: var(--sunken); font-size: .85rem; }
+.hr.now { background: var(--ink); color: var(--bg); }
+.hr.now .muted { color: inherit; opacity: .75; }
+.hr-ico { font-size: 1.05rem; line-height: 1.2; }
+.hr-pop { font-size: .66rem; color: var(--cold); font-weight: 600; }
+.hr.now .hr-pop { color: #A9C2E4; }
+.glance { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.gl { border: 0; background: var(--surface); border-radius: 20px; padding: 12px; box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; min-width: 0; }
+.gl-k { font-size: .72rem; color: var(--muted); font-weight: 600; }
+.gl b { font-family: var(--f-serif); font-size: 1.9rem; font-weight: 600; line-height: 1.05; }
+.gl b small { font-family: var(--f-body); font-size: .75rem; font-weight: 600; color: var(--muted); margin-left: 2px; }
+.gl-s { font-size: .72rem; color: var(--rose-ink); font-weight: 600; max-width: 100%; }
 /* today: TPO chips, beauty & fashion brief */
 .tpo { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding: 2px 16px; }
 .tpo::-webkit-scrollbar { display: none; }
@@ -648,7 +670,7 @@ async function loadAll() {
   else data.forEach(r => applyDoc(r.id, r.data));
   S.loading = false; render();
   if (!error) migrateTypes();
-  if (S.prefs.place && S.wx.source === "example") loadWeather(S.prefs.place);
+  autoWeather();
 }
 function onSession(session) {
   const was = me?.id;
@@ -658,16 +680,38 @@ function onSession(session) {
     S.mode = "db"; S.guest = false;
     if (was !== me.id) { loadAll(); ai("status").then(r => { S.aiOn = !!r?.ai; S.gemShared = !!r?.gemini; S.gemQuota = r?.quota || null; render(); }).catch(() => {}); }
   }
-  else { S.mode = "memory"; S.items.clear(); S.logs.clear(); S.trips.clear(); S.loading = false; render(); }
+  else { S.mode = "memory"; S.items.clear(); S.logs.clear(); S.trips.clear(); S.loading = false; render(); autoWeather(); }
+}
+// Live weather on open: the saved city, else 서울. The sample stays only if the weather service can't be reached.
+// If location was already allowed and the user goes by "현재 위치" (or picked nothing yet), refresh it without asking.
+const geoGranted = async () => { try { return (await navigator.permissions.query({ name: "geolocation" })).state === "granted"; } catch { return false; } };
+async function autoWeather(noGeo) {
+  if (S.wxBusy) return;
+  const saved = S.prefs.place;
+  if (!noGeo && (!saved || saved.here) && navigator.geolocation && await geoGranted()) { hereWeather(); return; }
+  const p = saved || PLACES[0];
+  if (S.wx.source === "example" || (saved && S.wx.source === "live" && S.wx.place !== p.name)) loadWeather(p, false);
+}
+// First visit: one friendly question on the home screen instead of a cold browser prompt.
+function locAskHTML() {
+  if (S.prefs.place || LS.get("bary.locAsked") || !navigator.geolocation) return "";
+  return `<div class="card loc-ask"><div class="row" style="gap:12px;flex-wrap:nowrap"><span class="loc-ico" aria-hidden="true">📍</span>
+    <div><h3>내 위치 날씨로 코디를 맞출까요?</h3><p class="small muted">위치를 허용하면 지금 있는 곳의 체감온도로 매일 추천해요. 위치는 그곳 날씨를 받는 데만 써요.</p></div></div>
+    <div class="row"><button class="btn primary" id="locYes">내 위치 쓰기</button><button class="btn" id="locPick">도시 직접 고르기</button><button class="btn ghost" id="locNo">나중에</button></div></div>`;
 }
 async function boot() {
   S.loading = false;
-  if (!CONFIGURED) { S.auth = "unconfigured"; render(); return; }
+  if (!CONFIGURED) { S.auth = "unconfigured"; render(); autoWeather(); return; }
+  // A reset-password mail opens the site with type=recovery in the address. Read it before the client
+  // consumes (and clears) it: the PASSWORD_RECOVERY event can fire before any listener is attached.
+  const link = new URLSearchParams(location.hash.slice(1) + "&" + location.search.slice(1));
+  if (link.get("type") === "recovery") { S.recovery = true; S.authMsg = ""; }
+  if (link.get("error_code")) { S.authErr = true; S.authMsg = link.get("error_code") === "otp_expired" ? "메일 링크가 만료됐거나 이미 쓰였어요. '비밀번호를 잊었어요'로 새 메일을 받아 주세요." : "메일 링크로 들어오지 못했어요. 다시 시도해 주세요."; history.replaceState(null, "", location.pathname); }
   sb = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey);
+  // setTimeout: Supabase calls made inside this callback can wait on the auth lock forever.
+  sb.auth.onAuthStateChange((e, session) => { if (e === "PASSWORD_RECOVERY") { S.recovery = true; S.authMsg = ""; } setTimeout(() => onSession(session), 0); });
   const { data } = await sb.auth.getSession();
   onSession(data.session);
-  // Opening the reset-password mail logs in with a PASSWORD_RECOVERY event: ask for the new password first.
-  sb.auth.onAuthStateChange((e, session) => { if (e === "PASSWORD_RECOVERY") { S.recovery = true; S.authMsg = ""; } onSession(session); });
 }
 // Email + password. Sign-up logs in right away when "Confirm email" is off in Supabase.
 function authErr(error) {
@@ -723,8 +767,8 @@ function hereWeather() {
   if (!navigator.geolocation) { S.wxMsg = browserErr({ code: "geo_fail" }); render(); return; }
   S.wxBusy = true; S.wxMsg = ""; render();
   navigator.geolocation.getCurrentPosition(
-    p => { S.wxBusy = false; loadWeather({ name: "현재 위치", lat: +p.coords.latitude.toFixed(3), lon: +p.coords.longitude.toFixed(3) }); },
-    e => { S.wxBusy = false; S.wxMsg = browserErr({ code: e.code === 1 ? "geo_denied" : "geo_fail" }); render(); },
+    p => { S.wxBusy = false; LS.set("bary.locAsked", "1"); loadWeather({ name: "현재 위치", here: true, lat: +p.coords.latitude.toFixed(3), lon: +p.coords.longitude.toFixed(3) }); },
+    e => { S.wxBusy = false; LS.set("bary.locAsked", "1"); S.wxMsg = browserErr({ code: e.code === 1 ? "geo_denied" : "geo_fail" }); render(); autoWeather(true); },
     { timeout: 10000, maximumAge: 600000 });
 }
 
@@ -749,10 +793,11 @@ async function toUpload(file) {
   const blob = await new Promise(r => c.toBlob(r, "image/jpeg", 0.85));
   return { img, data: await blobToB64(blob), media_type: "image/jpeg" };
 }
-async function loadWeather(place) {
+// save: remember this place (only when the user picked it; the automatic first load doesn't write prefs).
+async function loadWeather(place, save = true) {
   S.wxBusy = true; S.wxMsg = ""; render();
   try {
-    const u = `https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m&hourly=relative_humidity_2m&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,weather_code,uv_index_max,wind_speed_10m_max&timezone=auto&forecast_days=3`;
+    const u = `https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m&hourly=relative_humidity_2m,apparent_temperature,weather_code,precipitation_probability&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,weather_code,uv_index_max,wind_speed_10m_max&timezone=auto&forecast_days=3`;
     const j = await browserJSON(u);
     const d = j.daily, hr = j.hourly || { time: [], relative_humidity_2m: [] };
     // Humidity while you're out (09~21시), averaged per day.
@@ -760,8 +805,11 @@ async function loadWeather(place) {
     S.wx = { source: "live", place: place.name, fetchedAt: (j.current?.time || "").replace("T", " "),
       cur: { t: j.current.temperature_2m, feel: j.current.apparent_temperature, code: j.current.weather_code, wind: j.current.wind_speed_10m, hum: j.current.relative_humidity_2m },
       days: d.time.map((t, i) => ({ date: t, max: d.temperature_2m_max[i], min: d.temperature_2m_min[i], fmax: d.apparent_temperature_max[i], fmin: d.apparent_temperature_min[i], pop: d.precipitation_probability_max[i], code: d.weather_code[i],
-        uv: d.uv_index_max?.[i] ?? null, wmax: d.wind_speed_10m_max?.[i] ?? null, hum: hum(t) })) };
-    S.manual = false; S.prefs.place = place; savePrefs();
+        uv: d.uv_index_max?.[i] ?? null, wmax: d.wind_speed_10m_max?.[i] ?? null, hum: hum(t) })),
+      // The next 24 hours in 3-hour steps, for the strip on the home screen.
+      hours: (() => { const now = (j.current?.time || "").slice(0, 13), k = Math.max(0, hr.time.findIndex(t => t.slice(0, 13) >= now));
+        return Array.from({ length: 8 }, (_, n) => k + n * 3).filter(i => i < hr.time.length).map(i => ({ h: +hr.time[i].slice(11, 13), feel: hr.apparent_temperature?.[i], code: hr.weather_code?.[i], pop: hr.precipitation_probability?.[i] ?? 0 })); })() };
+    S.manual = false; if (save) { S.prefs.place = place; savePrefs(); }
   } catch (e) { S.wxMsg = browserErr(e); }
   S.wxBusy = false; render();
 }
@@ -1784,6 +1832,30 @@ async function rate(r, date = today()) {
   toast(`🌡️ 배웠어요 · ${feelLabel(off)}${off ? ` (${off > 0 ? "+" : "−"}${Math.abs(off)}°C 보정)` : ""}`);
 }
 
+/* ---------- home: greeting, weather icons, at a glance ---------- */
+const WICON = c => c == null ? "🌡️" : c === 0 ? "☀️" : c <= 2 ? "🌤️" : c === 3 ? "☁️" : c <= 48 ? "🌫️" : c <= 67 ? "🌧️" : c <= 77 ? "🌨️" : c <= 82 ? "🌦️" : c <= 86 ? "🌨️" : "⛈️";
+// A greeting plus today's suggestion in one line: "트렌치코트에 니트, 슬랙스 어때요?"
+function helloHTML(rec, eff) {
+  const now = new Date(), hr = now.getHours();
+  const hi = hr < 5 ? "늦은 밤이에요" : hr < 11 ? "좋은 아침이에요" : hr < 17 ? "좋은 오후예요" : "편안한 저녁이에요";
+  const c = rec?.list?.[0], parts = c ? [c.outer, c.mid || c.inner, c.bottom].filter(Boolean).map(p => TYPES[p.type].label.split(/[·(]/)[0].trim()) : [];
+  const line = S.day !== 0 ? `${S.day === 1 ? "내일" : "모레"}은 체감 ${fmt(eff)}°예요.` : parts.length ? `오늘은 <b>${esc(parts.slice(0, -1).join(", "))}에 ${esc(parts[parts.length - 1])}</b> 어때요?` : S.items.size ? `오늘 체감은 ${fmt(eff)}°예요.` : "옷장을 채우면 매일 아침 코디를 골라 드려요.";
+  return `<section class="hello"><p class="small muted">${now.getMonth() + 1}월 ${now.getDate()}일 ${WD[now.getDay()]}요일</p><h2>${hi}</h2><p class="hello-line">${line}</p></section>`;
+}
+// Three tiles that lead elsewhere: closet size, this week's OOTD, the next trip.
+function glanceHTML() {
+  const t0 = today(), monday = addDays(t0, -((new Date().getDay() + 6) % 7));
+  const week = [...S.logs.values()].filter(l => l.date >= monday && l.date <= t0).length;
+  const next = [...S.trips.values()].filter(t => t.end >= t0).sort((a, b) => a.start.localeCompare(b.start))[0];
+  const dd = next ? Math.round((new Date(next.start) - new Date(t0)) / 864e5) : null;
+  return `<div class="glance">
+    <button class="gl" data-go="closet"><span class="gl-k">내 옷장</span><b>${S.items.size}<small>벌</small></b><span class="gl-s">${S.items.size ? "입고 싶은 옷 고르기" : "옷 채우기"}</span></button>
+    <button class="gl" data-go="cal"><span class="gl-k">이번 주 OOTD</span><b>${week}<small>/7일</small></b><span class="gl-s">${week ? "캘린더 보기" : "오늘부터 기록"}</span></button>
+    ${next ? `<button class="gl" data-tripopen="${next.id}"><span class="gl-k">다음 여행</span><b>${dd > 0 ? "D-" + dd : "여행 중"}</b><span class="gl-s ell">${esc(next.name)}</span></button>`
+      : `<button class="gl" data-go="trip"><span class="gl-k">여행</span><b>✈️</b><span class="gl-s">짐 리스트 만들기</span></button>`}
+  </div>`;
+}
+
 /* ---------- weather beauty & fashion brief ---------- */
 // Hair hold: humidity frizzes curls, wind undoes them, rain does both.
 function beautyBrief(d) {
@@ -1905,10 +1977,10 @@ function renderToday() {
   const rec = todayRec();
   const log = S.logs.get("log_" + today());
   const picked = S.anchors.map(id => S.items.get(id)).filter(Boolean);
-  const srcTag = W.source === "live" ? `<span class="tag live">실시간 · ${esc(W.fetchedAt)}</span>` : W.source === "manual" ? `<span class="tag">직접 입력</span>` : `<span class="tag example">예시 날씨 · ${esc(W.fetchedAt)}</span>`;
+  const srcTag = W.source === "live" ? `<span class="tag live">실시간 · ${esc(W.fetchedAt)}</span>` : W.source === "manual" ? `<span class="tag">직접 입력</span>` : `<span class="tag example">${S.wxBusy ? "날씨 불러오는 중…" : "예시 날씨 · 실제 날씨를 못 불러왔어요"}</span>`;
   const dayBtns = W.days.slice(0, 3).map((x, i) => `<button class="chip" data-day="${i}" aria-pressed="${S.day === i}">${i === 0 ? "오늘" : i === 1 ? "내일" : "모레"}</button>`).join("");
-  let h = installHTML() + `<div class="card">
-    <div class="row between"><h2>${esc(W.place)}</h2>${srcTag}</div>
+  let h = helloHTML(rec, eff) + locAskHTML() + installHTML() + `<div class="card wx-card">
+    <div class="row between"><h2><span aria-hidden="true">${WICON(d.code)}</span> ${esc(W.place)}</h2>${srcTag}</div>
     <div class="row">${W.source !== "manual" ? dayBtns : ""}</div>
     <div class="wx">
       <div class="big num-d">${fmt(eff)}<small>°</small></div>
@@ -1920,9 +1992,10 @@ function renderToday() {
       </dl>
     </div>
     ${scaleHTML(d.fmin - off, d.fmax - off, eff)}
+    ${S.day === 0 && W.hours?.length ? `<div class="hours" aria-label="시간별 체감온도">${W.hours.map((x, i) => `<div class="hr${i === 0 ? " now" : ""}"><span class="small muted">${i === 0 ? "지금" : x.h + "시"}</span><span class="hr-ico" aria-hidden="true">${WICON(x.code)}</span><b>${fmt(x.feel - off)}°</b>${x.pop >= 40 ? `<span class="hr-pop">${x.pop}%</span>` : ""}</div>`).join("")}</div>` : ""}
     <p class="band">이 온도엔 보통 <b>${bandFor(eff)}</b></p>
     ${off ? `<p class="badge-line">🌡️ 내 체감 보정 반영 중 · ${off > 0 ? `추위를 타는 편이라 ${fmt(off)}° 더 따뜻하게` : `더위를 타는 편이라 ${fmt(-off)}° 더 가볍게`} 골라요</p>` : ""}
-    <details ${S.wxMsg || S.manual ? "open" : ""}>
+    <details ${S.wxMsg || S.manual || S.placeOpen ? "open" : ""}>
       <summary class="small" style="cursor:pointer;font-weight:600">지역 바꾸기 · 날씨 불러오기</summary>
       <div class="stack" style="margin-top:10px">
         <div class="places"><button class="chip" id="hereBtn" ${S.wxBusy ? "disabled" : ""}>현재 위치</button>${PLACES.map((p, i) => `<button class="chip" data-place="${i}" ${S.wxBusy ? "disabled" : ""}>${p.name}</button>`).join("")}</div>
@@ -1939,7 +2012,7 @@ function renderToday() {
     ${S.wxMsg ? `<p class="banner err">${esc(S.wxMsg)}</p>` : ""}
   </div>`;
 
-  h += briefHTML(d);
+  h += briefHTML(d) + glanceHTML();
   // Feedback: one quiet line. The names of what was worn are not repeated here.
   if (log && !log.rating) h += `<div class="ask-row"><span>오늘 코디 어땠나요? <span class="muted small">알려주면 내 체감온도를 배워요</span></span><div class="fb-row">${FEEL.map(([k, l]) => `<button class="fb" data-rate="${k}">${l}</button>`).join("")}</div></div>`;
 
@@ -2143,7 +2216,7 @@ function render() {
   $("#tabs").hidden = gate; $("#view-auth").hidden = !gate;
   ["today", "closet", "trip", "cal", "add"].forEach(t => { $("#view-" + t).hidden = gate || S.tab !== t; $("#tab-" + t).setAttribute("aria-selected", S.tab === t); });
   const m = $("#saveMode");
-  m.textContent = S.auth === "unconfigured" ? "서버 설정 전 · 저장 안 됨" : me ? (S.loading ? "불러오는 중" : "로그아웃") : gate ? "로그인" : "로그인하고 저장하기";
+  m.textContent = S.auth === "unconfigured" ? "서버 설정 전 · 저장 안 됨" : me ? (S.loading ? "불러오는 중" : "내 계정") : gate ? "로그인" : "로그인하고 저장하기";
   m.title = me ? `${me.email} 계정으로 로그인됨` : "";
   m.className = "tag acct" + (me && !S.loading ? " live" : "");
   if (gate) { renderAuth(); return; }
@@ -2171,13 +2244,14 @@ document.addEventListener("click", e => {
   if (ds.go) { S.tab = ds.go; render(); return; }
   if (ds.day) { S.day = +ds.day; render(); return; }
   if (ds.place) { loadWeather(PLACES[+ds.place]); return; }
-  if (b.id === "hereBtn") { hereWeather(); return; }
-  if (b.id === "guestBtn") { S.guest = true; render(); return; }
+  if (b.id === "hereBtn" || b.id === "locYes") { hereWeather(); return; }
+  if (b.id === "locNo") { LS.set("bary.locAsked", "1"); render(); return; }
+  if (b.id === "locPick") { LS.set("bary.locAsked", "1"); S.placeOpen = true; render(); $("#placeQ")?.focus(); return; }  if (b.id === "guestBtn") { S.guest = true; render(); return; }
   if (ds.authmode) { S.loginEmail = ($("#loginEmail")?.value || S.loginEmail || "").trim(); S.authMode = ds.authmode; S.authMsg = ""; S.authErr = false; render(); return; }
   if (ds.login) { if (S.auth === "unconfigured") return; S.guest = false; S.authMode = "login"; render(); window.scrollTo({ top: 0 }); return; }
   if (b.id === "saveMode") {
     if (S.auth === "unconfigured") { notice("config.js에 Supabase 주소와 키를 넣으면 계정 저장이 켜져요."); return; }
-    if (me) { if (S.confirmLogout) { S.confirmLogout = false; sb.auth.signOut(); notice(""); } else { S.confirmLogout = true; notice(`${me.email} 계정에서 로그아웃하려면 오른쪽 위 버튼을 한 번 더 눌러 주세요.`); setTimeout(() => { S.confirmLogout = false; }, 5000); } }
+    if (me) openSheet({ kind: "account" });
     else { S.guest = false; render(); }
     return;
   }
@@ -2348,6 +2422,16 @@ function renderSheet() {
       <div class="f">이날 체감은 어땠나요?</div>
       <div class="fb-row">${FEEL.map(([k, lb]) => `<button class="fb" data-lograte="${k}" aria-pressed="${l.rating === k}">${lb}</button>`).join("")}</div>
       ${s.confirm ? `<button class="act danger" data-logdel="ok"><b>정말 지울게요</b><span>이날 기록과 피드백이 사라져요</span></button>` : `<button class="btn ghost danger small" data-logdel="1" style="align-self:flex-start">이날 기록 지우기</button>`}`;
+  } else if (s.kind === "account") {
+    if (!me) { closeSheet(); return; }
+    h = `<div class="sheet-top"><div><h3 id="sheetTitle">내 계정</h3><div class="small muted">${esc(me.email)}</div></div><button class="btn ghost" data-close="1">닫기</button></div>
+      <div class="f">비밀번호 설정·변경</div>
+      <p class="small muted">메일 링크로만 로그인해 왔다면 여기서 비밀번호를 만들어 두세요. 다음부터는 이메일과 이 비밀번호로 로그인해요.</p>
+      <label class="f" for="acPw">새 비밀번호<input type="password" id="acPw" minlength="6" autocomplete="new-password" placeholder="6자 이상"></label>
+      <label class="f" for="acPw2">비밀번호 확인<input type="password" id="acPw2" minlength="6" autocomplete="new-password"></label>
+      ${s.msg ? `<p class="banner${s.err ? " err" : ""}">${esc(s.msg)}</p>` : ""}
+      <button class="btn primary" id="acSave" ${s.busy ? "disabled" : ""}>${s.busy ? "저장하는 중…" : "비밀번호 저장"}</button>
+      <button class="btn ghost danger" id="acLogout" style="align-self:flex-start">로그아웃</button>`;
   } else if (s.kind === "install") {
     h = `<div class="sheet-top"><h3 id="sheetTitle">아이폰 홈 화면에 bary 설치하기</h3><button class="btn ghost" data-close="1">닫기</button></div>
       <ol class="steps"><li><b>Safari</b>로 이 페이지를 열어요. (카카오톡 안에서 열었다면 오른쪽 아래 ⋯ → '다른 브라우저로 열기')</li>
@@ -2451,6 +2535,20 @@ document.addEventListener("click", e => {
 document.addEventListener("input", e => { if (e.target.dataset?.te && S.sheet?.form) S.sheet.form[e.target.dataset.te] = e.target.value; });
 document.addEventListener("input", e => { if (e.target.id === "sheetQ") { S.sheet.q = e.target.value; const pos = e.target.selectionStart; renderSheet(); const q = $("#sheetQ"); q.focus(); q.setSelectionRange(pos, pos); } });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && S.sheet) closeSheet(); });
+// account sheet: set a password (accounts made with mail links have none), log out
+document.addEventListener("click", async e => {
+  const b = e.target.closest("#acSave, #acLogout"); if (!b || S.sheet?.kind !== "account") return;
+  const s = S.sheet;
+  if (b.id === "acLogout") { closeSheet(); await sb.auth.signOut(); toast("로그아웃했어요."); return; }
+  const pw = $("#acPw").value, pw2 = $("#acPw2").value;
+  if (pw.length < 6) { s.msg = "비밀번호는 6자 이상으로 해 주세요."; s.err = true; return renderSheet(); }
+  if (pw !== pw2) { s.msg = "비밀번호 확인이 달라요."; s.err = true; return renderSheet(); }
+  s.busy = true; s.msg = ""; renderSheet();
+  const { error } = await sb.auth.updateUser({ password: pw });
+  s.busy = false;
+  if (error) { s.msg = /different from the old/i.test(error.message || "") ? "지금 비밀번호와 다른 비밀번호를 넣어 주세요." : authErr(error); s.err = true; return renderSheet(); }
+  closeSheet(); toast("비밀번호를 저장했어요. 다음부터는 이메일과 비밀번호로 로그인해요.");
+});
 // quick-add sheet and calendar-day sheet
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-qcolor], [data-qmore], [data-qthick], #quickSave, [data-lograte], [data-logdel]"); if (!b || !S.sheet) return;
@@ -2477,7 +2575,7 @@ document.addEventListener("click", e => {
   if (b.id === "tripNew") { const s = addDays(today(), 7); T.form = { name: "", place: null, q: "", start: s, end: addDays(s, 3), lo: "", hi: "" }; T.msg = ""; render(); }
   else if (b.id === "tripCancel") { T.form = null; T.msg = ""; render(); }
   else if (b.id === "tripBack") { T.open = null; T.msg = ""; S.confirmDel = null; render(); }
-  else if (ds.tripopen) { T.open = ds.tripopen; T.msg = ""; render(); window.scrollTo({ top: 0 }); }
+  else if (ds.tripopen) { S.tab = "trip"; T.open = ds.tripopen; T.form = null; T.msg = ""; render(); window.scrollTo({ top: 0 }); }
   else if (ds.tfplace) { const p = PLACES[+ds.tfplace]; T.form.place = T.form.place?.name === p.name ? null : p; if (T.form.place) T.form.q = ""; render(); }
   else if (ds.tripnext && t) { const edits = { ...(t.edits || {}) }; delete edits[ds.tripnext]; saveTrip(t, { edits, ranks: { ...(t.ranks || {}), [ds.tripnext]: ((t.ranks || {})[ds.tripnext] || 0) + 1 } }); }
   else if (ds.tripreset && t) { const edits = { ...(t.edits || {}) }; delete edits[ds.tripreset]; saveTrip(t, { edits }); }
