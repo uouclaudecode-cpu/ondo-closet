@@ -6,6 +6,14 @@
 <title>bary</title>
 <meta name="description" content="오늘 날씨에 딱 맞는 내 옷장 코디부터 여행 짐 싸기까지, bary에서 10초 만에 완성하세요.">
 <meta name="theme-color" content="#FAF8F5">
+<script>
+// Theme before first paint: light unless this device chose dark (or "system" and the device is dark).
+(function () {
+  var t = "light"; try { t = localStorage.getItem("bary.theme") || "light"; } catch (e) {}
+  var dark = t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+})();
+</script>
 <meta name="application-name" content="bary">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -103,6 +111,12 @@ header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; b
 .logo { all: unset; cursor: pointer; border-radius: 8px; display: inline-flex; color: var(--ink); }
 .logo svg { height: 30px; width: auto; display: block; }
 .logo:focus-visible { outline: 2px solid var(--mauve); outline-offset: 3px; }
+.theme-btn { border: 0; background: var(--sunken); color: var(--muted); width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; padding: 0; }
+.theme-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+.theme-opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.theme-opt { border: 1px solid var(--line); background: var(--surface); border-radius: 18px; padding: 12px 6px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: .85rem; font-weight: 600; color: var(--ink); }
+.theme-opt i { width: 44px; height: 30px; border-radius: 9px; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .12); }
+.theme-opt[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
 .brand-l { font-size: 0.72rem; font-weight: 700; letter-spacing: .04em; color: var(--muted); overflow-wrap: anywhere; }
 .brand-i { letter-spacing: .02em; text-transform: none; }
 .filters { gap: 10px; padding: 12px; }
@@ -293,6 +307,8 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; fo
 .act.danger b { color: var(--bad); }
 .sheet-scroll { overflow-y: auto; min-height: 0; display: flex; flex-direction: column; gap: 8px; margin-inline: -4px; padding-inline: 4px; }
 .sheet-grp { font-weight: 700; margin-top: 4px; }
+.tile.mini.sel .tile-img { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--rose-ink); }
+.tile.mini.sel .tile-n { color: var(--rose-ink); }
 .mini-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
 body.noscroll { overflow: hidden; }
 /* bulk register from a screenshot */
@@ -436,7 +452,7 @@ body.noscroll { overflow: hidden; }
           <path d="M5 33.5 Q33 38.5 61 33.5" fill="none" stroke="#D4A3A3" stroke-width="1.3" stroke-linecap="round"/>
           <text x="2" y="28" font-family="'Cormorant Garamond','Times New Roman',Georgia,serif" font-size="36" font-weight="600" font-style="italic" letter-spacing="-0.5" fill="currentColor">bary<tspan dx="1.5" dy="-15" font-size="17" font-style="normal" font-weight="500" fill="#D4A3A3">°</tspan></text>
         </svg><span class="sr">bary</span></button></h1>
-      <button id="saveMode" class="tag acct" type="button">불러오는 중</button>
+      <div class="row" style="gap:6px;flex-wrap:nowrap"><button id="themeBtn" class="theme-btn" type="button" aria-label="화면 테마"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/></svg></button><button id="saveMode" class="tag acct" type="button">불러오는 중</button></div>
     </div>
   </header>
 
@@ -1810,6 +1826,15 @@ async function addStarter() {
   for (const n of STARTER) { const t = TEMPLATES.find(t => t.name === n); await addItem(t, "template"); }
   notice(`샘플 옷장 ${STARTER.length}벌을 넣었어요. 실제 내 옷으로 바꿔 가며 써 보세요.`);
 }
+// Save what was worn on any day (from the calendar). Keeps that day's feedback; the feel is known only for today.
+async function saveDayLog(date, ids) {
+  const ps = ids.map(id => S.items.get(id)).filter(Boolean); if (!ps.length) return;
+  const prev = S.logs.get("log_" + date);
+  closeSheet();
+  await put("log_" + date, { date, itemIds: ps.map(p => p.id), names: ps.map(p => p.name), feel: date === today() ? Math.round(dayInfo().eff * 10) / 10 : prev?.feel ?? null, rating: prev?.rating || null });
+  toast(prev ? "기록을 고쳤어요." : "📅 캘린더에 기록했어요. 체감이 어땠는지도 남겨 주세요.");
+  openSheet({ kind: "log", date });
+}
 async function wear(c) {
   const { eff } = dayInfo();
   const ps = piecesOf(c);
@@ -1957,7 +1982,8 @@ function renderCal() {
       const p = l && (l.itemIds || []).map(id => S.items.get(id)).find(x => x && isMain(x));
       return `<button class="cday${l ? " has" : ""}${date === today() ? " today" : ""}" data-calday="${date}" aria-label="${m}월 ${k + 1}일${l ? " 기록 있음" : ""}"><span>${k + 1}</span>${l ? `<span class="mini">${p ? (p.photo ? `<img src="${esc(p.photo)}" alt="">` : silhouetteSVG(p)) : ""}</span>${l.rating ? `<span class="emo">${FEEL_EMO[l.rating]}</span>` : ""}` : ""}</button>`;
     }).join("")}</div>
-    <p class="small muted">오늘 코디에서 <b>오늘 이거 입을래요</b>를 누르면 여기에 쌓여요. 날짜를 누르면 입은 옷과 그날 피드백을 볼 수 있어요.</p></div>`;
+    <p class="small muted"><b>오늘이나 지난 날짜를 누르면</b> 그날 입은 옷을 옷장에서 골라 기록해요. 오늘 코디의 <b>오늘 이거 입을래요</b>를 눌러도 여기에 쌓여요. 기록한 날을 누르면 입은 옷을 보고, 체감 피드백을 남길 수 있어요.</p>
+    ${inMonth.length ? "" : `<button class="btn primary" data-calday="${today()}" style="align-self:flex-start">오늘 입은 옷 기록하기</button>`}</div>`;
   h += `<div class="card"><div class="row between"><h3>내 체감온도 프로필</h3><span class="tag rose">${feelLabel(off)}</span></div>
     <div class="row" style="align-items:flex-end;gap:12px"><span class="feel-big">${off > 0 ? "+" : off < 0 ? "−" : "±"}${Math.abs(off)}°C</span>
       <span class="small muted" style="padding-bottom:4px">${off > 0 ? `실제보다 ${off}° 춥게 느껴서, 한 단계 따뜻하게 골라요` : off < 0 ? `실제보다 ${-off}° 덥게 느껴서, 한 단계 가볍게 골라요` : "아직 기본값으로 골라요"}</span></div>
@@ -2290,7 +2316,13 @@ document.addEventListener("click", e => {
   if (b.id === "installBtn") { install(); return; }
   if (b.id === "installHide") { LS.set("bary.installHide", "1"); render(); return; }
   if (ds.calnav) { const [y, m] = S.calMonth.split("-").map(Number), d = new Date(y, m - 1 + +ds.calnav, 1); S.calMonth = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); render(); return; }
-  if (ds.calday) { if (S.logs.get("log_" + ds.calday)) openSheet({ kind: "log", date: ds.calday }); else toast(ds.calday === today() ? "오늘 코디에서 '오늘 이거 입을래요'를 누르면 기록돼요." : "이 날은 기록이 없어요."); return; }
+  if (ds.calday) {
+    if (S.logs.get("log_" + ds.calday)) openSheet({ kind: "log", date: ds.calday });
+    else if (ds.calday > today()) toast("아직 오지 않은 날이에요. 지난 날이나 오늘을 눌러 기록해요.");
+    else if (!S.items.size) toast("옷장에 옷을 먼저 넣어 주세요.");
+    else openSheet({ kind: "logadd", date: ds.calday, sel: [] });
+    return;
+  }
   if (b.id === "feelReset") { S.prefs.offset = 0; S.recCache = null; savePrefs(); toast("체감 보정을 초기화했어요."); return; }
   if (ds.color) { const x = formTarget(b); if (x) { x.color = ds.color; touch(x, "color"); render(); } return; }
   if (ds.thick) { const x = formTarget(b); if (x) { x.thickness = ds.thick; touch(x, "thickness"); render(); } return; }
@@ -2418,11 +2450,12 @@ function renderSheet() {
     const l = S.logs.get("log_" + s.date); if (!l) { closeSheet(); return; }
     const dt = new Date(s.date + "T00:00:00"), ps = (l.itemIds || []).map(id => S.items.get(id)).filter(Boolean);
     const gone = (l.names || []).length - ps.length;
-    h = `<div class="sheet-top"><div><h3 id="sheetTitle">${dt.getMonth() + 1}월 ${dt.getDate()}일 (${WD[dt.getDay()]}) OOTD</h3><div class="small muted">그날 코디 기준 체감 ${fmt(l.feel ?? 0)}°</div></div><button class="btn ghost" data-close="1">닫기</button></div>
+    h = `<div class="sheet-top"><div><h3 id="sheetTitle">${dt.getMonth() + 1}월 ${dt.getDate()}일 (${WD[dt.getDay()]}) OOTD</h3>${l.feel != null ? `<div class="small muted">그날 코디 기준 체감 ${fmt(l.feel)}°</div>` : ""}</div><button class="btn ghost" data-close="1">닫기</button></div>
       <div class="sheet-scroll"><div class="mini-grid">${ps.map(p => `<div class="tile mini" title="${esc(fullName(p))}"><span class="tile-img">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : silhouetteSVG(p)}</span><span class="tile-cap"><span class="tile-n">${esc(p.name)}</span></span></div>`).join("")}</div>
         ${gone > 0 ? `<p class="small muted">옷장에서 지운 옷 ${gone}벌은 빼고 보여요.</p>` : ""}</div>
       <div class="f">이날 체감은 어땠나요?</div>
       <div class="fb-row">${FEEL.map(([k, lb]) => `<button class="fb" data-lograte="${k}" aria-pressed="${l.rating === k}">${lb}</button>`).join("")}</div>
+      <button class="btn" data-logedit="1" style="align-self:flex-start">입은 옷 고치기</button>
       ${s.confirm ? `<button class="act danger" data-logdel="ok"><b>정말 지울게요</b><span>이날 기록과 피드백이 사라져요</span></button>` : `<button class="btn ghost danger small" data-logdel="1" style="align-self:flex-start">이날 기록 지우기</button>`}`;
   } else if (s.kind === "account") {
     if (!me) { closeSheet(); return; }
@@ -2434,6 +2467,21 @@ function renderSheet() {
       ${s.msg ? `<p class="banner${s.err ? " err" : ""}">${esc(s.msg)}</p>` : ""}
       <button class="btn primary" id="acSave" ${s.busy ? "disabled" : ""}>${s.busy ? "저장하는 중…" : "비밀번호 저장"}</button>
       <button class="btn ghost danger" id="acLogout" style="align-self:flex-start">로그아웃</button>`;
+  } else if (s.kind === "logadd") {
+    // Record (or fix) what was worn on a day: today's suggested outfits in one tap, or pick from the closet.
+    const dt = new Date(s.date + "T00:00:00"), sel = new Set(s.sel), q = (s.q || "").trim().toLowerCase();
+    const recs = s.date === today() ? (todayRec().list || []) : [];
+    const list = [...S.items.values()].filter(i => !q || fullName(i).toLowerCase().includes(q));
+    h = `<div class="sheet-top"><div><h3 id="sheetTitle">${dt.getMonth() + 1}월 ${dt.getDate()}일 (${WD[dt.getDay()]}) 입은 옷</h3><div class="small muted">입은 옷을 눌러 고르세요</div></div><button class="btn ghost" data-close="1">닫기</button></div>
+      ${recs.length ? `<div class="f">오늘 추천 코디로 바로 기록</div><div class="places">${recs.map((c, i) => `<button class="chip" data-logrec="${i}">${esc(c.title)}</button>`).join("")}</div>` : ""}
+      <input type="text" id="sheetQ" value="${esc(s.q || "")}" placeholder="옷 이름, 브랜드로 찾기" aria-label="옷 찾기">
+      <div class="sheet-scroll">${SLOT_ORDER.map(sl => { const ps = list.filter(i => TYPES[i.type]?.slot === sl); return ps.length ? `<div class="small muted sheet-grp">${SLOTS[sl]}</div><div class="mini-grid">${ps.map(p => `<button class="tile mini${sel.has(p.id) ? " sel" : ""}" data-logpick="${p.id}" aria-pressed="${sel.has(p.id)}" title="${esc(fullName(p))}"><span class="tile-img">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : silhouetteSVG(p)}</span><span class="tile-cap"><span class="tile-n">${sel.has(p.id) ? "✓ " : ""}${esc(p.name)}</span></span></button>`).join("")}</div>` : ""; }).join("") || `<p class="muted small">찾는 옷이 없어요.</p>`}</div>
+      <button class="btn primary q-save" id="logSave" ${sel.size ? "" : "disabled"}>${sel.size ? `${sel.size}벌 기록하기` : "입은 옷을 골라 주세요"}</button>`;
+  } else if (s.kind === "theme") {
+    const cur = LS.get("bary.theme") || "light";
+    h = `<div class="sheet-top"><div><h3 id="sheetTitle">화면 테마</h3><div class="small muted">이 기기에서만 바뀌어요</div></div><button class="btn ghost" data-close="1">닫기</button></div>
+      <div class="theme-opts">${[["light", "밝게", "#FAF8F5"], ["dark", "어둡게", "#171514"], ["system", "기기 설정", "linear-gradient(135deg,#FAF8F5 50%,#171514 50%)"]].map(([k, l, bg]) => `<button class="theme-opt" data-theme="${k}" aria-pressed="${cur === k}"><i style="background:${bg}"></i>${l}</button>`).join("")}</div>
+      <p class="small muted">'기기 설정'을 고르면 휴대폰이나 컴퓨터가 어두운 모드일 때 bary도 어둡게 보여요.</p>`;
   } else if (s.kind === "install") {
     h = `<div class="sheet-top"><h3 id="sheetTitle">아이폰 홈 화면에 bary 설치하기</h3><button class="btn ghost" data-close="1">닫기</button></div>
       <ol class="steps"><li><b>Safari</b>로 이 페이지를 열어요. (카카오톡 안에서 열었다면 오른쪽 아래 ⋯ → '다른 브라우저로 열기')</li>
@@ -2537,6 +2585,18 @@ document.addEventListener("click", e => {
 document.addEventListener("input", e => { if (e.target.dataset?.te && S.sheet?.form) S.sheet.form[e.target.dataset.te] = e.target.value; });
 document.addEventListener("input", e => { if (e.target.id === "sheetQ") { S.sheet.q = e.target.value; const pos = e.target.selectionStart; renderSheet(); const q = $("#sheetQ"); q.focus(); q.setSelectionRange(pos, pos); } });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && S.sheet) closeSheet(); });
+// theme: light by default; dark or follow-the-device only when chosen on this device
+function applyTheme() {
+  const t = LS.get("bary.theme") || "light", dark = t === "dark" || (t === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  document.querySelector('meta[name="theme-color"]').content = dark ? "#171514" : "#FAF8F5";
+}
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", applyTheme);
+document.addEventListener("click", e => {
+  const b = e.target.closest("#themeBtn, [data-theme]"); if (!b || b.tagName !== "BUTTON") return;
+  if (b.id === "themeBtn") { openSheet({ kind: "theme" }); return; }
+  LS.set("bary.theme", b.dataset.theme === "light" ? "" : b.dataset.theme); applyTheme(); renderSheet(); drawBoards();
+});
 // account sheet: set a password (accounts made with mail links have none), log out
 document.addEventListener("click", async e => {
   const b = e.target.closest("#acSave, #acLogout"); if (!b || S.sheet?.kind !== "account") return;
@@ -2553,8 +2613,12 @@ document.addEventListener("click", async e => {
 });
 // quick-add sheet and calendar-day sheet
 document.addEventListener("click", e => {
-  const b = e.target.closest("[data-qcolor], [data-qmore], [data-qthick], #quickSave, [data-lograte], [data-logdel]"); if (!b || !S.sheet) return;
+  const b = e.target.closest("[data-qcolor], [data-qmore], [data-qthick], #quickSave, [data-lograte], [data-logdel], [data-logedit], [data-logpick], [data-logrec], #logSave"); if (!b || !S.sheet) return;
   const ds = b.dataset, s = S.sheet;
+  if (ds.logedit) { const l = S.logs.get("log_" + s.date); openSheet({ kind: "logadd", date: s.date, sel: (l?.itemIds || []).filter(id => S.items.has(id)) }); return; }
+  if (ds.logpick) { s.sel = s.sel.includes(ds.logpick) ? s.sel.filter(x => x !== ds.logpick) : [...s.sel, ds.logpick]; const sc = $("#sheet .sheet-scroll")?.scrollTop; renderSheet(); const n = $("#sheet .sheet-scroll"); if (n) n.scrollTop = sc; return; }
+  if (ds.logrec) { const c = todayRec().list?.[+ds.logrec]; if (c) { s.sel = piecesOf(c).map(p => p.id); renderSheet(); } return; }
+  if (b.id === "logSave") { saveDayLog(s.date, s.sel); return; }
   if (ds.qcolor) { s.color = ds.qcolor; renderSheet(); }
   else if (ds.qmore) { s.more = true; renderSheet(); }
   else if (ds.qthick) { s.thick = ds.qthick; renderSheet(); }
