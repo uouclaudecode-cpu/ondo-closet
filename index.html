@@ -666,13 +666,42 @@ async function boot() {
   sb = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey);
   const { data } = await sb.auth.getSession();
   onSession(data.session);
-  sb.auth.onAuthStateChange((_e, session) => onSession(session));
+  // Opening the reset-password mail logs in with a PASSWORD_RECOVERY event: ask for the new password first.
+  sb.auth.onAuthStateChange((e, session) => { if (e === "PASSWORD_RECOVERY") { S.recovery = true; S.authMsg = ""; } onSession(session); });
 }
-async function sendLoginLink(email) {
-  S.authMsg = "로그인 링크를 보내는 중이에요…"; render();
-  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
-  S.authMsg = error ? (error.status === 429 ? "잠시 후 다시 시도해 주세요. 링크는 몇 분에 한 번만 보낼 수 있어요." : "링크를 보내지 못했어요. 이메일 주소를 확인해 주세요.") : `${email}로 로그인 링크를 보냈어요. 메일함에서 링크를 누르면 바로 로그인돼요.`;
-  render();
+// Email + password. Sign-up logs in right away when "Confirm email" is off in Supabase.
+function authErr(error) {
+  const c = error?.code || "", m = String(error?.message || "");
+  if (c === "invalid_credentials" || /invalid login/i.test(m)) return "이메일 또는 비밀번호가 맞지 않아요. 예전에 메일 링크로만 로그인했다면 '비밀번호 찾기'로 비밀번호를 먼저 만들어 주세요.";
+  if (c === "user_already_exists" || /already registered/i.test(m)) return "이미 가입된 이메일이에요. 로그인해 주세요.";
+  if (c === "weak_password" || /password should/i.test(m)) return "비밀번호는 6자 이상으로 해 주세요.";
+  if (c === "email_not_confirmed") return "메일 인증이 아직 안 됐어요. 메일함의 인증 링크를 한 번 눌러 주세요.";
+  if (c === "validation_failed" || /email/i.test(m) && /invalid/i.test(m)) return "이메일 주소를 확인해 주세요.";
+  if (error?.status === 429) return "시도가 너무 많아요. 잠시 후 다시 해 주세요.";
+  return "잠시 후 다시 시도해 주세요. (" + (m || "연결 오류").slice(0, 80) + ")";
+}
+async function authSubmit() {
+  const mode = S.authMode || "login", email = ($("#loginEmail")?.value || "").trim(), pw = $("#loginPw")?.value || "";
+  S.loginEmail = email;
+  if (mode !== "newpw" && !email) { S.authMsg = "이메일을 넣어 주세요."; S.authErr = true; render(); return; }
+  if ((mode === "signup" || mode === "newpw") && pw.length < 6) { S.authMsg = "비밀번호는 6자 이상으로 해 주세요."; S.authErr = true; render(); return; }
+  if ((mode === "signup" || mode === "newpw") && pw !== ($("#loginPw2")?.value || "")) { S.authMsg = "비밀번호 확인이 달라요."; S.authErr = true; render(); return; }
+  S.authBusy = true; S.authMsg = ""; render();
+  let error, data;
+  if (mode === "login") ({ error } = await sb.auth.signInWithPassword({ email, password: pw }));
+  else if (mode === "signup") {
+    ({ data, error } = await sb.auth.signUp({ email, password: pw, options: { emailRedirectTo: location.origin + location.pathname } }));
+    // Supabase answers a sign-up for an existing email without a session or identities.
+    if (!error && data?.user && !data.user.identities?.length) error = { code: "user_already_exists" };
+    else if (!error && !data?.session) { S.authBusy = false; S.authErr = false; S.authMsg = `${email}로 인증 메일을 보냈어요. 메일의 링크를 한 번 누르면 가입이 끝나요.`; render(); return; }
+  } else if (mode === "reset") {
+    ({ error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname }));
+    if (!error) { S.authBusy = false; S.authErr = false; S.authMsg = `${email}로 비밀번호 재설정 메일을 보냈어요. 메일의 링크를 누르면 새 비밀번호를 정할 수 있어요.`; render(); return; }
+  } else if (mode === "newpw") {
+    ({ error } = await sb.auth.updateUser({ password: pw }));
+    if (!error) { S.recovery = false; S.authMode = "login"; S.authBusy = false; S.authMsg = ""; render(); toast("새 비밀번호로 바꿨어요."); return; }
+  }
+  S.authBusy = false; S.authErr = !!error; S.authMsg = error ? authErr(error) : ""; render();
 }
 
 /* ---------- weather (Open-Meteo, called directly) ---------- */
@@ -2091,20 +2120,26 @@ function renderAdd() {
   $("#view-add").innerHTML = h;
 }
 function renderAuth() {
+  const mode = S.recovery ? "newpw" : S.authMode || "login", busy = S.authBusy ? "disabled" : "";
+  const title = { login: "다시 만나서 반가워요", signup: "내 옷장을 만들어 볼까요", reset: "비밀번호 찾기", newpw: "새 비밀번호 정하기" }[mode];
+  const btn = { login: "로그인", signup: "가입하고 시작하기", reset: "재설정 메일 받기", newpw: "새 비밀번호 저장" }[mode];
+  const email = mode === "newpw" ? "" : `<label class="f" for="loginEmail">이메일<input type="email" id="loginEmail" required autocomplete="email" placeholder="you@example.com" value="${esc(S.loginEmail || "")}"></label>`;
+  const pw = mode === "reset" ? "" : `<label class="f" for="loginPw">${mode === "newpw" ? "새 비밀번호" : "비밀번호"}<input type="password" id="loginPw" required minlength="6" autocomplete="${mode === "login" ? "current-password" : "new-password"}" placeholder="${mode === "login" ? "" : "6자 이상"}"></label>`;
+  const pw2 = mode === "signup" || mode === "newpw" ? `<label class="f" for="loginPw2">비밀번호 확인<input type="password" id="loginPw2" required minlength="6" autocomplete="new-password"></label>` : "";
   $("#view-auth").innerHTML = `<div class="card auth">
-    <h2>내 옷장을 만들어 볼까요</h2>
-    <p class="lede">이메일로 로그인하면 등록한 옷, 코디 기록, 여행 계획이 계정에 저장돼서 휴대폰과 컴퓨터 어디서든 이어서 쓸 수 있어요.</p>
-    <form class="stack" id="loginForm">
-      <label class="f" for="loginEmail">이메일<input type="email" id="loginEmail" required autocomplete="email" placeholder="you@example.com" value="${esc(S.loginEmail || "")}"></label>
-      <button class="btn primary">로그인 링크 받기</button>
+    ${mode === "login" || mode === "signup" ? `<div class="vseg" role="tablist"><button type="button" role="tab" data-authmode="login" aria-pressed="${mode === "login"}" aria-selected="${mode === "login"}">로그인</button><button type="button" role="tab" data-authmode="signup" aria-pressed="${mode === "signup"}" aria-selected="${mode === "signup"}">회원가입</button></div>` : ""}
+    <h2>${title}</h2>
+    <p class="lede">${mode === "reset" ? "가입한 이메일로 비밀번호를 다시 정하는 링크를 보내 드려요." : mode === "newpw" ? "앞으로 로그인할 때 쓸 비밀번호를 정해 주세요." : "등록한 옷, 코디 기록, 여행 계획이 계정에 저장돼서 휴대폰과 컴퓨터 어디서든 이어서 쓸 수 있어요."}</p>
+    <form class="stack" id="loginForm">${email}${pw}${pw2}
+      <button class="btn primary" ${busy}>${S.authBusy ? "잠시만요…" : btn}</button>
     </form>
-    ${S.authMsg ? `<p class="banner">${esc(S.authMsg)}</p>` : ""}
-    <p class="small muted">비밀번호 없이, 메일로 온 링크를 누르면 로그인돼요. 처음이면 계정이 자동으로 만들어져요.</p>
-    <button class="btn ghost" id="guestBtn" style="align-self:flex-start">로그인 없이 둘러보기 (저장 안 됨)</button>
+    ${S.authMsg ? `<p class="banner${S.authErr ? " err" : ""}">${esc(S.authMsg)}</p>` : ""}
+    ${mode === "login" ? `<button class="btn ghost small" data-authmode="reset" style="align-self:flex-start">비밀번호를 잊었어요</button>` : mode === "reset" ? `<button class="btn ghost small" data-authmode="login" style="align-self:flex-start">← 로그인으로</button>` : ""}
+    ${mode === "newpw" ? "" : `<button class="btn ghost" id="guestBtn" style="align-self:flex-start">로그인 없이 둘러보기 (저장 안 됨)</button>`}
   </div>`;
 }
 function render() {
-  const gate = S.auth !== "unconfigured" && !me && !S.guest;
+  const gate = S.auth !== "unconfigured" && ((!me && !S.guest) || (me && S.recovery));
   $("#tabs").hidden = gate; $("#view-auth").hidden = !gate;
   ["today", "closet", "trip", "cal", "add"].forEach(t => { $("#view-" + t).hidden = gate || S.tab !== t; $("#tab-" + t).setAttribute("aria-selected", S.tab === t); });
   const m = $("#saveMode");
@@ -2138,7 +2173,8 @@ document.addEventListener("click", e => {
   if (ds.place) { loadWeather(PLACES[+ds.place]); return; }
   if (b.id === "hereBtn") { hereWeather(); return; }
   if (b.id === "guestBtn") { S.guest = true; render(); return; }
-  if (ds.login) { if (S.auth === "unconfigured") return; S.guest = false; render(); window.scrollTo({ top: 0 }); return; }
+  if (ds.authmode) { S.loginEmail = ($("#loginEmail")?.value || S.loginEmail || "").trim(); S.authMode = ds.authmode; S.authMsg = ""; S.authErr = false; render(); return; }
+  if (ds.login) { if (S.auth === "unconfigured") return; S.guest = false; S.authMode = "login"; render(); window.scrollTo({ top: 0 }); return; }
   if (b.id === "saveMode") {
     if (S.auth === "unconfigured") { notice("config.js에 Supabase 주소와 키를 넣으면 계정 저장이 켜져요."); return; }
     if (me) { if (S.confirmLogout) { S.confirmLogout = false; sb.auth.signOut(); notice(""); } else { S.confirmLogout = true; notice(`${me.email} 계정에서 로그아웃하려면 오른쪽 위 버튼을 한 번 더 눌러 주세요.`); setTimeout(() => { S.confirmLogout = false; }, 5000); } }
@@ -2228,7 +2264,7 @@ document.addEventListener("submit", e => {
   e.preventDefault();
   if (e.target.id === "placeForm") searchPlace($("#placeQ").value);
   if (e.target.id === "linkForm") readLink($("#linkIn").value);
-  if (e.target.id === "loginForm") { S.loginEmail = $("#loginEmail").value.trim(); if (S.loginEmail) sendLoginLink(S.loginEmail); }
+  if (e.target.id === "loginForm") authSubmit();
 });
 document.addEventListener("paste", e => {
   const file = [...(e.clipboardData?.files || [])].find(f => f.type.startsWith("image/"));
