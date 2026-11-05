@@ -425,6 +425,23 @@ body.noscroll { overflow: hidden; }
 .cday .mini { width: 70%; aspect-ratio: 1; display: grid; place-items: center; }
 .cday .mini svg, .cday .mini img { width: 100%; height: 100%; object-fit: contain; }
 .cday .emo { font-size: .7rem; line-height: 1; }
+.cday .mini.ph { width: 80%; border-radius: 8px; overflow: hidden; }
+.cday .mini.ph img { object-fit: cover; }
+.ootd-photo img { width: 100%; max-height: 320px; object-fit: cover; border-radius: 18px; display: block; margin-bottom: 8px; }
+.ootd-add { width: 100%; border: 1.5px dashed var(--line); background: var(--tile); color: #1E1E1E; border-radius: 18px; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-weight: 700; font-size: .9rem; }
+.ootd-add span { font-size: .75rem; font-weight: 500; color: #8A817A; }
+.glance.rep .gl { box-shadow: none; background: var(--sunken); }
+.gl b.sm { font-family: var(--f-body); font-size: .95rem; font-weight: 700; padding-top: 8px; }
+.cbar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .06); }
+.cbar i { display: block; min-width: 6px; }
+.rank { display: flex; flex-direction: column; gap: 6px; }
+.rank-row { display: grid; grid-template-columns: 18px 40px minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: .88rem; }
+.rank-row .tile-img.sm { width: 40px; border-radius: 10px; }
+.rank-n { font-family: var(--f-serif); font-size: 1.2rem; font-weight: 600; color: var(--rose-ink); text-align: center; }
+.sim { border: 0; background: var(--sunken); border-radius: 16px; padding: 10px 12px; display: flex; align-items: center; gap: 12px; text-align: left; width: 100%; }
+.sim-d { display: flex; flex-direction: column; min-width: 52px; }
+.sim-ps { display: flex; gap: 6px; min-width: 0; overflow: hidden; }
+.sim-ps .tile-img.sm { width: 44px; border-radius: 10px; background: var(--surface); }
 .feel-gauge { position: relative; height: 10px; border-radius: 999px; background: linear-gradient(90deg, var(--warm), var(--mild) 30%, var(--rose-soft) 50%, var(--cool) 70%, var(--cold)); }
 .feel-gauge i { position: absolute; top: 50%; width: 20px; height: 20px; border-radius: 50%; background: var(--surface); border: 3px solid var(--ink); transform: translate(-50%, -50%); transition: left .4s ease; }
 .feel-labels { display: flex; justify-content: space-between; font-size: .72rem; color: var(--muted); }
@@ -474,7 +491,7 @@ body.noscroll { overflow: hidden; }
   <button role="tab" id="tab-trip" aria-selected="false" data-tab="trip"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="16" height="13" rx="2.5"/><path d="M9 7V5.2C9 4.5 9.5 4 10.2 4h3.6c.7 0 1.2.5 1.2 1.2V7M8 7v13M16 7v13"/></svg><span>여행</span></button>
   <button role="tab" id="tab-cal" aria-selected="false" data-tab="cal"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><circle cx="12" cy="15" r="1.3"/></svg><span>캘린더</span></button>
 </nav>
-<div id="toast" role="status" hidden></div><input type="file" id="bulkIn" accept="image/jpeg,image/png,image/webp" hidden>
+<div id="toast" role="status" hidden></div><input type="file" id="bulkIn" accept="image/jpeg,image/png,image/webp" hidden><input type="file" id="ootdIn" accept="image/*" hidden>
 <div id="sheet" class="sheet" hidden><div class="sheet-bg" data-close="1"></div><div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -1826,12 +1843,18 @@ async function addStarter() {
   for (const n of STARTER) { const t = TEMPLATES.find(t => t.name === n); await addItem(t, "template"); }
   notice(`샘플 옷장 ${STARTER.length}벌을 넣었어요. 실제 내 옷으로 바꿔 가며 써 보세요.`);
 }
+// One day's OOTD record: worn items, feel, feedback, and the day's photo / memo / TPO tag.
+// Every write merges into what's there, so changing one part never drops the others.
+async function putLog(date, patch) {
+  const { id, ...prev } = S.logs.get("log_" + date) || {};
+  await put("log_" + date, { date, itemIds: [], names: [], feel: null, rating: null, photo: null, memo: "", tpo: null, ...prev, ...patch });
+}
 // Save what was worn on any day (from the calendar). Keeps that day's feedback; the feel is known only for today.
 async function saveDayLog(date, ids) {
   const ps = ids.map(id => S.items.get(id)).filter(Boolean); if (!ps.length) return;
   const prev = S.logs.get("log_" + date);
   closeSheet();
-  await put("log_" + date, { date, itemIds: ps.map(p => p.id), names: ps.map(p => p.name), feel: date === today() ? Math.round(dayInfo().eff * 10) / 10 : prev?.feel ?? null, rating: prev?.rating || null });
+  await putLog(date, { itemIds: ps.map(p => p.id), names: ps.map(p => p.name), feel: date === today() ? Math.round(dayInfo().eff * 10) / 10 : prev?.feel ?? null });
   toast(prev ? "기록을 고쳤어요." : "📅 캘린더에 기록했어요. 체감이 어땠는지도 남겨 주세요.");
   openSheet({ kind: "log", date });
 }
@@ -1840,7 +1863,7 @@ async function wear(c) {
   const ps = piecesOf(c);
   // Re-recording keeps the day's feedback so the learned correction isn't counted twice.
   const prev = S.logs.get("log_" + today());
-  await put("log_" + today(), { date: today(), itemIds: ps.map(p => p.id), names: ps.map(p => p.name), feel: Math.round(eff * 10) / 10, rating: prev?.rating || null });
+  await putLog(today(), { itemIds: ps.map(p => p.id), names: ps.map(p => p.name), feel: Math.round(eff * 10) / 10 });
   toast("📅 OOTD 캘린더에 기록했어요. 저녁에 체감 피드백도 남겨 주세요.");
 }
 // Evening feedback teaches the personal correction: 추웠어요 +1°, 더웠어요 −1° (kept within ±6°).
@@ -1853,7 +1876,7 @@ async function rate(r, date = today()) {
   const l = S.logs.get("log_" + date); if (!l || l.rating === r) return;
   // Changing an earlier answer undoes its correction first.
   S.prefs.offset = Math.max(-6, Math.min(6, (S.prefs.offset || 0) - feelDelta(l.rating) + feelDelta(r)));
-  await put(l.id, { date: l.date, itemIds: l.itemIds || [], names: l.names || [], feel: l.feel, rating: r });
+  await putLog(l.date, { rating: r });
   await savePrefs();
   const off = S.prefs.offset;
   toast(`🌡️ 배웠어요 · ${feelLabel(off)}${off ? ` (${off > 0 ? "+" : "−"}${Math.abs(off)}°C 보정)` : ""}`);
@@ -1968,6 +1991,40 @@ async function saveQuick() {
 }
 
 /* ---------- OOTD calendar ---------- */
+// This month at a glance: days recorded, longest streak, most-worn clothes, clothes left in the closet, the month's colors.
+function monthReportHTML(month, inMonth, y, m) {
+  if (!inMonth.length) return "";
+  const dates = new Set(inMonth.map(l => l.date));
+  let best = 0, run = 0;
+  for (let d = 1; d <= new Date(y, m, 0).getDate(); d++) { if (dates.has(`${month}-${String(d).padStart(2, "0")}`)) best = Math.max(best, ++run); else run = 0; }
+  const count = new Map();
+  inMonth.forEach(l => (l.itemIds || []).forEach(id => { if (S.items.has(id)) count.set(id, (count.get(id) || 0) + 1); }));
+  const top = [...count].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([id, n]) => [S.items.get(id), n]);
+  const sleeping = [...S.items.values()].filter(i => isMain(i) && !count.has(i.id));
+  const colors = new Map();
+  inMonth.forEach(l => (l.itemIds || []).map(id => S.items.get(id)).filter(p => p && isMain(p)).forEach(p => colors.set(p.color, (colors.get(p.color) || 0) + 1)));
+  const tot = [...colors.values()].reduce((a, b) => a + b, 0), cs = [...colors].sort((a, b) => b[1] - a[1]);
+  const tpos = new Map(); inMonth.forEach(l => l.tpo && tpos.set(l.tpo, (tpos.get(l.tpo) || 0) + 1));
+  const topTpo = [...tpos].sort((a, b) => b[1] - a[1])[0];
+  return `<div class="card"><div class="row between"><h3>${m}월 OOTD 리포트</h3><span class="tag rose">최장 연속 ${best}일</span></div>
+    <div class="glance rep"><div class="gl"><span class="gl-k">기록한 날</span><b>${inMonth.length}<small>일</small></b></div><div class="gl"><span class="gl-k">입은 옷</span><b>${count.size}<small>벌</small></b></div><div class="gl"><span class="gl-k">자주 간 곳</span><b class="sm">${topTpo ? esc(TPO[topTpo[0]].label) : "—"}</b></div></div>
+    ${tot ? `<div class="f">이달의 컬러</div><div class="cbar" aria-hidden="true">${cs.map(([k, n]) => `<i style="flex:${n};background:${COLORS[k]?.hex || "#999"}" title="${esc(COLORS[k]?.label || "")}"></i>`).join("")}</div>
+      <p class="small muted">${cs.slice(0, 3).map(([k, n]) => `${COLORS[k]?.label} ${Math.round(n / tot * 100)}%`).join(" · ")}</p>` : ""}
+    ${top.length ? `<div class="f">가장 많이 입은 옷</div><div class="rank">${top.map(([p, n], i) => `<div class="rank-row"><span class="rank-n">${i + 1}</span><span class="tile-img sm">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : silhouetteSVG(p)}</span><span class="ell">${esc(p.name)}</span><span class="muted small">${n}번</span></div>`).join("")}</div>` : ""}
+    ${sleeping.length ? `<details class="o-notes"><summary>💤 이번 달 한 번도 안 입은 옷 ${sleeping.length}벌</summary><p class="small muted" style="margin-top:6px">${sleeping.slice(0, 12).map(p => esc(p.name)).join(", ")}${sleeping.length > 12 ? " 외" : ""}</p><button class="btn small" data-wakeup="1" style="margin-top:8px">이 중 하나로 오늘 코디 짜기</button></details>` : ""}
+  </div>`;
+}
+// Days that felt like today (±2°), most recent first: what worked before in this weather.
+function similarDaysHTML() {
+  const { eff } = dayInfo(), t0 = today();
+  const days = [...S.logs.values()].filter(l => l.date < t0 && l.feel != null && Math.abs(l.feel - eff) <= 2 && (l.itemIds || []).some(id => S.items.has(id)))
+    .sort((a, b) => (b.rating === "ok") - (a.rating === "ok") || b.date.localeCompare(a.date)).slice(0, 3);
+  if (!days.length) return "";
+  return `<div class="card"><div class="row between"><h3>오늘과 비슷한 체감이었던 날</h3><span class="tag">체감 ${fmt(eff)}° ± 2°</span></div>
+    ${days.map(l => { const ps = (l.itemIds || []).map(id => S.items.get(id)).filter(Boolean); const dt = new Date(l.date + "T00:00:00");
+      return `<button class="sim" data-calday="${l.date}"><span class="sim-d"><b>${dt.getMonth() + 1}.${dt.getDate()}</b><span class="small muted">${fmt(l.feel)}° ${l.rating ? FEEL_EMO[l.rating] : ""}</span></span><span class="sim-ps">${ps.slice(0, 4).map(p => `<span class="tile-img sm">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : silhouetteSVG(p)}</span>`).join("")}</span></button>`; }).join("")}
+    <p class="small muted">🥰 딱 좋았던 날이 먼저 보여요. 누르면 그날 코디를 보고 '다시 입기'로 오늘 추천에 고정할 수 있어요.</p></div>`;
+}
 const ym = d => d.slice(0, 7);
 function renderCal() {
   const month = S.calMonth || (S.calMonth = ym(today()));
@@ -1980,10 +2037,11 @@ function renderCal() {
     ${Array.from({ length: n }, (_, k) => {
       const date = `${month}-${String(k + 1).padStart(2, "0")}`, l = S.logs.get("log_" + date);
       const p = l && (l.itemIds || []).map(id => S.items.get(id)).find(x => x && isMain(x));
-      return `<button class="cday${l ? " has" : ""}${date === today() ? " today" : ""}" data-calday="${date}" aria-label="${m}월 ${k + 1}일${l ? " 기록 있음" : ""}"><span>${k + 1}</span>${l ? `<span class="mini">${p ? (p.photo ? `<img src="${esc(p.photo)}" alt="">` : silhouetteSVG(p)) : ""}</span>${l.rating ? `<span class="emo">${FEEL_EMO[l.rating]}</span>` : ""}` : ""}</button>`;
+      return `<button class="cday${l ? " has" : ""}${date === today() ? " today" : ""}" data-calday="${date}" aria-label="${m}월 ${k + 1}일${l ? " 기록 있음" : ""}"><span>${k + 1}</span>${l ? `<span class="mini${l.photo ? " ph" : ""}">${l.photo ? `<img src="${esc(l.photo)}" alt="">` : p ? (p.photo ? `<img src="${esc(p.photo)}" alt="">` : silhouetteSVG(p)) : ""}</span>${l.rating ? `<span class="emo">${FEEL_EMO[l.rating]}</span>` : ""}` : ""}</button>`;
     }).join("")}</div>
     <p class="small muted"><b>오늘이나 지난 날짜를 누르면</b> 그날 입은 옷을 옷장에서 골라 기록해요. 오늘 코디의 <b>오늘 이거 입을래요</b>를 눌러도 여기에 쌓여요. 기록한 날을 누르면 입은 옷을 보고, 체감 피드백을 남길 수 있어요.</p>
     ${inMonth.length ? "" : `<button class="btn primary" data-calday="${today()}" style="align-self:flex-start">오늘 입은 옷 기록하기</button>`}</div>`;
+  h += monthReportHTML(month, inMonth, y, m) + similarDaysHTML();
   h += `<div class="card"><div class="row between"><h3>내 체감온도 프로필</h3><span class="tag rose">${feelLabel(off)}</span></div>
     <div class="row" style="align-items:flex-end;gap:12px"><span class="feel-big">${off > 0 ? "+" : off < 0 ? "−" : "±"}${Math.abs(off)}°C</span>
       <span class="small muted" style="padding-bottom:4px">${off > 0 ? `실제보다 ${off}° 춥게 느껴서, 한 단계 따뜻하게 골라요` : off < 0 ? `실제보다 ${-off}° 덥게 느껴서, 한 단계 가볍게 골라요` : "아직 기본값으로 골라요"}</span></div>
@@ -2323,6 +2381,13 @@ document.addEventListener("click", e => {
     else openSheet({ kind: "logadd", date: ds.calday, sel: [] });
     return;
   }
+  if (ds.wakeup) {
+    // Pick one sleeping item (the one idle the longest) and pin it on today's outfits.
+    const month = S.calMonth, worn = new Set([...S.logs.values()].filter(l => l.date.startsWith(month)).flatMap(l => l.itemIds || []));
+    const stats = wearStats(), it = [...S.items.values()].filter(i => isMain(i) && !worn.has(i.id)).sort((a, b) => (stats.get(a.id)?.last || "").localeCompare(stats.get(b.id)?.last || ""))[0];
+    if (it) { S.anchors = [it.id]; S.day = 0; S.recCache = null; S.tab = "today"; render(); window.scrollTo({ top: 0 }); toast(`'${it.name}'을(를) 넣어 오늘 코디를 짰어요.`); }
+    return;
+  }
   if (b.id === "feelReset") { S.prefs.offset = 0; S.recCache = null; savePrefs(); toast("체감 보정을 초기화했어요."); return; }
   if (ds.color) { const x = formTarget(b); if (x) { x.color = ds.color; touch(x, "color"); render(); } return; }
   if (ds.thick) { const x = formTarget(b); if (x) { x.thickness = ds.thick; touch(x, "thickness"); render(); } return; }
@@ -2451,11 +2516,17 @@ function renderSheet() {
     const dt = new Date(s.date + "T00:00:00"), ps = (l.itemIds || []).map(id => S.items.get(id)).filter(Boolean);
     const gone = (l.names || []).length - ps.length;
     h = `<div class="sheet-top"><div><h3 id="sheetTitle">${dt.getMonth() + 1}월 ${dt.getDate()}일 (${WD[dt.getDay()]}) OOTD</h3>${l.feel != null ? `<div class="small muted">그날 코디 기준 체감 ${fmt(l.feel)}°</div>` : ""}</div><button class="btn ghost" data-close="1">닫기</button></div>
-      <div class="sheet-scroll"><div class="mini-grid">${ps.map(p => `<div class="tile mini" title="${esc(fullName(p))}"><span class="tile-img">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : silhouetteSVG(p)}</span><span class="tile-cap"><span class="tile-n">${esc(p.name)}</span></span></div>`).join("")}</div>
-        ${gone > 0 ? `<p class="small muted">옷장에서 지운 옷 ${gone}벌은 빼고 보여요.</p>` : ""}</div>
-      <div class="f">이날 체감은 어땠나요?</div>
-      <div class="fb-row">${FEEL.map(([k, lb]) => `<button class="fb" data-lograte="${k}" aria-pressed="${l.rating === k}">${lb}</button>`).join("")}</div>
-      <button class="btn" data-logedit="1" style="align-self:flex-start">입은 옷 고치기</button>
+      <div class="sheet-scroll">
+        <div class="ootd-photo">${l.photo ? `<img src="${esc(l.photo)}" alt="이날 OOTD 사진"><div class="row"><button class="btn small" data-logphoto="1">사진 바꾸기</button><button class="btn ghost small" data-lognophoto="1">사진 빼기</button></div>` : `<button class="ootd-add" data-logphoto="1">📷 이날 OOTD 사진 넣기<span>거울 셀카나 착장 사진 한 장</span></button>`}</div>
+        <div class="mini-grid">${ps.map(p => `<div class="tile mini" title="${esc(fullName(p))}"><span class="tile-img">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : silhouetteSVG(p)}</span><span class="tile-cap"><span class="tile-n">${esc(p.name)}</span></span></div>`).join("")}</div>
+        ${gone > 0 ? `<p class="small muted">옷장에서 지운 옷 ${gone}벌은 빼고 보여요.</p>` : ""}
+        <div class="f">어디 갔었나요?</div>
+        <div class="places">${Object.entries(TPO).map(([k, t]) => `<button class="chip" data-logtpo="${k}" aria-pressed="${l.tpo === k}">${t.label}</button>`).join("")}</div>
+        <label class="f" for="logMemo">한 줄 메모<input type="text" id="logMemo" maxlength="80" value="${esc(l.memo || "")}" placeholder="예: 바람이 생각보다 셌음, 칭찬받은 날 ✨"></label>
+        <div class="f">이날 체감은 어땠나요?</div>
+        <div class="fb-row">${FEEL.map(([k, lb]) => `<button class="fb" data-lograte="${k}" aria-pressed="${l.rating === k}">${lb}</button>`).join("")}</div>
+      </div>
+      <div class="row"><button class="btn primary" data-logagain="1" ${ps.length ? "" : "disabled"}>이 코디 다시 입기</button><button class="btn" data-logedit="1">입은 옷 고치기</button></div>
       ${s.confirm ? `<button class="act danger" data-logdel="ok"><b>정말 지울게요</b><span>이날 기록과 피드백이 사라져요</span></button>` : `<button class="btn ghost danger small" data-logdel="1" style="align-self:flex-start">이날 기록 지우기</button>`}`;
   } else if (s.kind === "account") {
     if (!me) { closeSheet(); return; }
@@ -2597,6 +2668,14 @@ document.addEventListener("click", e => {
   if (b.id === "themeBtn") { openSheet({ kind: "theme" }); return; }
   LS.set("bary.theme", b.dataset.theme === "light" ? "" : b.dataset.theme); applyTheme(); renderSheet(); drawBoards();
 });
+// OOTD photo for a calendar day (kept small: 720px JPEG inside the day's record) and the memo.
+document.addEventListener("change", async e => {
+  const el = e.target;
+  if (el.id === "logMemo" && S.sheet?.kind === "log") { await putLog(S.sheet.date, { memo: el.value.trim().slice(0, 80) }); toast("메모를 저장했어요."); return; }
+  if (el.id !== "ootdIn" || !el.files?.[0] || S.sheet?.kind !== "log") return;
+  try { const photo = shrink(await loadImg(el.files[0]), 720); await putLog(S.sheet.date, { photo }); renderSheet(); toast("OOTD 사진을 넣었어요."); }
+  catch { toast("사진을 열 수 없어요. 다른 사진을 골라 주세요."); }
+});
 // account sheet: set a password (accounts made with mail links have none), log out
 document.addEventListener("click", async e => {
   const b = e.target.closest("#acSave, #acLogout"); if (!b || S.sheet?.kind !== "account") return;
@@ -2613,8 +2692,17 @@ document.addEventListener("click", async e => {
 });
 // quick-add sheet and calendar-day sheet
 document.addEventListener("click", e => {
-  const b = e.target.closest("[data-qcolor], [data-qmore], [data-qthick], #quickSave, [data-lograte], [data-logdel], [data-logedit], [data-logpick], [data-logrec], #logSave"); if (!b || !S.sheet) return;
+  const b = e.target.closest("[data-qcolor], [data-qmore], [data-qthick], #quickSave, [data-lograte], [data-logdel], [data-logedit], [data-logpick], [data-logrec], #logSave, [data-logphoto], [data-lognophoto], [data-logtpo], [data-logagain]"); if (!b || !S.sheet) return;
   const ds = b.dataset, s = S.sheet;
+  if (ds.logphoto) { $("#ootdIn").value = ""; $("#ootdIn").click(); return; }
+  if (ds.lognophoto) { putLog(s.date, { photo: null }).then(renderSheet); return; }
+  if (ds.logtpo) { const l = S.logs.get("log_" + s.date); putLog(s.date, { tpo: l?.tpo === ds.logtpo ? null : ds.logtpo }).then(renderSheet); return; }
+  if (ds.logagain) {
+    // Wear it again: pin that day's clothes on today's recommendation (the rest is matched to today's weather).
+    const ids = (S.logs.get("log_" + s.date)?.itemIds || []).filter(id => S.items.has(id) && isMain(S.items.get(id)));
+    S.anchors = ids; S.day = 0; S.recCache = null; closeSheet(); S.tab = "today"; render(); window.scrollTo({ top: 0 });
+    toast("그날 옷을 고정하고 오늘 날씨에 맞춰 다시 골랐어요."); return;
+  }
   if (ds.logedit) { const l = S.logs.get("log_" + s.date); openSheet({ kind: "logadd", date: s.date, sel: (l?.itemIds || []).filter(id => S.items.has(id)) }); return; }
   if (ds.logpick) { s.sel = s.sel.includes(ds.logpick) ? s.sel.filter(x => x !== ds.logpick) : [...s.sel, ds.logpick]; const sc = $("#sheet .sheet-scroll")?.scrollTop; renderSheet(); const n = $("#sheet .sheet-scroll"); if (n) n.scrollTop = sc; return; }
   if (ds.logrec) { const c = todayRec().list?.[+ds.logrec]; if (c) { s.sel = piecesOf(c).map(p => p.id); renderSheet(); } return; }
