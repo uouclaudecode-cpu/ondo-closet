@@ -2852,6 +2852,7 @@ function bulkPrompt() {
 - mood: 가장 가까운 스타일 하나.
 - option: 캡처에 보이는 옵션 텍스트 그대로 (예: "블랙 / M"). 없으면 "".
 - search_query: 쇼핑 검색창에 넣으면 이 상품이 바로 나오도록 "브랜드 + 정확한 상품명 + 컬러" 한 줄. 캡처에 적힌 표기(한글/영문)를 그대로 쓰고, 사이즈·수량·가격·"[당일발송]" 같은 말은 빼요. 예: "노스페이스 여성 눕시 숏 자켓 블랙".
+- box_2d: 이 아이템이 이미지 안에서 보이는 사진(상품 썸네일이나 옷이 찍힌 부분)만 딱 감싸는 사각형 [ymin, xmin, ymax, xmax]. 이미지 크기를 0~1000으로 본 정수예요. 글자 영역은 넣지 마세요. 사진이 안 보이면 [0, 0, 0, 0].
 
 type 목록: ${list(TYPES, t => t.label)}
 color 목록: ${list(COLORS, c => c.label)}
@@ -2864,7 +2865,7 @@ const bulkSchema = () => {
   return { type: "OBJECT", required: ["items"], properties: { items: { type: "ARRAY", items: { type: "OBJECT",
     required: ["brand", "name", "type", "color", "material", "thickness", "fit", "length", "mood", "option", "search_query"],
     properties: { brand: { type: "STRING" }, name: { type: "STRING" }, type: E(TYPES), color: E(COLORS), material: E(MATERIALS),
-      thickness: E(THICK), fit: E(FITS), length: { type: "STRING", enum: ["crop", "regular", "long"] }, mood: E(MOODS),
+      thickness: E(THICK), fit: E(FITS), length: { type: "STRING", enum: ["crop", "regular", "long"] }, mood: E(MOODS), box_2d: { type: "ARRAY", items: { type: "INTEGER" } },
       option: { type: "STRING" }, search_query: { type: "STRING" } } } } } };
 };
 // Who pays for this capture: your own key if you saved one, otherwise bary's shared key on the server (signed in, daily limit).
@@ -2944,14 +2945,28 @@ function cleanGemini(x) {
 }
 // High-res product photos: search the shop by brand + name + color (server-side, Naver Shopping).
 // No result, not logged in, or search not set up → the item keeps the category illustration.
+// The item's own picture, cut out of the uploaded image (box_2d: [ymin, xmin, ymax, xmax] on a 0~1000 grid).
+// mineSize: how many source pixels the crop has — order-list thumbnails are tiny, a photo of the clothes is not.
+function cropMine(x, img, box) {
+  if (!Array.isArray(box) || box.length !== 4 || !box.every(n => typeof n === "number" && isFinite(n))) return;
+  const [y0, x0, y1, x1] = box.map(n => Math.max(0, Math.min(1000, n)) / 1000);
+  const sx = Math.min(x0, x1) * img.width, sy = Math.min(y0, y1) * img.height, sw = Math.abs(x1 - x0) * img.width, sh = Math.abs(y1 - y0) * img.height;
+  if (sw < 24 || sh < 24) return;
+  const k = Math.min(1, 800 / Math.max(sw, sh)), c = document.createElement("canvas");
+  c.width = Math.round(sw * k); c.height = Math.round(sh * k);
+  const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  x.mine = c.toDataURL("image/jpeg", 0.88); x.mineSize = Math.round(Math.min(sw, sh)); x.cands = [x.mine];
+}
+// Candidates in order: your own crop first when it's big enough to look sharp, otherwise the shop photos first.
+const withMine = (x, shop) => !x.mine ? shop : x.mineSize >= 220 ? [x.mine, ...shop] : [...shop, x.mine];
 async function findPhotos() {
-  if (!me) { B.photoNote = "로그인하면 상품 사진을 자동으로 찾아 넣어요. 지금은 종류별 그림으로 넣어요."; return; }
+  if (!me) { B.photoNote = "로그인하면 상품 사진을 자동으로 찾아 넣어요. 지금은 올린 사진에서 잘라 넣어요."; return; }
   B.photoNote = "";
   await Promise.all(B.items.map(async x => {
     x.search = "busy"; renderBulk();
-    try { const out = await ai("find_images", { query: x.query }); x.cands = (out?.items || []).map(r => r.image); x.search = x.cands.length ? "done" : "none"; }
+    try { const out = await ai("find_images", { query: x.query }); x.cands = withMine(x, (out?.items || []).map(r => r.image)); x.ci = 0; x.search = x.cands.length ? "done" : "none"; }
     catch (e) {
-      x.search = "none";
+      x.cands = withMine(x, []); x.search = x.cands.length ? "done" : "none";
       if (e?.code === "search_not_configured") B.photoNote = "상품 사진 검색이 아직 설정되지 않았어요. (Supabase에 네이버 검색 키를 넣으면 켜져요) 지금은 종류별 그림으로 넣어요.";
     }
     renderBulk();
@@ -2984,6 +2999,7 @@ async function bulkFile(file) {
     const data = c.toDataURL("image/jpeg", 0.9).split(",")[1];
     const raw = (await callGemini(data, "image/jpeg")).slice(0, 30);
     B.items = raw.map(cleanGemini);
+    B.items.forEach((x, i) => cropMine(x, img, raw[i]?.box_2d));
     B.msg = B.items.length ? `${B.items.length}벌을 찾았어요. 맞는지 확인하고 등록해 주세요.` : "이미지에서 패션 아이템을 찾지 못했어요. 다른 캡처로 시도해 주세요.";
     B.err = !B.items.length;
   } catch (e) { B.msg = gemErr(e); B.err = true; if (["no_key", "bad_key", "bad_model"].includes(e?.code)) B.settings = true; }
@@ -3004,7 +3020,7 @@ function bulkPhoto(x, i) {
   if (x.search === "busy") return `<span class="tile-img sm searching" aria-label="사진 찾는 중">${silhouetteSVG(x)}</span>`;
   const url = !x.noPhoto && x.cands[x.ci];
   return `<span class="tile-img sm">${url ? `<img src="${esc(url)}" alt="" referrerpolicy="no-referrer" onerror="bulkImgFail(${i}, this.getAttribute('src'))">` : silhouetteSVG(x)}</span>
-    <span class="bulk-ph-acts">${url && x.cands.length > 1 ? `<button type="button" data-bnext="${i}">다른 사진</button>` : ""}${url ? `<button type="button" data-bnophoto="${i}">사진 빼기</button>` : !x.noPhoto ? `<span>${x.search === "none" ? "사진 없음" : ""}</span>` : `<button type="button" data-bphoto="${i}">사진 넣기</button>`}</span>`;
+    <span class="bulk-ph-acts">${url ? `<span>${url === x.mine ? "내 사진" : "쇼핑몰 사진"}${x.cands.length > 1 ? ` ${x.ci + 1}/${x.cands.length}` : ""}</span>` : ""}${url && x.cands.length > 1 ? `<button type="button" data-bnext="${i}">다른 사진</button>` : ""}${url ? `<button type="button" data-bnophoto="${i}">사진 빼기</button>` : !x.noPhoto ? `<span>${x.search === "none" ? "사진 없음" : ""}</span>` : `<button type="button" data-bphoto="${i}">사진 넣기</button>`}</span>`;
 }
 // A found photo that does not load: try the next candidate, then fall back to the illustration.
 // The same broken image can report twice (one per redraw), so remove it by address, not by position.
@@ -3070,7 +3086,8 @@ async function bulkSave() {
   for (const x of keep) {
     const url = !x.noPhoto && x.cands[x.ci];
     let photo = null;
-    if (url && me) {
+    if (url?.startsWith("data:")) photo = url; // the crop from your own image is already sized for storage
+    else if (url && me) {
       try { const out = await ai("image", { url }); photo = shrink(await loadImg(await (await fetch(out.image)).blob())); } catch { photo = null; }
     }
     if (!photo) noPhoto++;
