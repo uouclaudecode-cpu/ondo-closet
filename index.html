@@ -2671,7 +2671,7 @@ function bulkHTML() {
     <h3>주문내역 캡처로 한 번에 등록</h3>
     <p class="small muted">무신사·29CM 주문 내역이나 옷 사진을 올리면 Gemini가 옷마다 브랜드·상품명·색을 읽고, 쇼핑몰에서 선명한 상품 사진을 찾아 넣어요.</p>
     ${sharedLine()}
-    <details class="gem-set" ${B.settings || (!hasKey && !(me && S.gemShared)) ? "open" : ""}><summary>⚙️ ${S.gemShared ? "내 키 쓰기 (선택)" : "Gemini 설정"} <span class="muted small">${hasKey ? `내 키 사용 중 · ${esc(gemModel())}` : S.gemShared ? "없어도 돼요" : "API 키가 필요해요"}</span></summary>
+    <details class="gem-set" ${B.settings || (!hasKey && me && !S.gemShared) ? "open" : ""}><summary>⚙️ ${S.gemShared || !me ? "내 키 쓰기 (선택)" : "Gemini 설정"} <span class="muted small">${hasKey ? `내 키 사용 중 · ${esc(gemModel())}` : S.gemShared || !me ? "없어도 돼요" : "API 키가 필요해요"}</span></summary>
       <div class="stack" style="margin-top:10px">
         <label class="f" for="gemKey">Gemini API Key<input type="password" id="gemKey" autocomplete="off" spellcheck="false" placeholder="${hasKey ? "저장됨 (바꾸려면 새로 입력)" : "API 키 붙여넣기"}"></label>
         <label class="f" for="gemModel">모델명<input type="text" id="gemModel" value="${esc(LS.get("ondo.geminiModel"))}" placeholder="${GEMINI_DEFAULT_MODEL}" spellcheck="false"></label>
