@@ -5,7 +5,7 @@ $types = @{ ".html" = "text/html; charset=utf-8"; ".js" = "text/javascript; char
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add("http://localhost:3000/")
 $listener.Start()
-Write-Host "온도 옷장 미리보기: http://localhost:3000  (끄려면 Ctrl+C)"
+Write-Host "bary 미리보기: http://localhost:3000  (끄려면 Ctrl+C)"
 try {
   while ($listener.IsListening) {
     $ctx = $listener.GetContext()

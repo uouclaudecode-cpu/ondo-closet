@@ -3,45 +3,76 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>온도 옷장</title>
-<meta name="description" content="내 옷장의 옷과 오늘 체감온도로 코디를 추천해 주는 옷장 앱">
-<meta name="theme-color" content="#F2F4F6">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231D3550'/%3E%3Cpath d='M32 22 L68 22 L88 36 L80 50 L70 44 L70 82 L30 82 L30 44 L20 50 L12 36 Z' fill='%23E9C46A'/%3E%3C/svg%3E">
+<title>bary</title>
+<meta name="description" content="오늘 날씨에 딱 맞는 내 옷장 코디부터 여행 짐 싸기까지, bary에서 10초 만에 완성하세요.">
+<meta name="theme-color" content="#FAF8F5">
+<meta name="application-name" content="bary">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="bary">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<!-- Link previews (KakaoTalk, iMessage, Slack...) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="bary">
+<meta property="og:url" content="https://uouclaudecode-cpu.github.io/ondo-closet/">
+<meta property="og:title" content="bary (베리) - 내 옷장 속 기온별 맞춤 코디 메이트">
+<meta property="og:description" content="오늘 날씨에 딱 맞는 내 옷장 코디부터 여행 짐 싸기까지, bary에서 10초 만에 완성하세요.">
+<meta property="og:image" content="https://uouclaudecode-cpu.github.io/ondo-closet/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="bary 로고와 컬러 칩, 옷걸이 일러스트">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap">
 <style>
-/* Layout: one phone-width column; a thermal scale (cold blue → warm amber) is the only loud element, everything else is ink on cool paper. */
+/* bary: warm ivory paper, deep charcoal ink, muted rose as the one accent (mauve for secondary moments).
+   The thermal scale keeps its own cold → warm colors because it carries meaning. */
 :root {
-  --bg: #F6F5F2;
+  --bg: #FAF8F5;
   --surface: #FFFFFF;
-  --sunken: #EFEDE8;
-  --tile: #F7F6F3;
-  --ink: #17181A;
-  --muted: #6B6E73;
-  --line: #E4E2DD;
-  --primary: #17181A;
+  --sunken: #F4EFEA;
+  --tile: #F6F1EC;
+  --ink: #1E1E1E;
+  --muted: #8A817A;
+  --line: #ECE5DE;
+  --primary: #1E1E1E;
   --on-primary: #FFFFFF;
-  --shadow: 0 1px 2px rgb(20 20 20 / .04), 0 6px 20px rgb(20 20 20 / .06);
-  --cold: #3D6FD6;
-  --cool: #8DB3E6;
-  --mild: #E9C46A;
-  --warm: #E2683C;
-  --good: #2E8B57;
-  --bad: #C2413A;
-  --f-display: "Hahmlet", "Noto Serif KR", Georgia, serif;
-  --f-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
-  --f-data: "IBM Plex Mono", ui-monospace, Consolas, monospace;
-  --r: 14px;
+  --rose: #D4A3A3;
+  --rose-ink: #A86F6F;
+  --rose-soft: #F5E6E3;
+  --mauve: #8E7DBE;
+  --mauve-soft: #ECE8F5;
+  --shadow: 0 1px 2px rgb(70 50 40 / .04), 0 8px 24px rgb(70 50 40 / .06);
+  --cold: #6E8FD0;
+  --cool: #A9C2E4;
+  --mild: #E9C98F;
+  --warm: #D98A6C;
+  --good: #5E9C7A;
+  --bad: #C0534D;
+  --f-display: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --f-serif: "Cormorant Garamond", "Times New Roman", Georgia, serif;
+  --f-body: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --f-data: "Pretendard Variable", Pretendard, system-ui, sans-serif;
+  --r: 16px;
+  --nav-h: 64px;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #111112; --surface: #1B1B1D; --sunken: #242426; --tile: #EDEBE6; --ink: #ECEAE6; --muted: #9C9A96; --line: #2E2E31;
-  --primary: #ECEAE6; --on-primary: #111112; --cold: #6E97EC; --cool: #9DBDEB; --mild: #E7C66F; --warm: #EE8460;
-  --good: #5CC08A; --bad: #EE7B73; --shadow: 0 1px 2px rgb(0 0 0 / .3); color-scheme: dark; } }
+  --bg: #171514; --surface: #211E1C; --sunken: #2A2623; --tile: #F1EBE5; --ink: #F1ECE6; --muted: #A79D95; --line: #36312D;
+  --primary: #F1ECE6; --on-primary: #171514; --rose: #D9AAAA; --rose-ink: #E3B4B4; --rose-soft: #3A2C2B; --mauve: #A797D3; --mauve-soft: #2E2A3A;
+  --cold: #8AA6DE; --cool: #A9C2E4; --mild: #E7C98F; --warm: #E39A7E;
+  --good: #7DBB98; --bad: #E6827B; --shadow: 0 1px 2px rgb(0 0 0 / .3); color-scheme: dark; } }
 :root[data-theme="dark"] {
-  --bg: #111112; --surface: #1B1B1D; --sunken: #242426; --tile: #EDEBE6; --ink: #ECEAE6; --muted: #9C9A96; --line: #2E2E31;
-  --primary: #ECEAE6; --on-primary: #111112; --cold: #6E97EC; --cool: #9DBDEB; --mild: #E7C66F; --warm: #EE8460;
-  --good: #5CC08A; --bad: #EE7B73; --shadow: 0 1px 2px rgb(0 0 0 / .3); color-scheme: dark; }
+  --bg: #171514; --surface: #211E1C; --sunken: #2A2623; --tile: #F1EBE5; --ink: #F1ECE6; --muted: #A79D95; --line: #36312D;
+  --primary: #F1ECE6; --on-primary: #171514; --rose: #D9AAAA; --rose-ink: #E3B4B4; --rose-soft: #3A2C2B; --mauve: #A797D3; --mauve-soft: #2E2A3A;
+  --cold: #8AA6DE; --cool: #A9C2E4; --mild: #E7C98F; --warm: #E39A7E;
+  --good: #7DBB98; --bad: #E6827B; --shadow: 0 1px 2px rgb(0 0 0 / .3); color-scheme: dark; }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -54,9 +85,9 @@ img { max-width: 100%; }
 .auth .lede { color: var(--muted); }
 body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.55; }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
-.wrap { max-width: 560px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 12px 64px; display: flex; flex-direction: column; gap: 18px; }
-h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
-h2 { font-size: 1.15rem; font-weight: 700; }
+.wrap { max-width: 560px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 8px calc(var(--nav-h) + 40px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 18px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: -0.02em; }
+h2 { font-size: 1.2rem; font-weight: 700; }
 h3 { font-size: 1rem; font-weight: 700; }
 p { margin: 0; }
 .muted { color: var(--muted); }
@@ -66,12 +97,12 @@ button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--cold); outline-offset: 2px; }
 
-header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); display: flex; flex-direction: column; gap: 10px; padding-block: 6px 4px; }
-.brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
-.brand h1 { font-size: 1.45rem; font-weight: 800; }
-.brand h1 span { color: var(--warm); }
-.logo { all: unset; cursor: pointer; border-radius: 6px; }
-.logo:focus-visible { outline: 2px solid var(--cold); outline-offset: 2px; }
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); display: flex; flex-direction: column; gap: 10px; padding-block: 10px 8px; margin-inline: -16px; padding-inline: 16px; }
+.brand { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand h1 { margin: 0; line-height: 0; }
+.logo { all: unset; cursor: pointer; border-radius: 8px; display: inline-flex; color: var(--ink); }
+.logo svg { height: 30px; width: auto; display: block; }
+.logo:focus-visible { outline: 2px solid var(--mauve); outline-offset: 3px; }
 .brand-l { font-size: 0.72rem; font-weight: 700; letter-spacing: .04em; color: var(--muted); overflow-wrap: anywhere; }
 .brand-i { letter-spacing: .02em; text-transform: none; }
 .filters { gap: 10px; padding: 12px; }
@@ -80,9 +111,32 @@ header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; b
 .pack label.done span { text-decoration: line-through; color: var(--muted); }
 .trip-list { display: flex; flex-direction: column; gap: 8px; }
 .trip-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; text-align: left; width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 12px 14px; }
-.tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background: var(--sunken); padding: 4px; border-radius: 12px; }
-.tabs button { border: 0; background: transparent; padding: 8px 4px; border-radius: 9px; font-weight: 600; color: var(--muted); }
-.tabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .08); }
+/* bottom navigation: floats above the content, in the thumb zone */
+.bnav { position: fixed; z-index: 30; left: 50%; transform: translateX(-50%); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); width: min(calc(100% - 24px), 520px); height: var(--nav-h);
+  display: grid; grid-template-columns: 1fr 1fr 72px 1fr 1fr; align-items: center; padding: 0 6px; border-radius: 26px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 10px 30px rgb(70 50 40 / .14), 0 0 0 1px var(--line); }
+.bnav button { border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0; color: var(--muted); font-size: .68rem; font-weight: 600; letter-spacing: -.01em; border-radius: 16px; }
+.bnav button svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s ease; }
+.bnav button[aria-selected="true"] { color: var(--ink); }
+.bnav button[aria-selected="true"] svg { stroke-width: 2; transform: translateY(-1px); }
+.bnav button[aria-selected="true"] span::after { content: ""; display: block; width: 4px; height: 4px; margin: 2px auto 0; border-radius: 50%; background: var(--rose); }
+.bnav .fab { justify-self: center; width: 54px; height: 54px; padding: 0; border-radius: 50%; justify-content: center; color: #fff; margin-top: -18px;
+  background: linear-gradient(145deg, var(--rose), var(--mauve)); box-shadow: 0 8px 20px color-mix(in srgb, var(--mauve) 40%, transparent), 0 0 0 4px var(--bg); }
+.bnav .fab svg { width: 26px; height: 26px; stroke-width: 2.2; }
+.bnav .fab[aria-selected="true"] { color: #fff; }
+.bnav .fab[aria-selected="true"] svg { transform: rotate(90deg); }
+.bnav .fab span::after { display: none !important; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* screen changes: a soft fade + rise */
+@media (prefers-reduced-motion: no-preference) {
+  .enter { animation: enter .32s cubic-bezier(.2,.7,.2,1) both; }
+  @keyframes enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .sheet:not([hidden]) .sheet-bg { animation: fade .25s ease both; }
+  .sheet:not([hidden]) .sheet-body { animation: slideUp .34s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { transform: translateY(40px); opacity: .4; } to { transform: none; opacity: 1; } }
+}
 
 .banner { font-size: 0.85rem; padding: 10px 12px; border-radius: 10px; background: var(--sunken); color: var(--muted); }
 .banner.err { color: var(--bad); }
@@ -92,22 +146,24 @@ header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; b
 .between { justify-content: space-between; }
 .stack { display: flex; flex-direction: column; gap: 10px; }
 
-.btn { border: 1px solid var(--line); background: var(--surface); padding: 8px 14px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; }
-.btn:hover { border-color: var(--muted); }
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 9px 16px; border-radius: 999px; font-weight: 600; font-size: 0.88rem; transition: transform .12s ease, background .15s ease; }
+.btn:hover { border-color: var(--rose); }
+.btn:active, .chip:active { transform: scale(.97); }
 .btn.primary { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
 .btn.ghost { background: transparent; border-color: transparent; color: var(--muted); padding-inline: 8px; }
 .btn.danger { color: var(--bad); }
 .btn:disabled { opacity: .5; cursor: default; }
-.chip { border: 1px solid var(--line); background: var(--surface); padding: 5px 11px; border-radius: 999px; font-size: 0.85rem; font-weight: 500; }
+.chip { border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; font-size: 0.84rem; font-weight: 500; transition: background .15s ease, color .15s ease; }
 .chip[aria-pressed="true"] { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
-.tag { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--sunken); color: var(--muted); letter-spacing: .02em; }
+.tag { display: inline-flex; align-items: center; gap: 4px; font-size: 0.74rem; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--sunken); color: var(--muted); letter-spacing: 0; }
+.tag.rose { background: var(--rose-soft); color: var(--rose-ink); }
 .tag.example { background: color-mix(in srgb, var(--mild) 30%, transparent); color: var(--ink); }
 .tag.live { background: color-mix(in srgb, var(--good) 20%, transparent); color: var(--good); }
 
 /* weather hero */
 .wx { display: grid; grid-template-columns: auto 1fr; gap: 6px 18px; align-items: end; }
-.wx .big { font-family: var(--f-display); font-weight: 800; font-size: 3.6rem; line-height: .95; letter-spacing: -0.03em; }
-.wx .big small { font-size: 1.4rem; font-weight: 700; }
+.wx .big { font-family: var(--f-serif); font-weight: 600; font-size: 4.4rem; line-height: .85; letter-spacing: -0.03em; font-variant-numeric: lining-nums; }
+.wx .big small { font-size: 2rem; font-weight: 500; color: var(--rose-ink); vertical-align: top; }
 .wx dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-size: 0.85rem; }
 .wx dt { color: var(--muted); }
 .wx dd { margin: 0; font-family: var(--f-data); font-variant-numeric: tabular-nums; }
@@ -140,12 +196,6 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; fo
 .empty { text-align: center; padding: 28px 16px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
 
 /* add */
-.methods { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-.method { border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 12px; text-align: left; display: flex; flex-direction: column; gap: 2px; }
-.method b { font-size: 0.95rem; }
-.method span { font-size: 0.78rem; color: var(--muted); }
-.method[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
-.templates { display: flex; flex-wrap: wrap; gap: 6px; }
 .colors { display: flex; flex-wrap: wrap; gap: 6px; }
 .colors button { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); padding: 0; }
 .colors button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
@@ -161,7 +211,7 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; fo
 @media (prefers-reduced-motion: no-preference) { .outfit { animation: rise .25s ease-out both; } @keyframes rise { from { transform: translateY(4px); } to { transform: none; } } }
 
 /* ---------- moodboard look ---------- */
-.card { border: 0; border-radius: 18px; box-shadow: var(--shadow); }
+.card { border: 0; border-radius: 22px; box-shadow: var(--shadow); }
 .ell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; display: block; }
 .chip .ell { display: inline-block; max-width: 11em; vertical-align: bottom; }
 .sec-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -246,9 +296,6 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; fo
 .mini-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
 body.noscroll { overflow: hidden; }
 /* bulk register from a screenshot */
-.method.wide { grid-column: 1 / -1; background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
-.method.wide span { color: inherit; opacity: .75; }
-.method.wide[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--primary); }
 .bulk-ph { display: flex; flex-direction: column; gap: 4px; align-items: center; width: 72px; }
 .bulk-ph .tile-img.sm { width: 72px; }
 .bulk-ph-acts { display: flex; flex-direction: column; gap: 2px; align-items: center; font-size: .7rem; color: var(--muted); }
@@ -272,7 +319,88 @@ body.noscroll { overflow: hidden; }
 .bulk-fields input, .bulk-fields select { padding: 6px 8px; font-size: .82rem; }
 .bulk-sel { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 #bulkSave { border-radius: 999px; padding: 12px; }
-#toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 50; max-width: min(92vw, 480px); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: .85rem; box-shadow: 0 6px 20px rgb(0 0 0 / .2); }
+/* add: capture banner, compact method row, quick picker */
+.cap-card { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 14px; padding: 18px; border-radius: 24px; color: #fff;
+  background: radial-gradient(120% 140% at 0% 0%, #E7BDB6 0%, var(--rose) 38%, var(--mauve) 100%); box-shadow: 0 10px 26px color-mix(in srgb, var(--mauve) 30%, transparent); }
+.cap-card:focus-visible { outline: 2px solid var(--mauve); outline-offset: 3px; }
+.cap-card .cap-ico { flex: none; width: 46px; height: 46px; border-radius: 16px; display: grid; place-items: center; background: rgb(255 255 255 / .22); font-size: 1.4rem; }
+.cap-card b { display: block; font-size: 1.02rem; letter-spacing: -.02em; }
+.cap-card span { display: block; font-size: .8rem; opacity: .9; }
+.cap-card .cap-go { margin-left: auto; flex: none; font-size: 1.2rem; transition: transform .2s ease; }
+.cap-card[aria-pressed="true"] .cap-go { transform: rotate(90deg); }
+.mrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.mbtn { border: 1px solid var(--line); background: var(--surface); border-radius: 18px; padding: 12px 6px; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: .8rem; font-weight: 600; color: var(--ink); }
+.mbtn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.mbtn[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--on-primary); }
+.cat-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding: 2px 16px 4px; scroll-snap-type: x proximity; }
+.cat-tabs::-webkit-scrollbar { display: none; }
+.cat-tabs button { flex: none; scroll-snap-align: start; border: 0; background: transparent; padding: 8px 4px; margin-right: 8px; font-size: .92rem; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; }
+.cat-tabs button[aria-pressed="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+.qgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 480px) { .qgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.qcard { border: 0; background: var(--surface); border-radius: 18px; padding: 14px 6px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; box-shadow: var(--shadow); transition: transform .15s ease; }
+.qcard:active { transform: scale(.96); }
+.qcard .q-ico { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50%; background: var(--sunken); color: var(--ink); }
+.qcard .q-ico svg { width: 34px; height: 34px; }
+.qcard .q-n { font-size: .8rem; font-weight: 600; text-align: center; line-height: 1.25; word-break: keep-all; }
+.line-ico path { fill: none; stroke: currentColor; stroke-width: 3.4; stroke-linejoin: round; stroke-linecap: round; }
+.swatches { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px 6px; }
+.sw { border: 0; background: none; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: .7rem; color: var(--muted); }
+.sw i { width: 42px; height: 42px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .08); transition: transform .15s ease, box-shadow .15s ease; display: grid; place-items: center; }
+.sw[aria-pressed="true"] { color: var(--ink); font-weight: 700; }
+.sw[aria-pressed="true"] i { transform: scale(1.06); box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink); }
+.sw[aria-pressed="true"] i::after { content: "✓"; font-style: normal; font-size: .9rem; font-weight: 700; color: var(--chk, #fff); }
+.q-head { display: flex; align-items: center; gap: 12px; }
+.q-head .q-ico { width: 56px; height: 56px; border-radius: 18px; background: var(--sunken); display: grid; place-items: center; }
+.q-head .q-ico svg { width: 38px; height: 38px; }
+.q-save { border-radius: 999px; padding: 14px; font-size: .95rem; }
+/* today: TPO chips, beauty & fashion brief */
+.tpo { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding: 2px 16px; }
+.tpo::-webkit-scrollbar { display: none; }
+.tpo .chip { flex: none; background: transparent; }
+.tpo .chip[aria-pressed="true"] { background: var(--rose-soft); color: var(--rose-ink); border-color: var(--rose); font-weight: 700; }
+.brief { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border-radius: 22px; background: linear-gradient(160deg, var(--rose-soft), var(--mauve-soft)); }
+.brief h3 { font-size: .9rem; display: flex; justify-content: space-between; gap: 8px; }
+.brief-row { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; font-size: .86rem; line-height: 1.45; }
+.brief-row b { font-weight: 700; }
+.stars { letter-spacing: 1px; color: var(--rose-ink); font-size: .8rem; }
+.install { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 20px; background: var(--ink); color: var(--bg); }
+.install img { width: 40px; height: 40px; border-radius: 11px; flex: none; }
+.install p { font-size: .84rem; line-height: 1.35; flex: 1; min-width: 0; }
+.install .btn { background: var(--bg); color: var(--ink); border-color: var(--bg); padding: 7px 12px; flex: none; }
+.install .x { border: 0; background: none; color: inherit; opacity: .6; font-size: 1.1rem; padding: 4px; flex: none; }
+.steps { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 8px; font-size: .9rem; }
+/* calendar + feel profile */
+.vseg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; background: var(--sunken); padding: 4px; border-radius: 999px; }
+.vseg button { border: 0; background: transparent; padding: 9px; border-radius: 999px; font-weight: 600; color: var(--muted); font-size: .9rem; }
+.vseg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgb(0 0 0 / .08); }
+.cal-head { display: flex; justify-content: space-between; align-items: center; }
+.cal-head h3 { font-family: var(--f-serif); font-size: 1.5rem; font-weight: 600; letter-spacing: 0; }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal .wd { text-align: center; font-size: .7rem; color: var(--muted); font-weight: 600; padding-bottom: 2px; }
+.cal .wd:first-child { color: var(--rose-ink); }
+.cday { border: 0; background: transparent; aspect-ratio: 1 / 1.18; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 2px; padding: 5px 0 0; font-size: .78rem; color: var(--ink); min-width: 0; }
+.cday.out { visibility: hidden; }
+.cday.today { box-shadow: inset 0 0 0 1.5px var(--ink); }
+.cday.has { background: var(--surface); box-shadow: var(--shadow); }
+.cday.today.has { box-shadow: inset 0 0 0 1.5px var(--ink), var(--shadow); }
+.cday .mini { width: 70%; aspect-ratio: 1; display: grid; place-items: center; }
+.cday .mini svg, .cday .mini img { width: 100%; height: 100%; object-fit: contain; }
+.cday .emo { font-size: .7rem; line-height: 1; }
+.feel-gauge { position: relative; height: 10px; border-radius: 999px; background: linear-gradient(90deg, var(--warm), var(--mild) 30%, var(--rose-soft) 50%, var(--cool) 70%, var(--cold)); }
+.feel-gauge i { position: absolute; top: 50%; width: 20px; height: 20px; border-radius: 50%; background: var(--surface); border: 3px solid var(--ink); transform: translate(-50%, -50%); transition: left .4s ease; }
+.feel-labels { display: flex; justify-content: space-between; font-size: .72rem; color: var(--muted); }
+.feel-big { font-family: var(--f-serif); font-size: 2.6rem; font-weight: 600; line-height: 1; }
+.fb-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.fb { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 8px 14px; font-size: .88rem; font-weight: 600; }
+.fb[aria-pressed="true"] { background: var(--rose-soft); border-color: var(--rose); color: var(--rose-ink); }
+.pack-sum { display: flex; align-items: baseline; gap: 6px; }
+.pack-sum .n { font-family: var(--f-serif); font-size: 2.4rem; font-weight: 600; line-height: 1; }
+.progress { height: 8px; border-radius: 999px; background: var(--sunken); overflow: hidden; }
+.progress i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--rose), var(--mauve)); transition: width .3s ease; }
+.pack label { padding: 4px 0; }
+.pack input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--mauve); }
+#toast { position: fixed; left: 50%; bottom: calc(var(--nav-h) + 28px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 50; max-width: min(92vw, 480px); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: .85rem; box-shadow: 0 6px 20px rgb(0 0 0 / .2); }
 </style>
 </head>
 <body>
@@ -280,15 +408,14 @@ body.noscroll { overflow: hidden; }
 <div class="wrap">
   <header class="top">
     <div class="brand">
-      <h1><button class="logo" data-tab="today" aria-label="온도 옷장, 오늘 코디로">온도<span>·</span>옷장</button></h1>
+      <h1><button class="logo" data-tab="today" aria-label="bary, 오늘 코디로">
+        <!-- Wordmark: italic modern serif, a rose temperature degree, and a soft swash underneath -->
+        <svg viewBox="0 0 104 40" role="img" aria-hidden="true">
+          <path d="M5 33.5 Q33 38.5 61 33.5" fill="none" stroke="#D4A3A3" stroke-width="1.3" stroke-linecap="round"/>
+          <text x="2" y="28" font-family="'Cormorant Garamond','Times New Roman',Georgia,serif" font-size="36" font-weight="600" font-style="italic" letter-spacing="-0.5" fill="currentColor">bary<tspan dx="1.5" dy="-15" font-size="17" font-style="normal" font-weight="500" fill="#D4A3A3">°</tspan></text>
+        </svg><span class="sr">bary</span></button></h1>
       <button id="saveMode" class="tag acct" type="button">불러오는 중</button>
     </div>
-    <nav class="tabs" role="tablist" id="tabs">
-      <button role="tab" id="tab-today" aria-selected="true" data-tab="today">오늘 코디</button>
-      <button role="tab" id="tab-closet" aria-selected="false" data-tab="closet">내 옷장</button>
-      <button role="tab" id="tab-trip" aria-selected="false" data-tab="trip">여행</button>
-      <button role="tab" id="tab-add" aria-selected="false" data-tab="add">옷 추가</button>
-    </nav>
   </header>
 
   <div id="notice" class="banner" hidden></div>
@@ -297,10 +424,18 @@ body.noscroll { overflow: hidden; }
   <section id="view-today" class="stack"></section>
   <section id="view-closet" class="stack" hidden></section>
   <section id="view-trip" class="stack" hidden></section>
+  <section id="view-cal" class="stack" hidden></section>
   <section id="view-add" class="stack" hidden></section>
   <input type="file" id="replaceIn" accept="image/jpeg,image/png,image/webp" hidden>
   <datalist id="brandList"></datalist>
 </div>
+<nav class="bnav" id="tabs" role="tablist" aria-label="메뉴">
+  <button role="tab" id="tab-today" aria-selected="true" data-tab="today"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.2 5.6a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1V9.6"/><path d="M12 9.6 3.4 16.2c-.8.6-.4 1.9.6 1.9h16c1 0 1.4-1.3.6-1.9Z"/></svg><span>오늘 코디</span></button>
+  <button role="tab" id="tab-closet" aria-selected="false" data-tab="closet"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M12 3v18M9.5 11v2M14.5 11v2M4 17.5h16"/></svg><span>옷장</span></button>
+  <button role="tab" id="tab-add" class="fab" aria-selected="false" data-tab="add" aria-label="옷 추가"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button role="tab" id="tab-trip" aria-selected="false" data-tab="trip"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="16" height="13" rx="2.5"/><path d="M9 7V5.2C9 4.5 9.5 4 10.2 4h3.6c.7 0 1.2.5 1.2 1.2V7M8 7v13M16 7v13"/></svg><span>여행</span></button>
+  <button role="tab" id="tab-cal" aria-selected="false" data-tab="cal"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><circle cx="12" cy="15" r="1.3"/></svg><span>캘린더</span></button>
+</nav>
 <div id="toast" role="status" hidden></div><input type="file" id="bulkIn" accept="image/jpeg,image/png,image/webp" hidden>
 <div id="sheet" class="sheet" hidden><div class="sheet-bg" data-close="1"></div><div class="sheet-body" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></div></div>
 
@@ -308,7 +443,7 @@ body.noscroll { overflow: hidden; }
 <script src="config.js"></script>
 <script>
 /* ---------- catalog ---------- */
-const SLOTS = { outer: "아우터", mid: "중간 레이어", inner: "이너·상의", bottom: "하의", shoes: "신발", acc: "잡화" };
+const SLOTS = { outer: "아우터", mid: "중간 레이어", inner: "이너·상의", bottom: "하의·원피스", shoes: "신발", acc: "잡화" };
 const SLOT_ORDER = ["outer", "mid", "inner", "bottom", "shoes", "acc"];
 const MAIN = ["outer", "mid", "inner", "bottom"];
 // Categories follow 29CM's menu. Keys are stored with each item, so old keys stay even when moved.
@@ -320,6 +455,7 @@ const TYPES = {
   trench: { label: "트렌치코트", slot: "outer", base: 3 },
   coat: { label: "코트 (싱글·더블·더플)", slot: "outer", base: 5 },
   blazer: { label: "블레이저", slot: "outer", base: 2.5 },
+  tweed: { label: "트위드 자켓", slot: "outer", base: 3 },
   leather: { label: "레더·가죽 자켓", slot: "outer", base: 3.5 },
   denim_jk: { label: "트러커·데님 자켓", slot: "outer", base: 2.5 },
   fleece: { label: "플리스 자켓", slot: "outer", base: 4 },
@@ -348,6 +484,8 @@ const TYPES = {
   long_skirt: { label: "롱스커트", slot: "bottom", base: 1.5 },
   skirt: { label: "미니스커트", slot: "bottom", base: 1 },
   shorts: { label: "쇼츠·반바지", slot: "bottom", base: 0.5 },
+  // 원피스 sits in the bottom slot and also covers the top, so an outfit with it needs no inner.
+  dress: { label: "원피스", slot: "bottom", base: 2.5, dress: true },
   // 신발
   sneakers: { label: "스니커즈", slot: "shoes", base: 0.5, shape: "sneaker" },
   loafers: { label: "로퍼·구두", slot: "shoes", base: 0.3, shape: "sneaker" },
@@ -383,6 +521,7 @@ const COLORS = {
   skyblue: { label: "하늘색", hex: "#A9CBEB", neutral: false }, red: { label: "레드", hex: "#B93A32", neutral: false },
   burgundy: { label: "버건디", hex: "#6E2433", neutral: false }, pink: { label: "핑크", hex: "#E7A9B8", neutral: false },
   yellow: { label: "옐로", hex: "#E8C547", neutral: false }, purple: { label: "퍼플", hex: "#7158A6", neutral: false },
+  babypink: { label: "베이비핑크", hex: "#F3CFD3", neutral: false }, lavender: { label: "라벤더", hex: "#CDC3E3", neutral: false },
 };
 const TEMPLATES = [
   { name: "검정 롱패딩", type: "long_down", color: "black", material: "down", thickness: "thick" },
@@ -431,14 +570,14 @@ const targetFor = t => Math.max(1.5, 1.5 + (28 - t) * 0.5);
 
 /* ---------- state ---------- */
 const EXAMPLE_WX = { source: "example", place: "서울", fetchedAt: "2026-11-03 14:30",
-  cur: { t: 15, feel: 13.8, code: 2, wind: 5.4 },
-  days: [{ date: "2026-11-03", max: 15.2, min: 5.4, fmax: 14.5, fmin: 2.7, pop: 14, code: 3 },
-         { date: "2026-11-04", max: 17.5, min: 7.8, fmax: 16.6, fmin: 6.4, pop: 1, code: 3 }] };
+  cur: { t: 15, feel: 13.8, code: 2, wind: 5.4, hum: 58 },
+  days: [{ date: "2026-11-03", max: 15.2, min: 5.4, fmax: 14.5, fmin: 2.7, pop: 14, code: 3, uv: 3.4, wmax: 14, hum: 58 },
+         { date: "2026-11-04", max: 17.5, min: 7.8, fmax: 16.6, fmin: 6.4, pop: 1, code: 3, uv: 3.9, wmax: 11, hum: 49 }] };
 const S = {
   tab: "today", items: new Map(), logs: new Map(), prefs: { offset: 0, place: null },
   wx: EXAMPLE_WX, day: 0, anchors: [], ban: new Set(), mode: "memory", loading: true, sheet: null,
   wxBusy: false, wxMsg: "", manual: false, results: [], aiNotes: {}, boardOpen: null,
-  add: { method: "template", draft: null, found: [], busy: false, msg: "", photo: null },
+  add: { method: "quick", draft: null, found: [], busy: false, msg: "", photo: null },
   confirmDel: null,
   cf: { slot: "all", brand: "", color: "", material: "", thickness: "", q: "", sort: "recent" },
   trips: new Map(), trip: { open: null, form: null, busy: false, msg: "" },
@@ -481,7 +620,7 @@ function applyDoc(id, d) {
   else if (id.startsWith("trip_")) S.trips.set(id, { ...d, id });
   else if (id === "prefs") S.prefs = { offset: 0, place: null, ...d };
 }
-const savePrefs = () => put("prefs", { offset: S.prefs.offset, place: S.prefs.place, mode: S.prefs.mode || "balance", catVer: S.prefs.catVer || 0 });
+const savePrefs = () => put("prefs", { offset: S.prefs.offset, place: S.prefs.place, mode: S.prefs.mode || "balance", tpo: S.prefs.tpo || null, catVer: S.prefs.catVer || 0 });
 // One-time fix for items the old name parser put in the wrong slot (a belt as a leather jacket, a padded
 // jacket as a T-shirt). Only a slot change counts: if the user had corrected an item, the new guess agrees with it.
 const CAT_VER = 2;
@@ -584,12 +723,15 @@ async function toUpload(file) {
 async function loadWeather(place) {
   S.wxBusy = true; S.wxMsg = ""; render();
   try {
-    const u = `https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,weather_code&timezone=auto&forecast_days=3`;
+    const u = `https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m&hourly=relative_humidity_2m&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,weather_code,uv_index_max,wind_speed_10m_max&timezone=auto&forecast_days=3`;
     const j = await browserJSON(u);
-    const d = j.daily;
+    const d = j.daily, hr = j.hourly || { time: [], relative_humidity_2m: [] };
+    // Humidity while you're out (09~21시), averaged per day.
+    const hum = date => { const v = hr.time.map((t, i) => [t, hr.relative_humidity_2m[i]]).filter(([t, x]) => t.startsWith(date) && +t.slice(11, 13) >= 9 && +t.slice(11, 13) <= 21 && x != null).map(([, x]) => x); return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null; };
     S.wx = { source: "live", place: place.name, fetchedAt: (j.current?.time || "").replace("T", " "),
-      cur: { t: j.current.temperature_2m, feel: j.current.apparent_temperature, code: j.current.weather_code, wind: j.current.wind_speed_10m },
-      days: d.time.map((t, i) => ({ date: t, max: d.temperature_2m_max[i], min: d.temperature_2m_min[i], fmax: d.apparent_temperature_max[i], fmin: d.apparent_temperature_min[i], pop: d.precipitation_probability_max[i], code: d.weather_code[i] })) };
+      cur: { t: j.current.temperature_2m, feel: j.current.apparent_temperature, code: j.current.weather_code, wind: j.current.wind_speed_10m, hum: j.current.relative_humidity_2m },
+      days: d.time.map((t, i) => ({ date: t, max: d.temperature_2m_max[i], min: d.temperature_2m_min[i], fmax: d.apparent_temperature_max[i], fmin: d.apparent_temperature_min[i], pop: d.precipitation_probability_max[i], code: d.weather_code[i],
+        uv: d.uv_index_max?.[i] ?? null, wmax: d.wind_speed_10m_max?.[i] ?? null, hum: hum(t) })) };
     S.manual = false; S.prefs.place = place; savePrefs();
   } catch (e) { S.wxMsg = browserErr(e); }
   S.wxBusy = false; render();
@@ -643,6 +785,8 @@ const TRAITS = {
   windbreaker: { bulk: 1, room: 2, hood: true, wind: 2, rain: 1, form: 0, mood: ["gorpcore", "sporty", "street", "cityboy"] },
   denim_jk: { bulk: 1, room: 1, wind: 1, form: 0, mood: ["casual", "street"] },
   blazer: { bulk: 1, room: 1, form: 3, mood: ["classic", "minimal", "cityboy"] },
+  tweed: { bulk: 1, room: 1, wind: 1, form: 2, mood: ["classic", "feminine", "minimal"] },
+  dress: { form: 1, mood: ["feminine", "minimal", "classic", "casual"] },
   trench: { bulk: 1, room: 2, wind: 1, rain: 1, form: 2, len: "long", mood: ["classic", "minimal", "feminine"] },
   leather: { bulk: 1, room: 1, wind: 2, form: 1, mood: ["street", "classic"] },
   light_down: { bulk: 1, room: 1, wind: 1, form: 0, mood: ["casual", "minimal", "gorpcore", "cityboy"] },
@@ -686,7 +830,7 @@ const TONES = {
   black: ["mono", 1, 0], charcoal: ["mono", 2, 0], gray: ["mono", 3, 0], white: ["mono", 5, 0],
   navy: ["cool", 1, 1], denim: ["cool", 3, 1], blue: ["cool", 3, 3], skyblue: ["cool", 4, 2],
   brown: ["warm", 2, 1], khaki: ["warm", 2, 1], beige: ["warm", 4, 1], ivory: ["warm", 5, 1],
-  burgundy: ["red", 1, 2], red: ["red", 3, 3], pink: ["red", 4, 2], green: ["green", 2, 2], yellow: ["yellow", 4, 3], purple: ["purple", 2, 2],
+  burgundy: ["red", 1, 2], red: ["red", 3, 3], pink: ["red", 4, 2], babypink: ["red", 5, 1], lavender: ["purple", 4, 1], green: ["green", 2, 2], yellow: ["yellow", 4, 3], purple: ["purple", 2, 2],
 };
 const COMPLEMENT = [["red", "green"], ["cool", "yellow"], ["purple", "yellow"]];
 const PALETTE_LABEL = { tone_on_tone: "톤온톤", monotone: "모노톤", one_point: "원포인트", tone_in_tone: "톤인톤", neutral: "뉴트럴", complement: "보색 포인트" };
@@ -699,8 +843,34 @@ const MODES = {
   style: { label: "스타일 우선", soft: 0.25, steep: 0.7, curve: 0.5, coldMul: 1.1, coldCut: 3.5, hotCut: 4, styleW: 0.9, chillyMax: 2.5 },
 };
 
+// TPO (#출근룩 …): the mood the outfit should lead with, a dress-code range (TRAITS.form 0~3),
+// and item types that suit or clash with the occasion. noWhite: guests don't wear white to a wedding.
+const TPO = {
+  office: { label: "#출근룩", form: [1, 3], moods: ["minimal", "classic", "feminine"], like: ["slacks", "shirt", "blazer", "knit", "cardigan", "trench", "coat", "loafers", "long_skirt", "tweed", "flats"], avoid: ["sweatpants", "shorts", "hood", "sandals", "cap", "fleece", "cargo", "sweat", "sleeveless", "windbreaker"] },
+  date: { label: "#데이트", form: [1, 2], moods: ["feminine", "classic", "minimal"], like: ["dress", "long_skirt", "skirt", "knit", "cardigan", "shirt", "flats", "loafers", "long_boots", "tweed", "trench", "beret"], avoid: ["sweatpants", "hood", "fleece", "cargo", "windbreaker", "zipup"] },
+  wedding: { label: "#하객룩", form: [2, 3], moods: ["classic", "feminine", "minimal"], like: ["dress", "tweed", "blazer", "long_skirt", "slacks", "shirt", "loafers", "flats", "coat", "trench", "jewelry"], avoid: ["jeans", "sweatpants", "cargo", "hood", "sweat", "sneakers", "cap", "beanie", "fleece", "windbreaker", "shorts", "short_down", "long_down", "zipup", "tee_s"], noWhite: true },
+  easy: { label: "#꾸안꾸", form: [0, 1], moods: ["casual", "minimal"], like: ["knit", "cardigan", "jeans", "tee_l", "sneakers", "chino", "long_skirt", "shirt"], avoid: ["blazer", "tweed"] },
+  campus: { label: "#캠퍼스룩", form: [0, 1], moods: ["casual", "street", "cityboy"], like: ["sweat", "hood", "jeans", "cargo", "sneakers", "cap", "denim_jk", "blouson", "cardigan", "skirt"], avoid: ["tweed", "blazer"] },
+  workout: { label: "#운동갈때", form: [0, 0], moods: ["sporty", "gorpcore"], like: ["sweatpants", "zipup", "windbreaker", "tee_s", "tee_l", "sneakers", "sleeveless", "cap", "fleece", "hood", "shorts"], avoid: ["dress", "skirt", "long_skirt", "slacks", "loafers", "flats", "coat", "blazer", "tweed", "trench", "shirt", "long_boots", "boots", "jewelry", "leather", "jeans"] },
+};
+// The occasion travels in the weather context (X.tpo): today's cards use the chip, trip days use none.
+const tpoRule = X => TPO[X?.tpo] || null;
+// How well the clothes suit the chosen occasion (0 when no TPO is picked).
+function tpoScore(c, mood, X) {
+  const R = tpoRule(X); if (!R) return 0;
+  let s = R.moods.includes(mood) ? 1.5 : R.moods.some(m => (MOOD_DIST[m]?.[mood] ?? 9) === 1) ? 0.4 : -0.8;
+  for (const p of [c.outer, c.mid, c.inner, c.bottom, ...c.extrasFixed].filter(Boolean)) {
+    const k = isMain(p) ? 1 : 0.5, f = T(p).form;
+    if (R.avoid.includes(p.type)) s -= 2.2 * k;
+    if (R.like.includes(p.type)) s += 0.8 * k;
+    if (f != null && isMain(p)) s -= Math.max(0, R.form[0] - f, f - R.form[1]) * 0.8;
+    if (R.noWhite && isMain(p) && ["white", "ivory"].includes(p.color)) s -= p === c.inner ? 1 : 3.5;
+  }
+  return s;
+}
 const T = it => TRAITS[it.type] || {};
 const isMain = it => MAIN.includes(TYPES[it.type]?.slot);
+const isDress = it => !!TYPES[it?.type]?.dress;
 const slotKey = it => { const t = TYPES[it.type]; return t.slot !== "acc" ? t.slot : t.hat ? "acc:hat" : "acc:" + it.type; };
 const bulkOf = it => Math.max(0, Math.min(3, (T(it).bulk ?? 0) + (it.thickness === "thick" ? 1 : it.thickness === "thin" ? -1 : 0)));
 function fitOf(it) {
@@ -725,7 +895,7 @@ function moodsOf(it) {
   if (/스트릿|그래픽|카고|street/i.test(n)) hit.push("street");
   if (/미니멀|베이직|무지|minimal/i.test(n)) hit.push("minimal");
   if (/트레이닝|져지|저지|트랙|스포츠/i.test(n)) hit.push("sporty");
-  if (/리본|프릴|레이스|플리츠|러플|셔링/i.test(n)) hit.push("feminine");
+  if (/리본|프릴|레이스|플리츠|러플|셔링|블라우스|트위드|새틴|시폰|원피스/i.test(n)) hit.push("feminine");
   if (/테일러드|수트|정장|옥스포드|헤링본/i.test(n)) hit.push("classic");
   return [...new Set([...hit, ...(T(it).mood || [])])];
 }
@@ -747,7 +917,9 @@ function funcRules(c, X) {
   if (eff >= 23 && outer) R.push({ pen: 3 });
   if (eff >= 25 && mid) R.push({ pen: 2 });
   if (eff <= 8 && !outer) R.push({ pen: eff <= 0 ? 5 : 3 });
-  if (eff < 15 && inner.type === "tee_s" && !mid) R.push({ pen: 2.5 });
+  if (eff < 15 && inner?.type === "tee_s" && !mid) R.push({ pen: 2.5 });
+  if (inner && isDress(bottom)) R.push({ pen: 1.5 });
+  if (isDress(bottom) && eff < 8) R.push({ pen: eff < 3 ? 3 : 1.5 });
   if (eff < 15 && bottom.type === "shorts") R.push({ pen: 4 });
   if (outer && mid) {
     const room = roomOf(outer) - bulkOf(mid);
@@ -774,7 +946,7 @@ function funcRules(c, X) {
   return R;
 }
 function palette(c, ps) {
-  const big = new Set([c.outer, c.bottom, c.outer ? null : c.mid || c.inner].filter(Boolean));
+  const big = new Set([c.outer, c.bottom, c.outer ? null : c.mid || c.inner || c.bottom].filter(Boolean));
   const ts = ps.filter(p => T(p).mood?.length || p.type === "bag").map(p => { const [f, L, C] = TONES[p.color] || ["mono", 3, 0]; return { f, L, C, big: big.has(p), p }; });
   const range = a => Math.max(...a) - Math.min(...a);
   const pts = ts.filter(t => t.C >= 2), ptColors = new Set(pts.map(t => t.p.color));
@@ -795,8 +967,8 @@ function palette(c, ps) {
   else if (!pts.length) r = { name: "neutral", score: 1 };
   else r = ptColors.size >= 3 ? { name: "busy", score: -1.5 } : { name: "two_point", score: -0.5 };
   // Same color top and bottom in one block looks flat (a matching suit is fine).
-  const top = c.mid || c.inner;
-  if (top.color === c.bottom.color && !(c.outer?.type === "blazer" && c.bottom.type === "slacks")) r.score -= 0.5;
+  const top = c.mid || c.inner || c.bottom;
+  if (top !== c.bottom && top.color === c.bottom.color && !(c.outer?.type === "blazer" && c.bottom.type === "slacks")) r.score -= 0.5;
   if (r.score > 0 && ps.some(p => c.anchorIds.has(p.id))) r.score *= 1.2;
   return r;
 }
@@ -805,7 +977,7 @@ const SIL = {
   oversized: { slim: 2, regular: 1, wide: 0.5, tapered: 1.5 }, crop: { slim: 0.5, regular: 1.5, wide: 2, tapered: 1 },
 };
 function silhouette(c, mood) {
-  const top = c.mid || c.inner, tf = topFit(top), bf = bottomFit(c.bottom);
+  const top = c.mid || c.inner || c.bottom, tf = topFit(top), bf = bottomFit(c.bottom);
   let s = SIL[tf][bf];
   if (tf === "oversized" && bf === "wide" && ["street", "cityboy"].includes(mood)) s = 1.5;
   if (tf === "slim" && bf === "slim" && ["minimal", "classic"].includes(mood)) s = 0.5;
@@ -832,13 +1004,14 @@ function moodScore(c, ps) {
   }
   return best || { name: "casual", score: 0 };
 }
-function styleScore(c) {
+function styleScore(c, X) {
   const ps = [c.outer, c.mid, c.inner, c.bottom, ...c.extrasFixed].filter(Boolean);
   const mood = moodScore(c, ps), sil = silhouette(c, mood.name), color = palette(c, ps);
   const forms = ps.filter(p => T(p).form != null).map(p => T(p).form);
   const formPen = forms.length && Math.max(...forms) - Math.min(...forms) >= 3 ? -1 : 0;
   const trend = Math.min(1.5, TRENDS.reduce((s, r) => s + (r.when(c) ? r.score : 0), 0));
-  return { sil, color: color.score, palette: color.name, mood: mood.name, moodScore: mood.score, trend, sum: 0.8 * sil + color.score + 0.9 * mood.score + trend + formPen };
+  const tpo = tpoScore(c, mood.name, X);
+  return { sil, color: color.score, palette: color.name, mood: mood.name, moodScore: mood.score, trend, tpo, sum: 0.8 * sil + color.score + 0.9 * mood.score + trend + formPen + tpo };
 }
 // Score one outfit. Returns false when a hard rule excludes it. relaxed only lifts the warmth cutoff;
 // clashes are forgiven only between items the user picked.
@@ -859,10 +1032,11 @@ function evaluate(c, X, P) {
     }
   }
   c.func = func;
-  c.style = styleScore(c);
+  c.style = styleScore(c, X);
   return true;
 }
-const total = (c, P) => c.warm.pen + c.func - P.styleW * c.style.sum;
+// The occasion (TPO) counts at full weight in every mode: a wedding outfit shouldn't lose to jeans because the mode is 날씨 우선.
+const total = (c, P) => c.warm.pen + c.func - P.styleW * (c.style.sum - c.style.tpo) - 1.2 * c.style.tpo;
 
 /* ---------- anchors ("이 옷 입고 싶어", 여러 개) ---------- */
 // One set = the items fixed in one card. Several items in the same slot are spread over the cards.
@@ -895,9 +1069,11 @@ function search(set, X, P, all) {
   const pool = s => { const a = all.filter(i => TYPES[i.type]?.slot === s); const b = a.filter(i => !set.exclude.has(i.id)); return b.length ? b : a; };
   const opt = s => fixed.has(s) ? [fixed.get(s)] : s === "mid" && set.noMid ? [null] : s === "inner" || s === "bottom" ? pool(s) : [null, ...pool(s)];
   const I = opt("inner"), B = opt("bottom");
-  if (!I.length || !B.length) return { need: !I.length ? "이너·상의" : "하의", list: [] };
+  if (!B.length || (!I.length && !B.some(isDress))) return { need: !B.length ? "하의" : "이너·상의", list: [] };
+  // A dress already covers the top: no inner unless the user picked one.
+  const innersFor = bottom => isDress(bottom) ? (fixed.has("inner") ? [fixed.get("inner")] : [null]) : I;
   const extrasFixed = set.fixed.filter(it => !isMain(it)), list = [];
-  for (const outer of opt("outer")) for (const mid of opt("mid")) for (const inner of I) for (const bottom of B) {
+  for (const outer of opt("outer")) for (const mid of opt("mid")) for (const bottom of B) for (const inner of innersFor(bottom)) {
     const c = { outer, mid, inner, bottom, anchorIds: set.ids, extrasFixed, set };
     if (evaluate(c, X, P)) list.push(c);
   }
@@ -916,7 +1092,7 @@ function bestOf(cands, P, chosen = [], pred = () => true) {
 // Weather first: the warmth-closest outfits lead. Style first: the most stylish outfit leads.
 function pickCards(cands, P) {
   const mode = S.prefs.mode || "balance";
-  const warmOnly = (a, b) => (a.warm.pen + a.func) - (b.warm.pen + b.func);
+  const warmOnly = (a, b) => (a.warm.pen + a.func - 1.2 * a.style.tpo) - (b.warm.pen + b.func - 1.2 * b.style.tpo);
   const stylish = (except) => cands.filter(c => c.warm.gap <= P.chillyMax && except.every(x => mainDiff(c, x) >= 1)).sort((a, b) => b.style.sum - a.style.sum)[0];
   let c1, c2;
   if (mode === "style") {
@@ -945,14 +1121,15 @@ const modeP = () => MODES[S.prefs.mode] || MODES.balance;
 function ctxFor(ctx = {}) {
   const info = dayInfo(), day = ctx.day || info.d, eff = ctx.eff ?? info.eff;
   const recent = new Set([...S.logs.values()].filter(l => l.date !== today() && (Date.now() - new Date(l.date)) < 3 * 864e5).flatMap(l => l.itemIds || []));
-  return { eff, target: targetFor(eff), wind: ctx.wind ?? (S.day === 0 ? S.wx.cur?.wind || 0 : 0), pop: day.pop || 0, range: (day.max ?? 0) - (day.min ?? 0), reuse: ctx.reuse, used: ctx.used, recent };
+  return { eff, target: targetFor(eff), wind: ctx.wind ?? (S.day === 0 ? S.wx.cur?.wind || 0 : 0), pop: day.pop || 0, range: (day.max ?? 0) - (day.min ?? 0), reuse: ctx.reuse, used: ctx.used, recent,
+    tpo: "tpo" in ctx ? ctx.tpo : S.prefs.tpo || null };
 }
 const withW = i => ({ ...i, w: warmth(i) });
 function recommend(ctx = {}) {
   const anchorIds = ctx.anchors ?? S.anchors, skip = ctx.exclude || S.ban;
   const all = [...S.items.values()].filter(i => !skip.has(i.id) || anchorIds.includes(i.id)).map(withW);
   const by = s => all.filter(i => TYPES[i.type]?.slot === s);
-  if (!by("inner").length || !by("bottom").length) return { need: !by("inner").length ? "이너·상의" : "하의", list: [] };
+  if (!by("bottom").length || (!by("inner").length && !by("bottom").some(isDress))) return { need: !by("bottom").length ? "하의" : "이너·상의", list: [] };
   const P = modeP(), X = ctxFor(ctx), { eff, target } = X;
   const anchors = anchorIds.map(id => all.find(i => i.id === id)).filter(Boolean);
   const { shared, sets } = anchorSets(anchors, X);
@@ -971,7 +1148,7 @@ function recommend(ctx = {}) {
       if (alt && !cards.includes(alt)) { alt.role = "alt"; cards.push(alt); }
     }
   }
-  cards.forEach((c, i) => { addExtras(c, by("shoes"), by("acc"), eff, target, c.extrasFixed, i); c.X = X; finishCard(c, target); });
+  cards.forEach((c, i) => { c.X = X; addExtras(c, by("shoes"), by("acc"), eff, target, c.extrasFixed, i); finishCard(c, target); });
   return { target, list: cards };
 }
 
@@ -999,7 +1176,8 @@ const cloneCard = c => ({ ...c, acc: [...(c.acc || [])], anchorIds: new Set(c.an
 // Other clothes that could take old's place in c, best first. skip: ids never to suggest.
 function alternatives(c, old, skip = new Set()) {
   const s = placeOf(old), inCard = new Set(piecesOf(c).map(p => p.id)), P = modeP();
-  const pool = [...S.items.values()].filter(i => !skip.has(i.id) && !inCard.has(i.id) && placeOf(i) === s && (s !== "acc" || slotKey(i) === slotKey(old))).map(withW);
+  // With no top in the card (a dress outfit), only another dress can take the bottom's place.
+  const pool = [...S.items.values()].filter(i => !skip.has(i.id) && !inCard.has(i.id) && placeOf(i) === s && (s !== "acc" || slotKey(i) === slotKey(old)) && (s !== "bottom" || c.inner || isDress(i))).map(withW);
   return pool.map(nu => { const t = cloneCard(c); putIn(t, old, nu); rescore(t); return { nu, score: total(t, P) }; })
     .sort((a, b) => a.score - b.score).map(x => x.nu);
 }
@@ -1034,12 +1212,12 @@ function addToCard(c, it) {
   if (old && old.id === nu.id) return;
   putIn(c, old || null, nu); rescore(c);
 }
-const idsOfCard = c => ({ outer: c.outer?.id || null, mid: c.mid?.id || null, inner: c.inner.id, bottom: c.bottom.id, shoes: c.shoes?.id || null, acc: (c.acc || []).map(a => a.id) });
+const idsOfCard = c => ({ outer: c.outer?.id || null, mid: c.mid?.id || null, inner: c.inner?.id || null, bottom: c.bottom.id, shoes: c.shoes?.id || null, acc: (c.acc || []).map(a => a.id) });
 // Rebuild a saved (edited) card from ids. Returns null if a required item was deleted.
 function cardFromIds(ids, X) {
   const g = id => id && S.items.has(id) ? withW(S.items.get(id)) : null;
   const c = { outer: g(ids.outer), mid: g(ids.mid), inner: g(ids.inner), bottom: g(ids.bottom), shoes: g(ids.shoes), acc: (ids.acc || []).map(g).filter(Boolean), X, role: "edited", set: { lead: [] }, anchorIds: new Set() };
-  return c.inner && c.bottom ? rescore(c) : null;
+  return c.bottom && (c.inner || isDress(c.bottom)) ? rescore(c) : null;
 }
 // Labels and the warnings shown on a card.
 function finishCard(c, target) {
@@ -1051,6 +1229,7 @@ function finishCard(c, target) {
   };
   c.title = titles[c.role] || "추천 코디";
   c.tags = [MOODS[c.style.mood], PALETTE_LABEL[c.style.palette]].filter(Boolean);
+  const R = tpoRule(c.X); c.tpoTag = R && c.style.tpo > 0 ? R.label : "";
   if (c.role === "style" && c.warm.gap > 0.7) c.chilly = true;
   const msgs = new Map(), picked = [c.outer, c.mid, c.inner, c.bottom].filter(p => p && c.anchorIds.has(p.id));
   for (const w of c.warns) {
@@ -1071,7 +1250,8 @@ function finishCard(c, target) {
 // Shoes and accessories are chosen after the clothes: warm ones close the remaining gap, the rest follow the palette.
 function addExtras(c, shoes, accs, eff, target, fixedExtras, rank) {
   const clothes = MAIN.map(s => c[s]).filter(Boolean);
-  const fit = (it, base) => base + colorPenalty([...clothes, it]) - (COLORS[it.color]?.neutral ? 0 : 0.2);
+  const R = tpoRule(c.X), occ = t => R ? (R.avoid.includes(t) ? 3 : 0) - (R.like.includes(t) ? 0.6 : 0) : 0;
+  const fit = (it, base) => base + occ(it.type) + colorPenalty([...clothes, it]) - (COLORS[it.color]?.neutral ? 0 : 0.2);
   const fixedShoes = fixedExtras.find(it => TYPES[it.type].slot === "shoes");
   const shoePref = t => eff <= 5 ? ({ long_boots: 0, boots: 0.3, sneakers: 1.2, loafers: 1.5, sandals: 9 })[t]
     : eff <= 15 ? ({ boots: 0, long_boots: 0.2, sneakers: 0.2, loafers: 0.3, sandals: 6 })[t]
@@ -1122,6 +1302,7 @@ const fullName = it => (it.brand ? it.brand + " " : "") + it.name;
 // so the noun that ends latest wins. Material words (가죽, 플리스, 울) are never nouns here.
 const NOUNS = [
   ["belt", /벨트|belt/gi],
+  ["dress", /원피스|드레스|점프\s?수트|\bdress\b|jumpsuit/gi],
   ["socks", /양말|삭스|니삭스|레그\s?워머|스타킹|socks?|leg\s?warmers?/gi],
   ["jewelry", /시계|워치|팔찌|뱅글|목걸이|귀걸이|반지|주얼리|브로치|watch|bracelet|bangle|necklace|earrings?|\bring\b/gi],
   ["bag", /가방|백팩|토트|숄더\s?백|크로스\s?백|에코\s?백|미니\s?백|호보|클러치|파우치|\bbag\b|backpack|tote/gi],
@@ -1137,7 +1318,7 @@ const NOUNS = [
 ];
 // Step 2: inside that group, pick the subtype (here material words may help, e.g. 가죽 자켓 → leather).
 const SUBTYPE = {
-  belt: () => "belt", socks: () => "socks", jewelry: () => "jewelry", bag: () => "bag", gloves: () => "gloves", scarf: () => "scarf", vest: () => "vest",
+  belt: () => "belt", dress: () => "dress", socks: () => "socks", jewelry: () => "jewelry", bag: () => "bag", gloves: () => "gloves", scarf: () => "scarf", vest: () => "vest",
   hat: n => /비니|beanie/i.test(n) ? "beanie" : /베레|beret/i.test(n) ? "beret" : "cap",
   shoes: n => /롱\s?부츠|니하이/i.test(n) ? "long_boots" : /부츠(?!컷)|워커|첼시|boots?/i.test(n) ? "boots" : /샌들|슬리퍼|쪼리|뮬|sandal|slipper/i.test(n) ? "sandals"
     : /플랫|메리\s?제인|flat|mary/i.test(n) ? "flats" : /로퍼|구두|더비|옥스퍼드|힐|펌프스|loafer/i.test(n) ? "loafers" : "sneakers",
@@ -1149,7 +1330,7 @@ const SUBTYPE = {
     : /경량|초경량|라이트\s?(패딩|다운)|light\s?down/i.test(n) ? "light_down"
     : /패딩|다운|푸퍼|눕시|파카|puffer|down|nuptse|parka/i.test(n) ? "short_down"
     : /트렌치|trench/i.test(n) ? "trench" : /코트|더플|coat/i.test(n) ? "coat"
-    : /블레이저|테일러드|수트\s?자켓|blazer/i.test(n) ? "blazer" : /가디건|cardigan/i.test(n) ? "cardigan"
+    : /트위드|tweed/i.test(n) ? "tweed" : /블레이저|테일러드|수트\s?자켓|blazer/i.test(n) ? "blazer" : /가디건|cardigan/i.test(n) ? "cardigan"
     : /가죽|레더|라이더|무스탕|leather|rider/i.test(n) ? "leather" : /데님|청\s?자켓|트러커|denim|trucker/i.test(n) ? "denim_jk"
     : /플리스|후리스|뽀글이|보아|fleece/i.test(n) ? "fleece"
     : /바람막이|아노락|윈드|트랙\s?(자켓|탑)|점퍼|windbreaker|anorak/i.test(n) ? "windbreaker" : "blouson",
@@ -1172,8 +1353,8 @@ const GUESS_COLOR = [
   [/베이지|오트밀|샌드|beige|oatmeal/i, "beige"], [/연청|중청|진청|인디고|워싱|청\s/, "denim"],
   [/브라운|카멜|모카|초코|갈색|brown|camel/i, "brown"], [/카키|올리브|khaki|olive/i, "khaki"],
   [/버건디|와인|burgundy|wine/i, "burgundy"], [/스카이|하늘|소라|sky/i, "skyblue"], [/블루(?!종)|파랑|blue/i, "blue"],
-  [/그린|초록|green/i, "green"], [/레드|빨강|red/i, "red"], [/핑크|분홍|pink/i, "pink"],
-  [/옐로|노랑|머스타드|yellow/i, "yellow"], [/퍼플|보라|라벤더|purple/i, "purple"],
+  [/그린|초록|green/i, "green"], [/레드|빨강|red/i, "red"], [/베이비\s?핑크|연핑크|연분홍|라이트\s?핑크|baby\s?pink/i, "babypink"], [/핑크|분홍|pink/i, "pink"],
+  [/옐로|노랑|머스타드|yellow/i, "yellow"], [/라벤더|연보라|lavender/i, "lavender"], [/퍼플|보라|purple/i, "purple"],
 ];
 const GUESS_MAT = [
   [/캐시미어|cashmere/i, "cashmere"], [/울|wool|메리노|알파카|모헤어|램스|양모/i, "wool"],
@@ -1182,7 +1363,7 @@ const GUESS_MAT = [
   [/나일론|nylon/i, "nylon"], [/레이온|비스코스|모달|텐셀|rayon|viscose/i, "rayon"],
   [/아크릴|acrylic/i, "acrylic"], [/폴리|polyester/i, "poly"], [/코튼|면(\s|$|\d)|^면|cotton/i, "cotton"],
 ];
-const TYPE_MAT = { light_down: "down", short_down: "down", long_down: "down", jeans: "denim", denim_jk: "denim", leather: "leather", fleece: "fleece", lined_pants: "fleece", windbreaker: "nylon", knit: "acrylic", coat: "wool", blouson: "poly", belt: "leather", sweatpants: "cotton", cargo: "cotton" };
+const TYPE_MAT = { light_down: "down", short_down: "down", long_down: "down", jeans: "denim", denim_jk: "denim", leather: "leather", fleece: "fleece", lined_pants: "fleece", windbreaker: "nylon", knit: "acrylic", coat: "wool", tweed: "wool", blouson: "poly", belt: "leather", sweatpants: "cotton", cargo: "cotton" };
 const firstHit = (list, s) => list.find(([re]) => re.test(s))?.[1];
 // name decides type/color; hints (page material lines) only help with material and thickness.
 function guessItem(name, hints = "") {
@@ -1306,6 +1487,7 @@ const SHAPES = {
   pants: "M24 3 L76 3 L84 98 L58 98 L50 32 L42 98 L16 98 Z",
   shorts: "M20 25 L80 25 L88 75 L56 78 L50 50 L44 78 L12 75 Z",
   skirt: "M28 18 L72 18 L90 82 L10 82 Z",
+  dress: "M37 4 L63 4 L66 22 L60 36 L86 97 L14 97 L40 36 L34 22 Z",
   sneaker: "M6 58 L40 48 L56 56 L88 64 Q96 68 94 80 L6 80 Z",
   boot: "M30 10 L62 10 L64 66 L92 76 Q96 84 92 90 L30 90 Z",
   longboot: "M34 2 L64 2 L66 76 L92 84 Q96 92 92 97 L34 97 Z",
@@ -1323,6 +1505,7 @@ function shapeOf(it) {
   const t = TYPES[it.type] || {};
   if (t.shape) return t.shape;
   if (t.slot === "outer") return ["coat", "trench", "long_down"].includes(it.type) ? "coat" : "jacket";
+  if (t.dress) return "dress";
   if (t.slot === "bottom") return it.type === "shorts" ? "shorts" : ["skirt", "long_skirt"].includes(it.type) ? "skirt" : "pants";
   return ["tee_s", "vest", "sleeveless"].includes(it.type) ? "tee" : "top";
 }
@@ -1357,12 +1540,13 @@ async function drawBoard(canvas, c) {
   const g = canvas.getContext("2d"), W = canvas.width, H = canvas.height;
   g.fillStyle = "#FFFFFF"; g.fillRect(0, 0, W, H);
   const layers = ["outer", "mid", "inner"].map(s => c[s]).filter(Boolean);
+  const dressOnly = !layers.length; if (dressOnly) layers.push(c.bottom);
   const acc = c.acc || [], hat = acc.find(a => TYPES[a.type].hat);
   const side = [...layers.slice(1), ...acc.filter(a => a !== hat && a.type !== "bag"), ...acc.filter(a => a.type === "bag")];
   const jobs = [];
   if (hat) jobs.push([hat, [90, 40, 360, 220]]);
   jobs.push([layers[0], hat ? [40, 290, 500, 540] : [40, 50, 500, 780]]);
-  if (c.bottom) jobs.push([c.bottom, [60, 860, 460, 480]]);
+  if (c.bottom && !dressOnly) jobs.push([c.bottom, [60, 860, 460, 480]]);
   if (c.shoes) jobs.push([c.shoes, [590, 980, 270, 360]]);
   const n = side.length, slotH = n ? 900 / n : 0;
   side.forEach((it, i) => jobs.push([it, [590, 50 + i * slotH, 270, slotH - 24]]));
@@ -1451,10 +1635,10 @@ function tripPlan(t) {
   const reuse = new Set(must), used = new Map(), off = S.prefs.offset || 0, worn = new Set();
   const days = (t.days || []).map(d => {
     const eff = d.fmin + (d.fmax - d.fmin) * 0.35 - off;
-    const X = ctxFor({ eff, day: d, wind: 0, reuse, used });
+    const X = ctxFor({ eff, day: d, wind: 0, reuse, used, tpo: null });
     let c = t.edits?.[d.date] ? cardFromIds(t.edits[d.date], X) : null, rec = { target: X.target };
     if (!c) {
-      rec = recommend({ eff, day: d, wind: 0, reuse, used, anchors: must.filter(id => !worn.has(id)), exclude: skip });
+      rec = recommend({ eff, day: d, wind: 0, reuse, used, tpo: null, anchors: must.filter(id => !worn.has(id)), exclude: skip });
       c = rec.list.length ? rec.list[(t.ranks?.[d.date] || 0) % rec.list.length] : null;
     }
     if (c) piecesOf(c).forEach(p => { reuse.add(p.id); worn.add(p.id); used.set(p.id, (used.get(p.id) || 0) + 1); });
@@ -1487,12 +1671,14 @@ function renderTrip() {
       if (!c) return `<div class="card">${head}<p class="small muted">옷장에 이너·상의와 하의가 있어야 코디를 만들 수 있어요.</p></div>`;
       return head + outfitCard(c, target, where, `<button class="btn" data-tripnext="${esc(d.date)}">다른 코디</button>${t.edits?.[d.date] ? `<button class="btn ghost" data-tripreset="${esc(d.date)}">원래대로</button>` : ""}`);
     }).join("");
-    const done = plan.pack.filter(p => t.packed?.[p.id]).length;
-    h += `<div class="card"><div class="row between"><h3>짐 리스트</h3><span class="tag">${done} / ${plan.pack.length} 챙김</span></div>
-      <p class="small muted">${t.days.length}일 동안 ${plan.pack.length}개로 돌려 입게 짰어요. 날짜별 코디를 고치면 여기도 바로 바뀌어요.</p>
+    const done = plan.pack.filter(p => t.packed?.[p.id]).length, pct = plan.pack.length ? done / plan.pack.length * 100 : 0;
+    h += `<div class="card"><div class="row between"><h3>🧳 캡슐 옷장 · 짐 싸기</h3><span class="tag${done && done === plan.pack.length ? " rose" : ""}">${done === plan.pack.length && done ? "짐 싸기 완료 ✓" : `${done} / ${plan.pack.length} 챙김`}</span></div>
+      <div class="pack-sum"><span class="small">이번 여행 총 챙길 옷</span><span class="n">${plan.pack.length}</span><span class="small">벌</span></div>
+      <div class="progress" aria-hidden="true"><i style="width:${pct}%"></i></div>
+      <p class="small muted">${t.days.length}일 코디에 겹치는 옷을 묶어서 ${plan.pack.length}벌로 돌려 입게 짰어요. 날짜별 코디를 고치면 여기도 바로 바뀌어요.</p>
       ${SLOT_ORDER.map(s => { const ps = plan.pack.filter(p => TYPES[p.type]?.slot === s); return ps.length ? `<div class="pack"><div class="slot small muted" style="font-weight:700">${SLOTS[s]}</div>${ps.map(p => `<label class="${t.packed?.[p.id] ? "done" : ""}" title="${esc(fullName(p))}"><input type="checkbox" data-packed="${p.id}" ${t.packed?.[p.id] ? "checked" : ""}><span class="ell">${esc(fullName(p))}</span></label>`).join("")}</div>` : ""; }).join("")}
     </div>
-    <div class="row">${t.place?.lat != null ? `<button class="btn" id="tripRefresh" ${T.busy ? "disabled" : ""}>날씨 새로 받기</button>` : ""}
+    <div class="row"><button class="btn primary" data-sharetrip="${t.id}">여행 코디 공유</button>${t.place?.lat != null ? `<button class="btn" id="tripRefresh" ${T.busy ? "disabled" : ""}>날씨 새로 받기</button>` : ""}
       ${S.confirmDel === t.id ? `<button class="btn danger" data-deltrip="${t.id}">여행 삭제</button><button class="btn" data-cancel="1">취소</button>` : `<button class="btn ghost danger" data-ask="${t.id}">여행 삭제</button>`}</div>`;
     if (T.msg) h += `<p class="banner">${esc(T.msg)}</p>`;
   } else if (T.form) {
@@ -1548,17 +1734,135 @@ async function addStarter() {
 async function wear(c) {
   const { eff } = dayInfo();
   const ps = piecesOf(c);
-  await put("log_" + today(), { date: today(), itemIds: ps.map(p => p.id), names: ps.map(p => p.name), feel: Math.round(eff * 10) / 10, rating: null });
-  toast("오늘 코디로 기록했어요.");
+  // Re-recording keeps the day's feedback so the learned correction isn't counted twice.
+  const prev = S.logs.get("log_" + today());
+  await put("log_" + today(), { date: today(), itemIds: ps.map(p => p.id), names: ps.map(p => p.name), feel: Math.round(eff * 10) / 10, rating: prev?.rating || null });
+  toast("📅 OOTD 캘린더에 기록했어요. 저녁에 체감 피드백도 남겨 주세요.");
 }
-async function rate(r) {
-  const l = S.logs.get("log_" + today()); if (!l || l.rating) return;
-  const delta = r === "cold" ? 1 : r === "hot" ? -1 : 0;
-  S.prefs.offset = Math.max(-6, Math.min(6, (S.prefs.offset || 0) + delta));
+// Evening feedback teaches the personal correction: 추웠어요 +1°, 더웠어요 −1° (kept within ±6°).
+// offset > 0 means "runs cold": the day is treated as that much colder, so warmer outfits come up.
+const FEEL = [["cold", "추웠어요 🥶"], ["ok", "딱 좋았어요 🥰"], ["hot", "더웠어요 🥵"]];
+const FEEL_EMO = { cold: "🥶", ok: "🥰", hot: "🥵" };
+const feelDelta = r => r === "cold" ? 1 : r === "hot" ? -1 : 0;
+const feelLabel = off => off >= 2 ? "추위를 많이 타는 편" : off === 1 ? "추위를 조금 타는 편" : off <= -2 ? "더위를 많이 타는 편" : off === -1 ? "더위를 조금 타는 편" : "보통 체질";
+async function rate(r, date = today()) {
+  const l = S.logs.get("log_" + date); if (!l || l.rating === r) return;
+  // Changing an earlier answer undoes its correction first.
+  S.prefs.offset = Math.max(-6, Math.min(6, (S.prefs.offset || 0) - feelDelta(l.rating) + feelDelta(r)));
   await put(l.id, { date: l.date, itemIds: l.itemIds || [], names: l.names || [], feel: l.feel, rating: r });
   await savePrefs();
   const off = S.prefs.offset;
-  toast(`🌡️ 체감 피드백 반영됨${off ? ` (보정 ${off > 0 ? "−" : "+"}${Math.abs(off)}°)` : ""}`);
+  toast(`🌡️ 배웠어요 · ${feelLabel(off)}${off ? ` (${off > 0 ? "+" : "−"}${Math.abs(off)}°C 보정)` : ""}`);
+}
+
+/* ---------- weather beauty & fashion brief ---------- */
+// Hair hold: humidity frizzes curls, wind undoes them, rain does both.
+function beautyBrief(d) {
+  const hum = d.hum ?? (S.day === 0 ? S.wx.cur?.hum : null), wind = d.wmax ?? (S.day === 0 ? S.wx.cur?.wind : null), out = [];
+  if (hum != null) {
+    const score = 3 - (hum >= 75 ? 2 : hum >= 60 ? 1 : 0) - (wind >= 30 ? 1 : wind >= 20 ? 0.5 : 0) - ((d.pop || 0) >= 50 ? 1 : 0), s = Math.max(1, Math.round(score));
+    const why = `습도 ${hum}%${wind != null ? ` · 바람 ${Math.round(wind)}km/h` : ""}`;
+    out.push(["💇‍♀️", `고데기 유지력 <span class="stars" aria-label="${s}점">${"★".repeat(s)}${"☆".repeat(3 - s)}</span>`, s >= 3 ? `${why}. 컬이 저녁까지 예쁘게 가요.` : s === 2 ? `${why}. 오후엔 컬이 살짝 풀릴 수 있어요. 가벼운 고정 스프레이를 챙겨요.` : `${why}. 컬이 금방 풀리는 날이에요. 묶음 머리나 컬 고정템을 추천해요.`]);
+  }
+  if (d.uv != null) {
+    const u = Math.round(d.uv);
+    out.push(["☀️", `자외선 ${u >= 8 ? "매우 강함" : u >= 6 ? "강함" : u >= 3 ? "보통" : "낮음"}`, u >= 8 ? `지수 ${u}. 선크림을 두세 시간마다 덧바르고, 양산이나 모자를 꼭 챙겨요.` : u >= 6 ? `지수 ${u}. 외출 30분 전 선크림은 필수예요. 선글라스도 좋아요.` : u >= 3 ? `지수 ${u}. 데일리 선크림이면 충분해요.` : `지수 ${u}. 그래도 얇게 선크림은 발라 주세요.`]);
+  }
+  const range = d.max - d.min;
+  if (!isNaN(range)) out.push(["🧥", range >= 10 ? `일교차 ${fmt(range)}° · 아우터 필수` : range >= 7 ? `일교차 ${fmt(range)}° · 걸칠 옷 챙기기` : `일교차 ${fmt(range)}° · 한 벌로 OK`,
+    range >= 10 ? `아침저녁엔 ${fmt(d.fmin)}°까지 내려가요. 벗고 입기 쉬운 아우터를 꼭 챙겨요.` : range >= 7 ? "저녁엔 쌀쌀해져요. 가디건이나 얇은 아우터를 가방에 넣어 두세요." : "하루 종일 기온이 비슷해서 입고 나간 그대로 편하게 다녀요."]);
+  return out;
+}
+function briefHTML(d) {
+  const rows = beautyBrief(d); if (!rows.length) return "";
+  return `<section class="brief" aria-label="뷰티·패션 지수"><h3><span>오늘의 뷰티·패션 지수</span><span class="muted small">${S.day === 0 ? "오늘" : S.day === 1 ? "내일" : "모레"}</span></h3>
+    ${rows.map(([ico, t, x]) => `<div class="brief-row"><span aria-hidden="true">${ico}</span><span><b>${t}</b><br><span class="muted">${esc(x)}</span></span></div>`).join("")}</section>`;
+}
+
+/* ---------- install (PWA) ---------- */
+let installEvt = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; if (S.tab === "today") render(); });
+window.addEventListener("appinstalled", () => { installEvt = null; render(); toast("bary를 홈 화면에 설치했어요."); });
+const standalone = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+function installHTML() {
+  if (standalone() || LS.get("bary.installHide") || !(installEvt || isIOS())) return "";
+  return `<div class="install"><img src="icon-192.png" alt=""><p><b>📲 bary 앱으로 설치하고</b><br>매일 아침 코디를 바로 확인하세요</p><button class="btn" id="installBtn">설치</button><button class="x" id="installHide" aria-label="설치 안내 닫기">✕</button></div>`;
+}
+async function install() {
+  if (installEvt) { installEvt.prompt(); const r = await installEvt.userChoice.catch(() => null); if (r?.outcome === "accepted") installEvt = null; render(); return; }
+  openSheet({ kind: "install" });
+}
+
+/* ---------- sharing (KakaoTalk and others through the share sheet) ---------- */
+const APP_URL = "https://uouclaudecode-cpu.github.io/ondo-closet/";
+async function shareLink(title, text) {
+  if (navigator.share) { try { await navigator.share({ title, text, url: APP_URL }); return; } catch (e) { if (e?.name === "AbortError") return; } }
+  try { await navigator.clipboard.writeText(`${text}\n\n${APP_URL}`); toast("복사했어요. 카카오톡 대화창에 붙여넣어 보내 보세요."); }
+  catch { toast("이 브라우저는 공유를 지원하지 않아요."); }
+}
+const pieceLine = c => piecesOf(c).map(p => p.name).join(" + ");
+function shareToday(i) {
+  const c = S.results[i]; if (!c) return;
+  const { eff } = dayInfo();
+  shareLink("bary 오늘의 코디", `[bary] 오늘의 코디 · ${S.wx.place} 체감 ${fmt(eff)}°\n${[c.tpoTag, ...c.tags].filter(Boolean).map(t => t.startsWith("#") ? t : "#" + t).join(" ")}\n👗 ${pieceLine(c)}`);
+}
+function shareTrip(t) {
+  const plan = tripPlan(t);
+  const days = plan.days.map(({ d, c }, i) => `${i + 1}일차 ${d.date.slice(5).replace("-", ".")} (체감 ${fmt(d.fmin)}~${fmt(d.fmax)}°): ${c ? pieceLine(c) : "코디 없음"}`);
+  shareLink(`bary 여행 코디 · ${t.name}`, `[bary] ${t.name} 여행 코디 ✈️\n${t.place?.name || ""} · ${t.start.slice(5).replace("-", ".")} ~ ${t.end.slice(5).replace("-", ".")}\n\n${days.join("\n")}\n\n🧳 총 챙길 옷 ${plan.pack.length}벌`);
+}
+
+/* ---------- quick add: category tabs, base items, one-tap color ---------- */
+const QUICK_CATS = [["outer", "아우터"], ["top", "상의"], ["bottom", "하의"], ["dress", "원피스·스커트"], ["shoesbag", "슈즈·백"], ["acc", "액세서리"]];
+// [이름, 종류, 소재, 기본 두께]
+const QUICK = {
+  outer: [["트렌치코트", "trench", "cotton", "normal"], ["가디건", "cardigan", "wool", "thin"], ["트위드 자켓", "tweed", "wool", "normal"], ["울 코트", "coat", "wool", "normal"], ["가죽 자켓", "leather", "leather", "normal"], ["블레이저", "blazer", "poly", "normal"],
+    ["숏패딩", "short_down", "down", "thick"], ["롱패딩", "long_down", "down", "thick"], ["경량패딩", "light_down", "down", "thin"], ["데님 자켓", "denim_jk", "denim", "normal"], ["플리스", "fleece", "fleece", "thick"], ["바람막이", "windbreaker", "nylon", "thin"]],
+  top: [["니트", "knit", "wool", "normal"], ["블라우스", "shirt", "rayon", "thin"], ["셔츠", "shirt", "cotton", "normal"], ["반팔 티", "tee_s", "cotton", "normal"], ["긴팔 티", "tee_l", "cotton", "normal"], ["맨투맨", "sweat", "cotton", "normal"],
+    ["후드티", "hood", "cotton", "normal"], ["니트 조끼", "vest", "wool", "normal"], ["집업", "zipup", "cotton", "normal"], ["슬리브리스", "sleeveless", "cotton", "thin"], ["발열 내의", "thermal", "poly", "thin"]],
+  bottom: [["슬랙스", "slacks", "poly", "normal"], ["청바지", "jeans", "denim", "normal"], ["와이드 팬츠", "slacks", "poly", "normal"], ["면바지", "chino", "cotton", "normal"], ["조거 팬츠", "sweatpants", "cotton", "normal"], ["카고 팬츠", "cargo", "cotton", "normal"], ["기모 팬츠", "lined_pants", "fleece", "thick"], ["반바지", "shorts", "cotton", "thin"]],
+  dress: [["원피스", "dress", "rayon", "normal"], ["니트 원피스", "dress", "wool", "normal"], ["셔츠 원피스", "dress", "cotton", "normal"], ["롱스커트", "long_skirt", "poly", "normal"], ["플리츠 롱스커트", "long_skirt", "poly", "thin"], ["미니스커트", "skirt", "cotton", "normal"], ["데님 스커트", "skirt", "denim", "normal"]],
+  shoesbag: [["플랫슈즈", "flats", "leather", "normal"], ["메리제인", "flats", "leather", "normal"], ["로퍼", "loafers", "leather", "normal"], ["스니커즈", "sneakers", "leather", "normal"], ["앵클부츠", "boots", "leather", "normal"], ["롱부츠", "long_boots", "leather", "normal"],
+    ["샌들", "sandals", "leather", "thin"], ["숄더백", "bag", "leather", "normal"], ["토트백", "bag", "leather", "normal"], ["크로스백", "bag", "leather", "normal"]],
+  acc: [["머플러", "scarf", "wool", "normal"], ["비니", "beanie", "acrylic", "normal"], ["베레모", "beret", "wool", "normal"], ["볼캡", "cap", "cotton", "normal"], ["장갑", "gloves", "wool", "normal"], ["벨트", "belt", "leather", "normal"], ["양말", "socks", "cotton", "normal"], ["주얼리", "jewelry", "cotton", "normal"]],
+};
+// The color chips shown first (the rest open with 더보기).
+const QUICK_COLORS = ["ivory", "beige", "white", "black", "charcoal", "gray", "navy", "brown", "babypink", "lavender", "skyblue", "khaki"];
+const lineIcon = type => `<svg class="line-ico" viewBox="-6 -6 112 112" aria-hidden="true"><path d="${SHAPES[shapeOf({ type })]}" fill-rule="evenodd"/></svg>`;
+const quickOf = s => QUICK[s.cat]?.[s.i];
+async function saveQuick() {
+  const s = S.sheet, q = quickOf(s); if (!q || !s.color) return;
+  const [base, type, material] = q, name = `${COLORS[s.color].label} ${base}`;
+  closeSheet();
+  await addItem({ brand: "", name, type, color: s.color, material, thickness: s.thick }, "quick");
+  toast(`'${name}'을(를) 옷장에 넣었어요.`);
+}
+
+/* ---------- OOTD calendar ---------- */
+const ym = d => d.slice(0, 7);
+function renderCal() {
+  const month = S.calMonth || (S.calMonth = ym(today()));
+  const [y, m] = month.split("-").map(Number), first = new Date(y, m - 1, 1), n = new Date(y, m, 0).getDate();
+  const logs = [...S.logs.values()], inMonth = logs.filter(l => ym(l.date) === month);
+  const off = S.prefs.offset || 0, rated = logs.filter(l => l.rating), cnt = k => rated.filter(l => l.rating === k).length;
+  let h = `<div class="row between"><h2>OOTD 캘린더</h2><span class="muted small">${inMonth.length}일 기록</span></div>`;
+  h += `<div class="card"><div class="cal-head"><button class="btn ghost" data-calnav="-1" aria-label="이전 달">‹</button><h3>${y}. ${String(m).padStart(2, "0")}</h3><button class="btn ghost" data-calnav="1" aria-label="다음 달">›</button></div>
+    <div class="cal">${WD.map(w => `<span class="wd">${w}</span>`).join("")}${Array.from({ length: first.getDay() }, () => `<span class="cday out"></span>`).join("")}
+    ${Array.from({ length: n }, (_, k) => {
+      const date = `${month}-${String(k + 1).padStart(2, "0")}`, l = S.logs.get("log_" + date);
+      const p = l && (l.itemIds || []).map(id => S.items.get(id)).find(x => x && isMain(x));
+      return `<button class="cday${l ? " has" : ""}${date === today() ? " today" : ""}" data-calday="${date}" aria-label="${m}월 ${k + 1}일${l ? " 기록 있음" : ""}"><span>${k + 1}</span>${l ? `<span class="mini">${p ? (p.photo ? `<img src="${esc(p.photo)}" alt="">` : silhouetteSVG(p)) : ""}</span>${l.rating ? `<span class="emo">${FEEL_EMO[l.rating]}</span>` : ""}` : ""}</button>`;
+    }).join("")}</div>
+    <p class="small muted">오늘 코디에서 <b>오늘 이거 입을래요</b>를 누르면 여기에 쌓여요. 날짜를 누르면 입은 옷과 그날 피드백을 볼 수 있어요.</p></div>`;
+  h += `<div class="card"><div class="row between"><h3>내 체감온도 프로필</h3><span class="tag rose">${feelLabel(off)}</span></div>
+    <div class="row" style="align-items:flex-end;gap:12px"><span class="feel-big">${off > 0 ? "+" : off < 0 ? "−" : "±"}${Math.abs(off)}°C</span>
+      <span class="small muted" style="padding-bottom:4px">${off > 0 ? `실제보다 ${off}° 춥게 느껴서, 한 단계 따뜻하게 골라요` : off < 0 ? `실제보다 ${-off}° 덥게 느껴서, 한 단계 가볍게 골라요` : "아직 기본값으로 골라요"}</span></div>
+    <div class="feel-gauge" aria-hidden="true"><i style="left:${(off + 6) / 12 * 100}%"></i></div><div class="feel-labels"><span>더위 많이 탐</span><span>보통</span><span>추위 많이 탐</span></div>
+    <div class="row small muted" style="gap:12px"><span>🥶 추웠어요 ${cnt("cold")}</span><span>🥰 딱 좋았어요 ${cnt("ok")}</span><span>🥵 더웠어요 ${cnt("hot")}</span></div>
+    <p class="small muted">저녁에 오늘 코디 탭이나 캘린더에서 피드백을 남기면 한 번에 1°씩 배워요 (최대 ±6°).</p>
+    ${off ? `<button class="btn ghost small" id="feelReset" style="align-self:flex-start">보정 초기화</button>` : ""}</div>`;
+  $("#view-cal").innerHTML = h;
 }
 
 /* ---------- render ---------- */
@@ -1574,7 +1878,7 @@ function renderToday() {
   const picked = S.anchors.map(id => S.items.get(id)).filter(Boolean);
   const srcTag = W.source === "live" ? `<span class="tag live">실시간 · ${esc(W.fetchedAt)}</span>` : W.source === "manual" ? `<span class="tag">직접 입력</span>` : `<span class="tag example">예시 날씨 · ${esc(W.fetchedAt)}</span>`;
   const dayBtns = W.days.slice(0, 3).map((x, i) => `<button class="chip" data-day="${i}" aria-pressed="${S.day === i}">${i === 0 ? "오늘" : i === 1 ? "내일" : "모레"}</button>`).join("");
-  let h = `<div class="card">
+  let h = installHTML() + `<div class="card">
     <div class="row between"><h2>${esc(W.place)}</h2>${srcTag}</div>
     <div class="row">${W.source !== "manual" ? dayBtns : ""}</div>
     <div class="wx">
@@ -1588,7 +1892,7 @@ function renderToday() {
     </div>
     ${scaleHTML(d.fmin - off, d.fmax - off, eff)}
     <p class="band">이 온도엔 보통 <b>${bandFor(eff)}</b></p>
-    ${log?.rating || off ? `<p class="badge-line">🌡️ 체감 피드백 반영됨${off ? ` (보정 ${off > 0 ? "−" : "+"}${fmt(Math.abs(off))}°)` : ""}</p>` : ""}
+    ${off ? `<p class="badge-line">🌡️ 내 체감 보정 반영 중 · ${off > 0 ? `추위를 타는 편이라 ${fmt(off)}° 더 따뜻하게` : `더위를 타는 편이라 ${fmt(-off)}° 더 가볍게`} 골라요</p>` : ""}
     <details ${S.wxMsg || S.manual ? "open" : ""}>
       <summary class="small" style="cursor:pointer;font-weight:600">지역 바꾸기 · 날씨 불러오기</summary>
       <div class="stack" style="margin-top:10px">
@@ -1606,10 +1910,12 @@ function renderToday() {
     ${S.wxMsg ? `<p class="banner err">${esc(S.wxMsg)}</p>` : ""}
   </div>`;
 
+  h += briefHTML(d);
   // Feedback: one quiet line. The names of what was worn are not repeated here.
-  if (log && !log.rating) h += `<div class="ask-row"><span>오늘 코디 어땠나요?</span><div class="row" style="gap:6px"><button class="chip" data-rate="cold">추웠어요</button><button class="chip" data-rate="ok">딱 좋았어요</button><button class="chip" data-rate="hot">더웠어요</button></div></div>`;
+  if (log && !log.rating) h += `<div class="ask-row"><span>오늘 코디 어땠나요? <span class="muted small">알려주면 내 체감온도를 배워요</span></span><div class="fb-row">${FEEL.map(([k, l]) => `<button class="fb" data-rate="${k}">${l}</button>`).join("")}</div></div>`;
 
   const mode = S.prefs.mode || "balance";
+  h += `<div class="tpo" role="group" aria-label="오늘 어디 가요?">${Object.entries(TPO).map(([k, t]) => `<button class="chip" data-tpo="${k}" aria-pressed="${S.prefs.tpo === k}">${t.label}</button>`).join("")}</div>`;
   h += `<div class="sec-head"><h2>추천 코디</h2><div class="seg" role="group" aria-label="추천 기준">${Object.entries(MODES).map(([k, m]) => `<button type="button" data-mode="${k}" aria-pressed="${mode === k}">${m.label}</button>`).join("")}</div></div>`;
   if (picked.length || S.ban.size) h += `<div class="places">${picked.map(it => `<button class="chip pick" data-unanchor="${it.id}" title="${esc(fullName(it))}" aria-label="${esc(it.name)} 고정 해제"><span class="ell">${esc(it.name)}</span> ✕</button>`).join("")}${picked.length > 1 ? `<button class="chip" id="clearAnchor">모두 해제</button>` : ""}${S.ban.size ? `<button class="chip" id="clearBan">뺀 옷 ${S.ban.size}벌 되돌리기</button>` : ""}</div>`;
   if (S.loading) h += `<div class="card"><p class="muted">옷장을 불러오는 중이에요…</p></div>`;
@@ -1619,7 +1925,8 @@ function renderToday() {
   else {
     S.results = rec.list;
     h += rec.list.map((c, i) => outfitCard(c, rec.target, `t:${i}`, `
-          <button class="btn primary" data-wear="${i}">${log ? "이 코디로 바꿔 기록" : "이 코디 입을게요"}</button>
+          <button class="btn primary" data-wear="${i}">${log ? "이 코디로 바꿔 기록" : "오늘 이거 입을래요"}</button>
+          <button class="btn icon" data-share="${i}" aria-label="이 코디 공유">공유</button>
           <button class="btn icon" data-boardbtn="${i}" aria-label="착장 보드" title="착장 보드">${S.boardOpen === c.key ? "보드 닫기" : "보드"}</button>
           ${S.boardOpen === c.key && downloads ? `<button class="btn icon" data-saveboard="${i}">저장</button>` : ""}
           ${sample && S.aiOn ? `<button class="btn icon" data-note="${i}">한마디</button>` : ""}`,
@@ -1631,7 +1938,7 @@ function renderToday() {
 // Today's cards are kept while nothing they depend on changes, so swaps and removals stick.
 function todayRec() {
   const { eff } = dayInfo();
-  const sig = JSON.stringify([S.day, eff, S.prefs.mode, S.anchors, S.itemRev, S.wx.place, S.wx.fetchedAt]);
+  const sig = JSON.stringify([S.day, eff, S.prefs.mode, S.prefs.tpo, S.anchors, S.itemRev, S.wx.place, S.wx.fetchedAt]);
   if (!S.recCache || S.recCache.sig !== sig) S.recCache = { sig, rec: recommend() };
   return S.recCache.rec;
 }
@@ -1642,7 +1949,7 @@ function outfitCard(c, target, where, foot, extra = "") {
   const notes = [...c.warnings, ...tipsFor(c)];
   return `<article class="outfit">
     <div class="o-head"><div class="o-title"><h3 class="ell">${esc(c.title)}</h3>
-      <div class="o-tags">${c.tags.map(t => `<span class="tag">${esc(t)}</span>`).join("")}${c.chilly ? `<span class="tag example">조금 쌀쌀할 수 있어요</span>` : ""}${c.edited ? `<span class="tag">수정함</span>` : ""}</div></div>
+      <div class="o-tags">${c.tpoTag ? `<span class="tag rose">${esc(c.tpoTag)}</span>` : ""}${c.tags.map(t => `<span class="tag">${esc(t)}</span>`).join("")}${c.chilly ? `<span class="tag example">조금 쌀쌀할 수 있어요</span>` : ""}${c.edited ? `<span class="tag">수정함</span>` : ""}</div></div>
       <span class="pill">${verdictOf(c, target)}</span></div>
     ${extra}
     <div class="board-grid">${pieces.map(p => tileHTML(p, where)).join("")}
@@ -1750,19 +2057,21 @@ function formHTML(x, prefix) {
 function renderAdd() {
   const A = S.add;
   const M = [
-    ["capture", "📸 AI 캡처로 한 번에 등록", "주문내역 캡처 한 장으로 여러 벌을, 선명한 상품 사진과 함께"],
-    ["manual", "직접 입력", "이름을 적으면 나머지를 추측해요"],
-    ["link", "상품 링크", "상품 페이지 주소 붙여넣기"],
-    ["photo", "사진으로", S.aiOn ? "여러 벌을 한 장에 찍어도 돼요" : "내가 찍은 사진이나 캡처로"],
-    ["template", "템플릿", "자주 입는 기본템을 탭 한 번에"],
+    ["photo", `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5C4 7.7 4.7 7 5.5 7h2l1.4-2h6.2l1.4 2h2c.8 0 1.5.7 1.5 1.5v9c0 .8-.7 1.5-1.5 1.5h-13C4.7 19 4 18.3 4 17.5Z"/><circle cx="12" cy="13" r="3.2"/></svg>`, "사진으로"],
+    ["link", `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>`, "상품 링크"],
+    ["manual", `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16Z"/><path d="m13.5 6.5 4 4"/></svg>`, "직접 입력"],
   ];
-  let h = `<h2>옷 추가</h2><div class="methods">${M.map(([k, b, s]) => `<button class="method${k === "capture" ? " wide" : ""}" data-method="${k}" aria-pressed="${A.method === k}"><b>${b}</b><span>${s}</span></button>`).join("")}</div>`;
+  const cat = A.cat || "outer";
+  let h = `<div class="row between"><h2>옷 추가</h2>${S.items.size ? `<span class="muted small">내 옷장 ${S.items.size}벌</span>` : ""}</div>
+    <button class="cap-card" data-method="capture" aria-pressed="${A.method === "capture"}"><span class="cap-ico" aria-hidden="true">📸</span><span><b>AI 캡처로 한 번에 등록</b><span>주문내역 캡처 한 장으로 여러 벌을, 선명한 상품 사진과 함께</span></span><span class="cap-go" aria-hidden="true">›</span></button>
+    <div class="mrow">${M.map(([k, ico, l]) => `<button class="mbtn" data-method="${k}" aria-pressed="${A.method === k}">${ico}<span>${l}</span></button>`).join("")}</div>`;
   if (A.msg) h += `<p class="banner">${esc(A.msg)}</p>`;
   if (A.method === "capture") {
     h += bulkHTML();
-  } else if (A.method === "template") {
-    h += `<div class="card"><h3>탭해서 바로 넣기</h3><div class="templates">${TEMPLATES.map((t, i) => `<button class="chip" data-tpl="${i}">${esc(t.name)}</button>`).join("")}</div>
-      <p class="small muted">넣은 뒤 옷장에서 지우거나 같은 옷을 직접 입력으로 다시 등록할 수 있어요.</p></div>`;
+  } else if (A.method === "quick") {
+    h += `<div class="stack" style="gap:12px"><div class="row between"><h3>탭해서 바로 넣기</h3><span class="small muted">아이템 → 색만 고르면 끝</span></div>
+      <div class="cat-tabs" role="tablist" aria-label="카테고리">${QUICK_CATS.map(([k, l]) => `<button role="tab" data-qcat="${k}" aria-pressed="${cat === k}" aria-selected="${cat === k}">${l}</button>`).join("")}</div>
+      <div class="qgrid">${QUICK[cat].map(([n, type], i) => `<button class="qcard" data-quick="${cat}:${i}"><span class="q-ico">${lineIcon(type)}</span><span class="q-n">${esc(n)}</span></button>`).join("")}</div></div>`;
   } else if (A.method === "photo") {
     h += `<div class="card"><h3>옷 사진 올리기</h3>
       <p class="small muted">${S.aiOn ? "옷 사진이나 쇼핑몰 캡처를 올리면 Claude가 옷마다 잘라서 종류·색·소재를 채워요. 한 장에 여러 벌이 있어도 돼요." : "옷 한 벌이 나온 사진이나 쇼핑몰 캡처를 올리면 옷장 사진으로 넣어요. 이름을 적으면 종류·색·소재를 추측해서 채워 줘요."} 캡처는 Ctrl+V로 붙여넣어도 돼요.</p>
@@ -1797,7 +2106,7 @@ function renderAuth() {
 function render() {
   const gate = S.auth !== "unconfigured" && !me && !S.guest;
   $("#tabs").hidden = gate; $("#view-auth").hidden = !gate;
-  ["today", "closet", "trip", "add"].forEach(t => { $("#view-" + t).hidden = gate || S.tab !== t; $("#tab-" + t).setAttribute("aria-selected", S.tab === t); });
+  ["today", "closet", "trip", "cal", "add"].forEach(t => { $("#view-" + t).hidden = gate || S.tab !== t; $("#tab-" + t).setAttribute("aria-selected", S.tab === t); });
   const m = $("#saveMode");
   m.textContent = S.auth === "unconfigured" ? "서버 설정 전 · 저장 안 됨" : me ? (S.loading ? "불러오는 중" : "로그아웃") : gate ? "로그인" : "로그인하고 저장하기";
   m.title = me ? `${me.email} 계정으로 로그인됨` : "";
@@ -1805,7 +2114,9 @@ function render() {
   if (gate) { renderAuth(); return; }
   const brands = [...new Set([...S.items.values()].map(i => (i.brand || "").trim()).filter(Boolean))];
   $("#brandList").innerHTML = brands.map(b => `<option value="${esc(b)}">`).join("");
-  ({ today: renderToday, closet: renderCloset, trip: renderTrip, add: renderAdd })[S.tab]();
+  ({ today: renderToday, closet: renderCloset, trip: renderTrip, cal: renderCal, add: renderAdd })[S.tab]();
+  // A new screen fades in; redraws of the same screen stay still.
+  if (S.shown !== S.tab) { const v = $("#view-" + S.tab); v.classList.remove("enter"); void v.offsetWidth; v.classList.add("enter"); S.shown = S.tab; }
 }
 
 /* ---------- events ---------- */
@@ -1857,8 +2168,17 @@ document.addEventListener("click", e => {
   if (ds.saveboard) { saveBoard(+ds.saveboard); return; }
   if (ds.photo) { photoFor = ds.photo; $("#replaceIn").value = ""; $("#replaceIn").click(); return; }
   if (ds.rate) { rate(ds.rate); return; }
-  if (ds.method) { S.add.method = ds.method; S.add.msg = ""; if (S.add.editing) { S.add.editing = null; S.add.draft = null; } if (ds.method === "manual" && S.add.draft?.source === "link") {} render(); return; }
-  if (ds.tpl) { const t = TEMPLATES[+ds.tpl]; addItem(t, "template").then(() => { S.add.msg = `'${t.name}'을(를) 옷장에 넣었어요.`; render(); }); return; }
+  // Tapping the open method again goes back to the quick picker.
+  if (ds.method) { S.add.method = S.add.method === ds.method && !S.add.editing ? "quick" : ds.method; S.add.msg = ""; if (S.add.editing) { S.add.editing = null; S.add.draft = null; } render(); return; }
+  if (ds.qcat) { S.add.cat = ds.qcat; render(); return; }
+  if (ds.quick) { const [cat, i] = ds.quick.split(":"); openSheet({ kind: "quick", cat, i: +i, color: null, thick: QUICK[cat][+i][3], more: false }); return; }
+  if (ds.tpo) { S.prefs.tpo = S.prefs.tpo === ds.tpo ? null : ds.tpo; S.recCache = null; render(); toast(S.prefs.tpo ? `${TPO[ds.tpo].label}에 맞춰 다시 골랐어요.` : "TPO 필터를 껐어요."); if (me) savePrefs(); return; }
+  if (ds.share) { shareToday(+ds.share); return; }
+  if (b.id === "installBtn") { install(); return; }
+  if (b.id === "installHide") { LS.set("bary.installHide", "1"); render(); return; }
+  if (ds.calnav) { const [y, m] = S.calMonth.split("-").map(Number), d = new Date(y, m - 1 + +ds.calnav, 1); S.calMonth = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0"); render(); return; }
+  if (ds.calday) { if (S.logs.get("log_" + ds.calday)) openSheet({ kind: "log", date: ds.calday }); else toast(ds.calday === today() ? "오늘 코디에서 '오늘 이거 입을래요'를 누르면 기록돼요." : "이 날은 기록이 없어요."); return; }
+  if (b.id === "feelReset") { S.prefs.offset = 0; S.recCache = null; savePrefs(); toast("체감 보정을 초기화했어요."); return; }
   if (ds.color) { const x = formTarget(b); if (x) { x.color = ds.color; touch(x, "color"); render(); } return; }
   if (ds.thick) { const x = formTarget(b); if (x) { x.thickness = ds.thick; touch(x, "thickness"); render(); } return; }
   if (b.id === "saveDraft") {
@@ -1972,6 +2292,32 @@ function renderSheet() {
       <p class="small muted">날짜를 바꾸면 그 날짜의 날씨를 다시 받아서 날짜별 코디와 짐 리스트를 새로 짜요. 남는 날짜의 직접 고친 코디는 그대로 둬요.</p>
       ${s.msg ? `<p class="banner${s.err ? " err" : ""}">${esc(s.msg)}</p>` : ""}
       <button class="btn primary" id="tripEditSave" ${s.busy ? "disabled" : ""}>${s.busy ? "날씨 받는 중…" : "저장"}</button>`;
+  } else if (s.kind === "quick") {
+    const q = quickOf(s); if (!q) { closeSheet(); return; }
+    const [base, type] = q, colors = s.more ? Object.keys(COLORS) : QUICK_COLORS, light = k => (TONES[k]?.[1] ?? 3) >= 4;
+    h = `<div class="sheet-top"><div class="q-head"><span class="q-ico">${lineIcon(type)}</span><div><h3 id="sheetTitle">${s.color ? esc(COLORS[s.color].label) + " " : ""}${esc(base)}</h3><div class="small muted">${esc(TYPES[type].label)}</div></div></div><button class="btn ghost" data-close="1">닫기</button></div>
+      <div class="f">색상</div>
+      <div class="swatches">${colors.map(k => `<button class="sw" data-qcolor="${k}" aria-pressed="${s.color === k}"><i style="background:${COLORS[k].hex};${light(k) ? "--chk:#1E1E1E" : ""}"></i>${esc(COLORS[k].label)}</button>`).join("")}
+        ${s.more ? "" : `<button class="sw" data-qmore="1"><i style="background:conic-gradient(#B93A32,#E8C547,#3F7A55,#3E73C9,#7158A6,#B93A32)"></i>더보기</button>`}</div>
+      <div class="f">두께감<div class="seg">${Object.entries(THICK).map(([k, t]) => `<button type="button" data-qthick="${k}" aria-pressed="${s.thick === k}">${t.label}</button>`).join("")}</div></div>
+      <button class="btn primary q-save" id="quickSave" ${s.color ? "" : "disabled"}>${s.color ? "옷장에 넣기" : "색을 골라 주세요"}</button>`;
+  } else if (s.kind === "log") {
+    const l = S.logs.get("log_" + s.date); if (!l) { closeSheet(); return; }
+    const dt = new Date(s.date + "T00:00:00"), ps = (l.itemIds || []).map(id => S.items.get(id)).filter(Boolean);
+    const gone = (l.names || []).length - ps.length;
+    h = `<div class="sheet-top"><div><h3 id="sheetTitle">${dt.getMonth() + 1}월 ${dt.getDate()}일 (${WD[dt.getDay()]}) OOTD</h3><div class="small muted">그날 코디 기준 체감 ${fmt(l.feel ?? 0)}°</div></div><button class="btn ghost" data-close="1">닫기</button></div>
+      <div class="sheet-scroll"><div class="mini-grid">${ps.map(p => `<div class="tile mini" title="${esc(fullName(p))}"><span class="tile-img">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : silhouetteSVG(p)}</span><span class="tile-cap"><span class="tile-n">${esc(p.name)}</span></span></div>`).join("")}</div>
+        ${gone > 0 ? `<p class="small muted">옷장에서 지운 옷 ${gone}벌은 빼고 보여요.</p>` : ""}</div>
+      <div class="f">이날 체감은 어땠나요?</div>
+      <div class="fb-row">${FEEL.map(([k, lb]) => `<button class="fb" data-lograte="${k}" aria-pressed="${l.rating === k}">${lb}</button>`).join("")}</div>
+      ${s.confirm ? `<button class="act danger" data-logdel="ok"><b>정말 지울게요</b><span>이날 기록과 피드백이 사라져요</span></button>` : `<button class="btn ghost danger small" data-logdel="1" style="align-self:flex-start">이날 기록 지우기</button>`}`;
+  } else if (s.kind === "install") {
+    h = `<div class="sheet-top"><h3 id="sheetTitle">아이폰 홈 화면에 bary 설치하기</h3><button class="btn ghost" data-close="1">닫기</button></div>
+      <ol class="steps"><li><b>Safari</b>로 이 페이지를 열어요. (카카오톡 안에서 열었다면 오른쪽 아래 ⋯ → '다른 브라우저로 열기')</li>
+        <li>화면 아래 <b>공유 버튼</b> (네모 위 화살표 ⬆︎)을 눌러요.</li>
+        <li>목록을 내려 <b>'홈 화면에 추가'</b>를 누르고, 오른쪽 위 <b>추가</b>를 눌러요.</li></ol>
+      <p class="small muted">홈 화면의 bary 아이콘으로 열면 주소창 없이 앱처럼 꽉 찬 화면으로 열려요.</p>
+      <button class="btn primary" data-close="1">알겠어요</button>`;
   } else if (s.kind === "item") {
     const p = S.items.get(s.id); if (!p) { closeSheet(); return; }
     h = `${sheetHead(withW(p))}
@@ -2068,6 +2414,24 @@ document.addEventListener("click", e => {
 document.addEventListener("input", e => { if (e.target.dataset?.te && S.sheet?.form) S.sheet.form[e.target.dataset.te] = e.target.value; });
 document.addEventListener("input", e => { if (e.target.id === "sheetQ") { S.sheet.q = e.target.value; const pos = e.target.selectionStart; renderSheet(); const q = $("#sheetQ"); q.focus(); q.setSelectionRange(pos, pos); } });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && S.sheet) closeSheet(); });
+// quick-add sheet and calendar-day sheet
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-qcolor], [data-qmore], [data-qthick], #quickSave, [data-lograte], [data-logdel]"); if (!b || !S.sheet) return;
+  const ds = b.dataset, s = S.sheet;
+  if (ds.qcolor) { s.color = ds.qcolor; renderSheet(); }
+  else if (ds.qmore) { s.more = true; renderSheet(); }
+  else if (ds.qthick) { s.thick = ds.qthick; renderSheet(); }
+  else if (b.id === "quickSave") saveQuick();
+  else if (ds.lograte) rate(ds.lograte, s.date).then(renderSheet);
+  else if (ds.logdel === "1") { s.confirm = true; renderSheet(); }
+  else if (ds.logdel === "ok") {
+    // A deleted day no longer counts toward the learned correction.
+    const r = S.logs.get("log_" + s.date)?.rating;
+    closeSheet(); del("log_" + s.date);
+    if (feelDelta(r)) { S.prefs.offset = Math.max(-6, Math.min(6, (S.prefs.offset || 0) - feelDelta(r))); savePrefs(); }
+    toast("기록을 지웠어요.");
+  }
+});
 document.addEventListener("click", e => { if (e.target.id === "clearBan") { S.ban.clear(); S.recCache = null; render(); } });
 /* trip events */
 document.addEventListener("click", e => {
@@ -2086,6 +2450,7 @@ document.addEventListener("click", e => {
     T.pickOpen = true; saveTrip(t, { must: [...must], skip: [...skip] });
   }
   else if (b.id === "tripRefresh" && t) refreshTrip(t);
+  else if (ds.sharetrip && S.trips.get(ds.sharetrip)) shareTrip(S.trips.get(ds.sharetrip));
   else if (ds.deltrip) { S.confirmDel = null; T.open = null; del(ds.deltrip); }
 });
 document.addEventListener("input", e => {
@@ -2362,6 +2727,10 @@ document.addEventListener("drop", e => {
 });
 
 boot();
+// Offline shell + home-screen install. Only on https (or localhost), where service workers are allowed.
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
 </script>
 </body>
 </html>
