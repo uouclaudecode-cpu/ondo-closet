@@ -2138,6 +2138,7 @@ document.addEventListener("click", e => {
   if (ds.place) { loadWeather(PLACES[+ds.place]); return; }
   if (b.id === "hereBtn") { hereWeather(); return; }
   if (b.id === "guestBtn") { S.guest = true; render(); return; }
+  if (ds.login) { if (S.auth === "unconfigured") return; S.guest = false; render(); window.scrollTo({ top: 0 }); return; }
   if (b.id === "saveMode") {
     if (S.auth === "unconfigured") { notice("config.js에 Supabase 주소와 키를 넣으면 계정 저장이 켜져요."); return; }
     if (me) { if (S.confirmLogout) { S.confirmLogout = false; sb.auth.signOut(); notice(""); } else { S.confirmLogout = true; notice(`${me.email} 계정에서 로그아웃하려면 오른쪽 위 버튼을 한 번 더 눌러 주세요.`); setTimeout(() => { S.confirmLogout = false; }, 5000); } }
@@ -2611,6 +2612,7 @@ function shrink(img, max = 800) {
 async function bulkFile(file) {
   if (B.busy) return;
   if (S.tab !== "add" || S.add.method !== "capture") { S.tab = "add"; S.add.method = "capture"; S.add.editing = null; render(); }
+  if (!me) return; // the capture section only shows the login prompt
   if (!file?.type?.startsWith("image/")) { B.msg = "이미지 파일(JPG, PNG, WEBP)을 올려 주세요."; B.err = true; renderBulk(); return; }
   B.items = []; B.err = false; B.photoNote = "";
   let img;
@@ -2658,12 +2660,15 @@ window.bulkImgFail = (i, src) => {
 // One line about the shared AI: remaining uses today, or what to do to get it.
 function sharedLine() {
   if (gemKey()) return S.gemShared ? `<p class="small muted">내 Gemini 키로 읽어요. 키를 지우면 bary 공용 AI(하루 ${S.gemQuota?.limit ?? 10}회)를 써요.</p>` : "";
-  if (!me) return `<p class="banner">✨ 로그인하면 bary 공용 AI로 키 없이 바로 캡처를 읽어요.</p>`;
   if (!S.gemShared) return "";
   const q = S.gemQuota, left = q ? Math.max(0, q.limit - q.used) : null;
   return `<p class="banner">✨ bary 공용 AI로 읽어요 · ${left == null ? "하루 한도 안에서 무료" : left ? `오늘 <b>${left}</b> / ${q.limit}회 남았어요` : "오늘 횟수를 다 썼어요. 내일 다시 쓸 수 있어요"}</p>`;
 }
 function bulkHTML() {
+  // Signed out: the capture uses the account's shared AI, so the only thing to do here is log in.
+  if (!me) return `<div class="card capture empty"><h3>로그인하면 바로 쓸 수 있어요</h3>
+    <p class="small muted">AI 캡처 등록은 로그인한 계정에서만 쓸 수 있어요. 로그인하면 키 없이 주문내역 캡처 한 장으로 여러 벌을 한 번에 등록해요.</p>
+    <button class="btn primary" data-login="1">로그인하기</button></div>`;
   const n = B.items.filter(x => x.keep).length, hasKey = !!gemKey();
   const typeOpts = x => SLOT_ORDER.map(s => `<optgroup label="${SLOTS[s]}">${Object.entries(TYPES).filter(([, t]) => t.slot === s).map(([k, t]) => `<option value="${k}" ${x.type === k ? "selected" : ""}>${t.label}</option>`).join("")}</optgroup>`).join("");
   const opts = (o, v, f, auto) => (auto ? `<option value="">${auto}</option>` : "") + Object.entries(o).map(([k, x]) => `<option value="${k}" ${v === k ? "selected" : ""}>${f(x)}</option>`).join("");
@@ -2671,7 +2676,7 @@ function bulkHTML() {
     <h3>주문내역 캡처로 한 번에 등록</h3>
     <p class="small muted">무신사·29CM 주문 내역이나 옷 사진을 올리면 Gemini가 옷마다 브랜드·상품명·색을 읽고, 쇼핑몰에서 선명한 상품 사진을 찾아 넣어요.</p>
     ${sharedLine()}
-    <details class="gem-set" ${B.settings || (!hasKey && me && !S.gemShared) ? "open" : ""}><summary>⚙️ ${S.gemShared || !me ? "내 키 쓰기 (선택)" : "Gemini 설정"} <span class="muted small">${hasKey ? `내 키 사용 중 · ${esc(gemModel())}` : S.gemShared || !me ? "없어도 돼요" : "API 키가 필요해요"}</span></summary>
+    <details class="gem-set" ${B.settings || (!hasKey && !S.gemShared) ? "open" : ""}><summary>⚙️ ${S.gemShared ? "내 키 쓰기 (선택)" : "Gemini 설정"} <span class="muted small">${hasKey ? `내 키 사용 중 · ${esc(gemModel())}` : S.gemShared ? "없어도 돼요" : "API 키가 필요해요"}</span></summary>
       <div class="stack" style="margin-top:10px">
         <label class="f" for="gemKey">Gemini API Key<input type="password" id="gemKey" autocomplete="off" spellcheck="false" placeholder="${hasKey ? "저장됨 (바꾸려면 새로 입력)" : "API 키 붙여넣기"}"></label>
         <label class="f" for="gemModel">모델명<input type="text" id="gemModel" value="${esc(LS.get("ondo.geminiModel"))}" placeholder="${GEMINI_DEFAULT_MODEL}" spellcheck="false"></label>
