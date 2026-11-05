@@ -2,7 +2,7 @@
 // The page and config are network-first (so a new version shows up on the next open);
 // icons and CDN libraries/fonts are served from cache and refreshed in the background.
 // Supabase, weather and AI calls are never cached.
-const VERSION = "bary-v1";
+const VERSION = "bary-v2";
 const SHELL = ["./", "index.html", "config.js", "manifest.json", "icon.svg", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 const CDN = /^https:\/\/(cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
 
@@ -16,7 +16,9 @@ self.addEventListener("activate", e => {
 async function networkFirst(req) {
   const cache = await caches.open(VERSION);
   try {
-    const res = await fetch(req);
+    // no-cache: always check with the server, so a new version isn't hidden behind the browser's HTTP cache.
+    // (By URL: a navigation request can't be re-sent with extra options.)
+    const res = await fetch(req.url, { cache: "no-cache", credentials: "same-origin" });
     if (res.ok) cache.put(req, res.clone());
     return res;
   } catch {
