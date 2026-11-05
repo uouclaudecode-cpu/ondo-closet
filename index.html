@@ -721,7 +721,9 @@ function authErr(error) {
   if (c === "weak_password" || /password should/i.test(m)) return "비밀번호는 6자 이상으로 해 주세요.";
   if (c === "email_not_confirmed") return "메일 인증이 아직 안 됐어요. 메일함의 인증 링크를 한 번 눌러 주세요.";
   if (c === "validation_failed" || /email/i.test(m) && /invalid/i.test(m)) return "이메일 주소를 확인해 주세요.";
-  if (error?.status === 429) return "시도가 너무 많아요. 잠시 후 다시 해 주세요.";
+  if (error?.status === 429) return S.authMode === "reset" || S.authMode === "signup"
+    ? "메일은 한 시간에 몇 통만 보낼 수 있어서 잠시 막혔어요. 메일함에 이미 온 bary(Supabase) 메일이 있다면 그 링크를 눌러 주세요. 없으면 한 시간쯤 뒤에 다시 받아 주세요."
+    : "시도가 너무 많아요. 잠시 후 다시 해 주세요.";
   return "잠시 후 다시 시도해 주세요. (" + (m || "연결 오류").slice(0, 80) + ")";
 }
 async function authSubmit() {
