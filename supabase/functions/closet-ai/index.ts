@@ -1,8 +1,10 @@
-// 온도 옷장 서버 기능: 상품 링크 읽기, 상품 사진 검색(네이버 쇼핑), (API 키가 있으면) 사진 분석과 코디 한마디.
+// bary 서버 기능: 상품 링크 읽기, 상품 사진 검색(네이버 쇼핑), 공용 Gemini 키로 캡처 읽기, (API 키가 있으면) 사진 분석과 코디 한마디.
 // Supabase Edge Function "closet-ai" 로 배포돼요 (로그인한 사용자만 호출 가능).
 // 비밀값(선택): ANTHROPIC_API_KEY. 없으면 링크 읽기는 쇼핑몰의 공유 정보만으로 무료로 작동해요.
 // 비밀값(선택): NAVER_CLIENT_ID, NAVER_CLIENT_SECRET. 있으면 캡처 일괄 등록 때 고화질 상품 사진을 찾아요.
+// 비밀값(선택): GEMINI_API_KEY (+ GEMINI_MODEL, GEMINI_DAILY_LIMIT). 있으면 로그인한 사람 누구나 하루 한도 안에서 캡처 등록을 써요.
 import Anthropic from "npm:@anthropic-ai/sdk";
+import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const MODEL = "claude-opus-5-5";
 const CORS = {
@@ -14,10 +16,10 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
 // Keys must match the catalog in index.html (TYPES / MATERIALS / COLORS).
-const TYPES = ["tee_s", "tee_l", "shirt", "sleeveless", "thermal", "sweat", "hood", "knit", "zipup", "vest", "cardigan", "fleece", "windbreaker", "blouson", "denim_jk", "blazer", "trench", "leather", "light_down", "coat", "short_down", "long_down", "shorts", "skirt", "long_skirt", "slacks", "chino", "jeans", "sweatpants", "cargo", "lined_pants", "sneakers", "loafers", "flats", "sandals", "boots", "long_boots", "beanie", "beret", "cap", "scarf", "gloves", "bag", "belt", "socks", "jewelry"];
+const TYPES = ["tee_s", "tee_l", "shirt", "sleeveless", "thermal", "sweat", "hood", "knit", "zipup", "vest", "cardigan", "fleece", "windbreaker", "blouson", "denim_jk", "blazer", "tweed", "trench", "leather", "light_down", "coat", "short_down", "long_down", "shorts", "skirt", "long_skirt", "dress", "slacks", "chino", "jeans", "sweatpants", "cargo", "lined_pants", "sneakers", "loafers", "flats", "sandals", "boots", "long_boots", "beanie", "beret", "cap", "scarf", "gloves", "bag", "belt", "socks", "jewelry"];
 const MATERIALS = ["cotton", "linen", "poly", "nylon", "rayon", "denim", "acrylic", "wool", "cashmere", "fleece", "down", "leather"];
-const COLORS = ["black", "white", "gray", "charcoal", "navy", "beige", "ivory", "denim", "brown", "khaki", "green", "blue", "skyblue", "red", "burgundy", "pink", "yellow", "purple"];
-const TYPE_HELP = "tee_s=반팔티, tee_l=긴팔티, shirt=셔츠·블라우스, thermal=발열내의, sweat=맨투맨, hood=후드티, knit=니트, cardigan=가디건, fleece=플리스, vest=조끼, windbreaker=바람막이, denim_jk=데님자켓, blazer=블레이저, trench=트렌치코트, leather=가죽자켓, light_down=경량패딩, coat=코트, short_down=숏패딩, long_down=롱패딩, shorts=반바지, skirt=치마, slacks=슬랙스, chino=면바지, jeans=청바지, lined_pants=기모바지, sneakers=운동화, loafers=로퍼·구두, sandals=샌들, boots=앵클부츠, long_boots=롱부츠, beanie=비니, beret=베레모, cap=볼캡, scarf=목도리, gloves=장갑, bag=가방, sleeveless=나시, zipup=집업, blouson=블루종·자켓, long_skirt=롱스커트, sweatpants=트레이닝 팬츠, cargo=카고 팬츠, flats=플랫·메리제인, belt=벨트, socks=양말·레그워머, jewelry=시계·주얼리";
+const COLORS = ["black", "white", "gray", "charcoal", "navy", "beige", "ivory", "denim", "brown", "khaki", "green", "blue", "skyblue", "red", "burgundy", "pink", "yellow", "purple", "babypink", "lavender"];
+const TYPE_HELP = "tee_s=반팔티, tee_l=긴팔티, shirt=셔츠·블라우스, thermal=발열내의, sweat=맨투맨, hood=후드티, knit=니트, cardigan=가디건, fleece=플리스, vest=조끼, windbreaker=바람막이, denim_jk=데님자켓, blazer=블레이저, trench=트렌치코트, leather=가죽자켓, light_down=경량패딩, coat=코트, short_down=숏패딩, long_down=롱패딩, shorts=반바지, skirt=치마, slacks=슬랙스, chino=면바지, jeans=청바지, lined_pants=기모바지, sneakers=운동화, loafers=로퍼·구두, sandals=샌들, boots=앵클부츠, long_boots=롱부츠, beanie=비니, beret=베레모, cap=볼캡, scarf=목도리, gloves=장갑, bag=가방, sleeveless=나시, zipup=집업, blouson=블루종·자켓, long_skirt=롱스커트, sweatpants=트레이닝 팬츠, cargo=카고 팬츠, flats=플랫·메리제인, belt=벨트, socks=양말·레그워머, jewelry=시계·주얼리, tweed=트위드 자켓, dress=원피스";
 const ITEM_RULES = `brand: 브랜드 이름 (한국어 표기가 있으면 한국어, 예: "미세키서울". 모르면 "")
 name: 브랜드와 색상을 뺀 상품 이름을 한국어로 짧게 (예: "언밸런스 카울 버튼 니트". 상품명이 없으면 "울 니트"처럼 종류 위주로)
 type 뜻: ${TYPE_HELP}
@@ -258,6 +260,62 @@ async function getImage(url: string) {
   return { image: `data:${im.type};base64,${im.data}` };
 }
 
+// Shared Gemini key: the key never leaves the server. Each signed-in user gets GEMINI_DAILY_LIMIT captures a day
+// (counted in the ai_usage table as that user, before the call, so parallel requests can't go over the limit).
+const GEMINI_BASE = "https://monogpt.kr/api/monorouter/v1/gemini";
+const geminiLimit = () => Math.max(1, Math.min(1000, parseInt(Deno.env.get("GEMINI_DAILY_LIMIT") || "10", 10) || 10));
+const asUser = (req: Request) => createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
+  global: { headers: { Authorization: req.headers.get("Authorization") || "" } }, auth: { persistSession: false },
+});
+async function geminiQuota(req: Request) {
+  const { data, error } = await asUser(req).rpc("ai_quota_used", { p_kind: "gemini" });
+  if (error) throw new ApiFail("upstream_error");
+  return { used: data as number, limit: geminiLimit() };
+}
+async function geminiCapture(req: Request, body: Record<string, unknown>) {
+  const key = Deno.env.get("GEMINI_API_KEY");
+  if (!key) throw new ApiFail("gemini_not_configured");
+  const image = String(body.image || ""), mime = String(body.media_type || "image/jpeg"), prompt = String(body.prompt || "");
+  // The page sends captures as JPEG with the longest side at 2048px (a few MB at most); anything bigger is not from the page.
+  if (!image || image.length > 6_000_000 || !/^image\/(jpeg|png|webp)$/.test(mime)) throw new ApiFail("image_rejected");
+  if (!prompt || prompt.length > 12_000) throw new ApiFail("bad_request");
+  const schema = body.schema && JSON.stringify(body.schema).length < 20_000 ? body.schema : null;
+
+  const limit = geminiLimit();
+  const { data: n, error } = await asUser(req).rpc("use_ai_quota", { p_kind: "gemini", p_limit: limit });
+  if (error) { console.error("quota", error.message); throw new ApiFail("upstream_error"); }
+  if (n === -1) throw new ApiFail("daily_limit");
+
+  const model = Deno.env.get("GEMINI_MODEL") || "gemini-3.5-flash-lite";
+  const url = `${GEMINI_BASE}/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  const send = async (withSchema: boolean) => {
+    const r = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key, Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ inlineData: { mimeType: mime, data: image } }, { text: prompt }] }],
+        generationConfig: { temperature: 0.2, maxOutputTokens: 8192, responseMimeType: "application/json", ...(withSchema && schema ? { responseSchema: schema } : {}) },
+      }),
+    });
+    return { r, j: await r.json().catch(() => null) };
+  };
+  let res;
+  try {
+    res = await send(true);
+    // Some routers reject responseSchema; JSON mode plus the prompt still works.
+    if (res.r.status === 400 && /schema/i.test(JSON.stringify(res.j || ""))) res = await send(false);
+  } catch { throw new ApiFail("upstream_error"); }
+  const { r, j } = res;
+  if (!r.ok) {
+    console.error("gemini", r.status, JSON.stringify(j)?.slice(0, 300));
+    throw new ApiFail(r.status === 429 ? "rate_limited" : r.status === 401 || r.status === 403 || r.status === 404 ? "shared_key_failed" : "upstream_error");
+  }
+  if (j?.promptFeedback?.blockReason) throw new ApiFail("blocked");
+  const cand = j?.candidates?.[0], text = (cand?.content?.parts || []).map((p: { text?: string }) => p.text || "").join("");
+  if (!text) throw new ApiFail(cand?.finishReason === "SAFETY" ? "blocked" : "empty");
+  return { text, used: n, limit };
+}
+
 async function styleNote(outfit: string, weather: string) {
   const out = await ask([{ type: "text", text: `오늘 ${weather}. 아래 코디를 친구처럼 짧게 평가해 주세요. 어울리는 점 1가지와 더 좋아지는 팁 1가지, 한국어 두 문장, 이모지 없이.\n${outfit.slice(0, 2000)}` }],
     { type: "object", additionalProperties: false, required: ["text"], properties: { text: { type: "string" } } }, "low");
@@ -270,7 +328,12 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
     switch (body?.action) {
-      case "status": return json({ ai: !!Deno.env.get("ANTHROPIC_API_KEY"), search: !!(Deno.env.get("NAVER_CLIENT_ID") && Deno.env.get("NAVER_CLIENT_SECRET")) });
+      case "status": {
+        const gemini = !!Deno.env.get("GEMINI_API_KEY");
+        return json({ ai: !!Deno.env.get("ANTHROPIC_API_KEY"), search: !!(Deno.env.get("NAVER_CLIENT_ID") && Deno.env.get("NAVER_CLIENT_SECRET")),
+          gemini, quota: gemini ? await geminiQuota(req).catch(() => null) : null });
+      }
+      case "gemini_capture": return json(await geminiCapture(req, body));
       case "find_images": return json(await findImages(String(body.query || "")));
       case "image": return json(await getImage(String(body.url || "")));
       case "analyze_photo": return json(await analyzePhoto(String(body.image || ""), String(body.media_type || "image/jpeg")));

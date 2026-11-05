@@ -33,3 +33,42 @@ create policy "own rows: update" on public.closet_docs
   for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 create policy "own rows: delete" on public.closet_docs
   for delete to authenticated using ((select auth.uid()) = user_id);
+
+-- 공용 Gemini 키 하루 사용량 (서버 함수 closet-ai가 로그인한 사람 이름으로 셉니다).
+-- 표에는 정책을 두지 않아서 직접 읽고 쓸 수 없고, 아래 두 함수로만 자기 줄을 세고 읽어요.
+create table if not exists public.ai_usage (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  day     date not null,
+  kind    text not null,
+  count   integer not null default 0,
+  primary key (user_id, day, kind)
+);
+alter table public.ai_usage enable row level security;
+revoke all on public.ai_usage from anon, authenticated;
+
+-- 한 번 쓸 때마다 +1 (한국 시간 기준 하루). 한도에 닿았으면 -1을 돌려줘요. 되돌리는 기능은 일부러 없어요.
+create or replace function public.use_ai_quota(p_kind text, p_limit integer)
+returns integer language plpgsql security definer set search_path = '' as $$
+declare
+  uid uuid := auth.uid();
+  today date := (now() at time zone 'Asia/Seoul')::date;
+  n integer;
+begin
+  if uid is null then raise exception 'not signed in'; end if;
+  if p_limit < 1 or p_limit > 1000 or length(p_kind) > 30 then raise exception 'bad arguments'; end if;
+  insert into public.ai_usage (user_id, day, kind, count) values (uid, today, p_kind, 1)
+  on conflict (user_id, day, kind) do update set count = public.ai_usage.count + 1
+    where public.ai_usage.count < p_limit
+  returning count into n;
+  return coalesce(n, -1);
+end;
+$$;
+revoke all on function public.use_ai_quota(text, integer) from public, anon;
+grant execute on function public.use_ai_quota(text, integer) to authenticated;
+
+create or replace function public.ai_quota_used(p_kind text)
+returns integer language sql security definer set search_path = '' stable as $$
+  select coalesce((select count from public.ai_usage where user_id = auth.uid() and day = (now() at time zone 'Asia/Seoul')::date and kind = p_kind), 0);
+$$;
+revoke all on function public.ai_quota_used(text) from public, anon;
+grant execute on function public.ai_quota_used(text) to authenticated;
