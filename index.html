@@ -359,7 +359,7 @@ body.noscroll { overflow: hidden; }
 .qcard .q-ico { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50%; background: var(--sunken); color: var(--ink); }
 .qcard .q-ico svg { width: 34px; height: 34px; }
 .qcard .q-n { font-size: .8rem; font-weight: 600; text-align: center; line-height: 1.25; word-break: keep-all; }
-.line-ico path { fill: none; stroke: currentColor; stroke-width: 3.4; stroke-linejoin: round; stroke-linecap: round; }
+.line-ico * { fill: none; stroke: currentColor; stroke-width: 3.4; stroke-linejoin: round; stroke-linecap: round; }
 .swatches { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px 6px; }
 .sw { border: 0; background: none; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: .7rem; color: var(--muted); }
 .sw i { width: 42px; height: 42px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgb(0 0 0 / .08); transition: transform .15s ease, box-shadow .15s ease; display: grid; place-items: center; }
@@ -1980,7 +1980,74 @@ const QUICK = {
 };
 // The color chips shown first (the rest open with 더보기).
 const QUICK_COLORS = ["ivory", "beige", "white", "black", "charcoal", "gray", "navy", "brown", "babypink", "lavender", "skyblue", "khaki"];
-const lineIcon = type => `<svg class="line-ico" viewBox="-6 -6 112 112" aria-hidden="true"><path d="${SHAPES[shapeOf({ type })]}" fill-rule="evenodd"/></svg>`;
+// Line icons for the quick-add items, drawn on a 100×100 grid. Each shows what tells the item apart
+// (a trench's belt, a hoodie's pocket, pleats, a loafer's strap...). Unknown names fall back to the slot silhouette.
+const SW_BODY = "M34 14 Q50 22 66 14 L86 26 L94 74 L82 76 L74 44 L74 88 L26 88 L26 44 L18 76 L6 74 L14 26 Z";
+const HOOD_BODY = "M34 18 Q34 2 50 2 Q66 2 66 18 L86 28 L94 76 L82 78 L74 46 L74 88 L26 88 L26 46 L18 78 L6 76 L14 28 Z";
+const TEE_L = "M34 14 Q50 24 66 14 L84 24 L94 76 L82 78 L74 42 L74 88 L26 88 L26 42 L18 78 L6 76 L16 24 Z";
+const FLAT = "M8 66 Q8 56 20 56 L52 52 Q62 50 72 56 L88 62 Q94 66 92 72 L10 72 Q8 70 8 66 Z";
+const P = d => `<path d="${d}"/>`, C = (x, y, r = 1.6) => `<circle cx="${x}" cy="${y}" r="${r}"/>`;
+const QICON = {
+  "트렌치코트": P("M36 8 L64 8 L82 18 L90 80 L80 82 L74 40 L76 94 L24 94 L26 40 L20 82 L10 80 L18 18 Z") + P("M36 8 L46 34 L50 30 L54 34 L64 8") + P("M26 56 H74") + P("M46 52 h8 v8 h-8 z") + C(43, 42) + C(57, 42),
+  "가디건": P("M32 12 L50 46 L68 12 L84 22 L92 72 L80 74 L75 42 L75 90 L25 90 L25 42 L20 74 L8 72 L16 22 Z") + P("M50 46 V90 M25 83 H75") + C(50, 58, 1.8) + C(50, 70, 1.8),
+  "트위드 자켓": P("M36 14 Q50 22 64 14 L84 22 L90 66 L78 68 L74 42 L74 80 L26 80 L26 42 L22 68 L10 66 L16 22 Z") + P("M50 19 V80") + P("M31 54 H43 V62 H31 Z M57 54 H69 V62 H57 Z") + P("M36 14 Q50 26 64 14") + C(46, 32) + C(46, 44) + C(46, 70),
+  "울 코트": P("M34 8 L66 8 L84 18 L90 84 L80 86 L74 40 L76 95 L24 95 L26 40 L20 86 L10 84 L16 18 Z") + P("M34 8 L44 30 L50 26 L56 30 L66 8 M50 26 V95 M30 72 h10 M60 72 h10") + C(42, 44, 1.8) + C(58, 44, 1.8) + C(42, 58, 1.8) + C(58, 58, 1.8),
+  "가죽 자켓": P("M34 12 L66 12 L84 22 L92 70 L80 72 L75 42 L75 82 L25 82 L25 42 L20 72 L8 70 L16 22 Z") + P("M34 12 L28 28 L42 34 L36 46 M66 12 L72 28 L60 30") + P("M42 34 L58 82 M25 75 H75 M30 56 l10 -4 M62 50 l10 4"),
+  "블레이저": P("M34 12 L66 12 L84 22 L90 74 L80 76 L75 42 L75 88 L25 88 L25 42 L20 76 L10 74 L16 22 Z") + P("M34 12 L42 36 L38 40 L50 62 L62 40 L58 36 L66 12") + P("M30 74 h12 M58 74 h12 M60 48 h9") + C(50, 70, 2),
+  "숏패딩": P("M30 14 Q50 8 70 14 L86 26 Q94 50 90 72 L78 72 L74 46 L74 84 Q50 90 26 84 L26 46 L22 72 L10 72 Q6 50 14 26 Z") + P("M26 40 Q50 46 74 40 M26 56 Q50 62 74 56 M26 70 Q50 76 74 70 M50 12 V86 M34 14 Q50 24 66 14"),
+  "롱패딩": P("M32 8 Q50 3 68 8 L84 20 Q92 50 90 84 L78 84 L74 40 L76 96 Q50 99 24 96 L26 40 L22 84 L10 84 Q8 50 16 20 Z") + P("M26 32 Q50 37 74 32 M26 46 Q50 51 74 46 M26 60 Q50 65 75 60 M25 74 Q50 79 75 74 M25 88 Q50 92 75 88 M50 6 V97"),
+  "경량패딩": P("M38 14 Q50 20 62 14 L84 22 L90 70 L80 72 L75 42 L75 84 L25 84 L25 42 L20 72 L10 70 L16 22 Z") + P("M50 17 V84 M25 50 L37 38 L50 50 L63 38 L75 50 M25 66 L37 54 L50 66 L63 54 L75 66 M25 82 L37 70 L50 82 L63 70 L75 82"),
+  "데님 자켓": P("M34 12 L66 12 L84 22 L92 70 L80 72 L75 42 L75 80 L25 80 L25 42 L20 72 L8 70 L16 22 Z") + P("M34 12 L40 24 L50 20 L60 24 L66 12 M50 20 V80 M30 36 H44 V48 H30 Z M56 36 H70 V48 H56 Z M30 40 H44 M56 40 H70 M25 72 H75"),
+  "플리스": P("M38 8 L62 8 L62 18 L84 24 L92 72 L80 74 L75 44 L75 86 L25 86 L25 44 L20 74 L8 72 L16 24 L38 18 Z") + P("M50 8 V86 M58 30 h10 v10 h-10 z") + C(34, 56, 1.4) + C(40, 68, 1.4) + C(62, 60, 1.4) + C(66, 74, 1.4) + C(33, 77, 1.4),
+  "바람막이": P("M36 18 Q36 4 50 4 Q64 4 64 18 L84 24 L92 72 L80 74 L75 44 L75 86 L25 86 L25 44 L20 74 L8 72 L16 24 Z") + P("M36 18 Q50 28 64 18 M50 24 V86 M25 78 Q50 84 75 78 M44 26 v8 M56 26 v8 M18 52 L30 46 M82 52 L70 46"),
+  "니트": P(SW_BODY) + P("M26 80 H74 M7 66 L19 68 M93 66 L81 68") + P("M44 28 q4 6 0 12 q-4 6 0 12 q4 6 0 12 M56 28 q-4 6 0 12 q4 6 0 12 q-4 6 0 12"),
+  "블라우스": P("M38 14 L62 14 L74 20 Q92 24 90 44 L80 46 L74 38 L76 88 L24 88 L26 38 L20 46 L10 44 Q8 24 26 20 Z") + P("M42 15 L50 26 L58 15 M50 26 L41 32 L41 21 Z M50 26 L59 32 L59 21 Z M50 30 L46 42 M50 30 L54 42"),
+  "셔츠": P("M34 12 L66 12 L84 22 L92 74 L80 76 L74 42 L74 90 L26 90 L26 42 L20 76 L8 74 L16 22 Z") + P("M34 12 L42 24 L50 16 L58 24 L66 12 M50 16 V90 M60 34 h10 v10 h-10 z") + C(54, 32, 1.4) + C(54, 46, 1.4) + C(54, 60, 1.4) + C(54, 74, 1.4),
+  "반팔 티": P("M34 14 Q50 24 66 14 L92 28 L82 46 L74 40 L74 88 L26 88 L26 40 L18 46 L8 28 Z") + P("M38 16 Q50 26 62 16"),
+  "긴팔 티": P(TEE_L) + P("M38 16 Q50 26 62 16"),
+  "맨투맨": P(SW_BODY) + P("M26 80 H74 M8 66 L20 68 M92 66 L80 68 M46 20 L50 28 L54 20"),
+  "후드티": P(HOOD_BODY) + P("M34 18 Q50 32 66 18 M46 28 v12 M54 28 v12 M34 62 H66 L70 80 H30 Z"),
+  "니트 조끼": P("M32 12 L50 40 L68 12 L76 16 Q74 30 80 40 L80 88 L20 88 L20 40 Q26 30 24 16 Z") + P("M20 80 H80 M36 12 L50 34 L64 12 M40 58 L50 48 L60 58 L50 68 Z"),
+  "집업": P(HOOD_BODY) + P("M34 18 Q50 32 66 18 M50 26 V88 M47 30 h6 v6 h-6 z M30 62 L40 60 M70 62 L60 60"),
+  "슬리브리스": P("M34 10 L40 10 Q50 30 60 10 L66 10 Q66 30 76 38 L76 90 L24 90 L24 38 Q34 30 34 10 Z"),
+  "발열 내의": P(TEE_L) + P("M38 16 Q50 26 62 16 M40 60 q4 -5 0 -10 q-4 -5 0 -10 M50 64 q4 -5 0 -10 q-4 -5 0 -10 M60 60 q4 -5 0 -10 q-4 -5 0 -10"),
+  "슬랙스": P("M28 8 H72 L78 94 H56 L50 34 L44 94 H22 Z") + P("M28 16 H72 M37 22 L34 92 M63 22 L66 92"),
+  "청바지": P("M26 8 H74 L80 94 H57 L50 36 L43 94 H20 Z") + P("M26 16 H74 M28 16 Q32 28 42 26 M72 16 Q68 28 58 26 M50 16 V30") + C(50, 12, 1.4),
+  "와이드 팬츠": P("M30 8 H70 L90 94 H56 L50 36 L44 94 H10 Z") + P("M30 16 H70 M40 22 L30 90 M60 22 L70 90"),
+  "면바지": P("M27 8 H73 L77 94 H56 L50 34 L44 94 H23 Z") + P("M27 16 H73 M30 16 L38 28 M70 16 L62 28 M50 16 V28"),
+  "조거 팬츠": P("M26 8 H74 L70 84 L72 94 H54 L52 84 L50 36 L48 84 L46 94 H28 L30 84 Z") + P("M26 16 H74 M30 84 H48 M52 84 H70 M46 16 l-2 8 M54 16 l2 8"),
+  "카고 팬츠": P("M26 8 H74 L80 94 H57 L50 36 L43 94 H20 Z") + P("M26 16 H74 M24 46 H38 V62 H25 Z M62 46 H76 L75 62 H62 Z M24 51 H38 M62 51 H76"),
+  "기모 팬츠": P("M28 8 H72 L78 94 H56 L50 34 L44 94 H22 Z") + P("M28 16 H72") + C(34, 34, 1.4) + C(38, 52, 1.4) + C(33, 70, 1.4) + C(66, 34, 1.4) + C(62, 52, 1.4) + C(67, 70, 1.4) + C(40, 84, 1.4) + C(60, 84, 1.4),
+  "반바지": P("M22 22 H78 L86 72 H56 L50 46 L44 72 H14 Z") + P("M22 30 H78 M18 64 H44 M56 64 H82"),
+  "원피스": P("M38 6 L44 6 Q50 14 56 6 L62 6 L64 22 Q60 30 60 38 L84 94 H16 L40 38 Q40 30 36 22 Z") + P("M40 38 H60"),
+  "니트 원피스": P("M38 8 Q50 14 62 8 L78 16 L86 54 L76 56 L68 28 L70 94 H30 L32 28 L24 56 L14 54 L22 16 Z") + P("M42 40 V92 M50 40 V92 M58 40 V92 M30 86 H70"),
+  "셔츠 원피스": P("M36 8 L64 8 L80 16 L86 46 L76 48 L70 28 L76 94 H24 L30 28 L24 48 L14 46 L20 16 Z") + P("M36 8 L43 18 L50 12 L57 18 L64 8 M50 12 V94 M28 48 H72") + C(53, 26, 1.4) + C(53, 37, 1.4) + C(53, 62, 1.4) + C(53, 76, 1.4),
+  "롱스커트": P("M32 8 H68 L82 94 H18 Z") + P("M32 16 H68 M40 16 Q36 60 30 94"),
+  "플리츠 롱스커트": P("M32 8 H68 L84 94 H16 Z") + P("M32 16 H68 M41 16 L36 94 M50 16 V94 M59 16 L64 94 M36 16 L26 94 M64 16 L74 94"),
+  "미니스커트": P("M28 26 H72 L84 70 H16 Z") + P("M28 34 H72"),
+  "데님 스커트": P("M28 26 H72 L82 72 H18 Z") + P("M28 34 H72 M50 34 V72 M30 34 Q34 46 44 44 M70 34 Q66 46 56 44") + C(50, 30, 1.4),
+  "플랫슈즈": P(FLAT) + P("M30 56 Q46 64 62 54"),
+  "메리제인": P(FLAT) + P("M30 56 Q46 64 62 54 M42 58 Q50 42 60 50") + C(60, 50, 2),
+  "로퍼": P("M8 66 Q6 52 22 52 L48 50 Q60 46 72 54 L88 60 Q94 64 92 72 L10 72 Z") + P("M48 52 Q60 60 74 56 M54 55 h12 M10 72 V76 H92 V72"),
+  "스니커즈": P("M8 68 Q6 50 20 48 L40 46 L52 54 L80 60 Q94 64 92 76 L10 76 Z") + P("M8 68 H92 M40 50 L36 58 M46 52 L42 60 M52 55 L48 62"),
+  "앵클부츠": P("M30 14 H58 L60 58 L86 66 Q94 70 92 80 L30 80 Z") + P("M30 80 V87 H44 V80 M58 22 V50"),
+  "롱부츠": P("M34 4 H60 L62 66 L86 74 Q94 78 92 88 L34 88 Z") + P("M34 88 V95 H48 V88 M34 12 H60"),
+  "샌들": P("M10 76 Q8 70 16 70 H88 Q94 70 92 76 Z") + P("M26 70 Q40 50 54 70 M58 70 Q68 56 80 70 M20 70 Q16 58 26 56"),
+  "숄더백": P("M20 50 Q50 40 80 50 Q84 82 50 88 Q16 82 20 50 Z") + P("M26 48 Q50 4 74 48 M42 56 h16 v8 h-16 z"),
+  "토트백": P("M20 36 H80 L76 92 H24 Z") + P("M36 36 V24 Q36 14 46 14 H54 Q64 14 64 24 V36"),
+  "크로스백": `<rect x="44" y="58" width="40" height="30" rx="6"/>` + P("M44 67 H84 M48 58 L22 6 L80 58") + C(64, 72, 2),
+  "머플러": P("M24 14 H76 V34 H24 Z") + P("M56 34 L60 82 H44 L42 34 M44 82 v9 M48 82 v9 M52 82 v9 M56 82 v9 M60 82 v9"),
+  "비니": P("M18 74 Q18 26 50 26 Q82 26 82 74 Z") + P("M14 64 H86 V82 H14 Z M30 64 V38 M50 64 V32 M70 64 V38") + C(50, 17, 7),
+  "베레모": P("M8 58 Q12 28 50 26 Q88 28 92 58 Q50 72 8 58 Z") + P("M22 62 Q50 72 78 62 M50 26 V16"),
+  "볼캡": P("M20 64 Q20 26 52 26 Q80 26 80 64 Z") + P("M70 60 L98 68 L94 74 L66 66 M50 26 V64") + C(50, 24, 2),
+  "장갑": P("M28 92 V56 L18 40 Q16 32 24 33 L32 46 V20 Q32 14 38 14 Q44 14 44 20 V16 Q44 10 50 10 Q56 10 56 16 V20 Q56 14 62 14 Q68 14 68 20 V30 Q68 24 74 24 Q80 24 80 30 V64 Q80 80 72 92 Z") + P("M28 80 H74 M44 20 V42 M56 20 V42 M68 30 V44"),
+  "벨트": P("M4 42 H70 V58 H4 Z") + `<rect x="70" y="34" width="24" height="32" rx="3"/>` + P("M78 50 H96") + C(24, 50) + C(36, 50) + C(48, 50),
+  "양말": P("M34 6 H60 V60 L84 72 Q96 80 90 92 L42 94 Q28 92 30 78 Z") + P("M34 16 H60 M34 24 H60"),
+  "주얼리": P("M20 14 Q20 60 50 66 Q80 60 80 14") + P("M50 66 L42 78 L50 90 L58 78 Z"),
+};
+const lineIcon = (type, name) => QICON[name]
+  ? `<svg class="line-ico" viewBox="0 0 100 100" aria-hidden="true">${QICON[name]}</svg>`
+  : `<svg class="line-ico" viewBox="-6 -6 112 112" aria-hidden="true"><path d="${SHAPES[shapeOf({ type })]}" fill-rule="evenodd"/></svg>`;
 const quickOf = s => QUICK[s.cat]?.[s.i];
 async function saveQuick() {
   const s = S.sheet, q = quickOf(s); if (!q || !s.color) return;
@@ -2259,7 +2326,7 @@ function renderAdd() {
   } else if (A.method === "quick") {
     h += `<div class="stack" style="gap:12px"><div class="row between"><h3>탭해서 바로 넣기</h3><span class="small muted">아이템 → 색만 고르면 끝</span></div>
       <div class="cat-tabs" role="tablist" aria-label="카테고리">${QUICK_CATS.map(([k, l]) => `<button role="tab" data-qcat="${k}" aria-pressed="${cat === k}" aria-selected="${cat === k}">${l}</button>`).join("")}</div>
-      <div class="qgrid">${QUICK[cat].map(([n, type], i) => `<button class="qcard" data-quick="${cat}:${i}"><span class="q-ico">${lineIcon(type)}</span><span class="q-n">${esc(n)}</span></button>`).join("")}</div></div>`;
+      <div class="qgrid">${QUICK[cat].map(([n, type], i) => `<button class="qcard" data-quick="${cat}:${i}"><span class="q-ico">${lineIcon(type, n)}</span><span class="q-n">${esc(n)}</span></button>`).join("")}</div></div>`;
   } else if (A.method === "photo") {
     h += `<div class="card"><h3>옷 사진 올리기</h3>
       <p class="small muted">${S.aiOn ? "옷 사진이나 쇼핑몰 캡처를 올리면 Claude가 옷마다 잘라서 종류·색·소재를 채워요. 한 장에 여러 벌이 있어도 돼요." : "옷 한 벌이 나온 사진이나 쇼핑몰 캡처를 올리면 옷장 사진으로 넣어요. 이름을 적으면 종류·색·소재를 추측해서 채워 줘요."} 캡처는 Ctrl+V로 붙여넣어도 돼요.</p>
@@ -2505,7 +2572,7 @@ function renderSheet() {
   } else if (s.kind === "quick") {
     const q = quickOf(s); if (!q) { closeSheet(); return; }
     const [base, type] = q, colors = s.more ? Object.keys(COLORS) : QUICK_COLORS, light = k => (TONES[k]?.[1] ?? 3) >= 4;
-    h = `<div class="sheet-top"><div class="q-head"><span class="q-ico">${lineIcon(type)}</span><div><h3 id="sheetTitle">${s.color ? esc(COLORS[s.color].label) + " " : ""}${esc(base)}</h3><div class="small muted">${esc(TYPES[type].label)}</div></div></div><button class="btn ghost" data-close="1">닫기</button></div>
+    h = `<div class="sheet-top"><div class="q-head"><span class="q-ico">${lineIcon(type, base)}</span><div><h3 id="sheetTitle">${s.color ? esc(COLORS[s.color].label) + " " : ""}${esc(base)}</h3><div class="small muted">${esc(TYPES[type].label)}</div></div></div><button class="btn ghost" data-close="1">닫기</button></div>
       <div class="f">색상</div>
       <div class="swatches">${colors.map(k => `<button class="sw" data-qcolor="${k}" aria-pressed="${s.color === k}"><i style="background:${COLORS[k].hex};${light(k) ? "--chk:#1E1E1E" : ""}"></i>${esc(COLORS[k].label)}</button>`).join("")}
         ${s.more ? "" : `<button class="sw" data-qmore="1"><i style="background:conic-gradient(#B93A32,#E8C547,#3F7A55,#3E73C9,#7158A6,#B93A32)"></i>더보기</button>`}</div>
