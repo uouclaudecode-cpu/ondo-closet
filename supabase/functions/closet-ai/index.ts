@@ -237,9 +237,9 @@ async function findImages(query: string) {
       headers: { "X-Naver-Client-Id": id, "X-Naver-Client-Secret": secret },
     });
   } catch { throw new ApiFail("upstream_error"); }
-  if (r.status === 401 || r.status === 403) throw new ApiFail("search_bad_key");
+  if (r.status === 401 || r.status === 403) { console.error("naver", r.status, (await r.text()).slice(0, 200)); throw new ApiFail("search_bad_key"); }
   if (r.status === 429) throw new ApiFail("rate_limited");
-  if (!r.ok) throw new ApiFail("upstream_error");
+  if (!r.ok) { console.error("naver", r.status, (await r.text()).slice(0, 200)); throw new ApiFail("upstream_error"); }
   const j = await r.json();
   const strip = (s: string) => decode(String(s || "").replace(/<[^>]+>/g, ""));
   const items = (j.items || []).filter((x: { image?: string }) => x.image).map((x: Record<string, string>) => ({
@@ -260,17 +260,25 @@ async function getImage(url: string) {
   return { image: `data:${im.type};base64,${im.data}` };
 }
 
-// Shared Gemini key: the key never leaves the server. Each signed-in user gets GEMINI_DAILY_LIMIT captures a day
+// Shared Gemini key: the key never leaves the server. Each signed-in user gets GEMINI_DAILY_LIMIT captures a day (masters: no limit)
 // (counted in the ai_usage table as that user, before the call, so parallel requests can't go over the limit).
 const GEMINI_BASE = "https://monogpt.kr/api/monorouter/v1/gemini";
 const geminiLimit = () => Math.max(1, Math.min(1000, parseInt(Deno.env.get("GEMINI_DAILY_LIMIT") || "10", 10) || 10));
 const asUser = (req: Request) => createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
   global: { headers: { Authorization: req.headers.get("Authorization") || "" } }, auth: { persistSession: false },
 });
+// master: accounts in app_roles skip the daily limit (use_ai_quota checks the same table).
 async function geminiQuota(req: Request) {
-  const { data, error } = await asUser(req).rpc("ai_quota_used", { p_kind: "gemini" });
+  const db = asUser(req);
+  const [{ data, error }, { data: master }] = await Promise.all([db.rpc("ai_quota_used", { p_kind: "gemini" }), db.rpc("is_master")]);
   if (error) throw new ApiFail("upstream_error");
-  return { used: data as number, limit: geminiLimit() };
+  return { used: data as number, limit: geminiLimit(), master: !!master };
+}
+async function masterStats(req: Request) {
+  const { data, error } = await asUser(req).rpc("master_stats");
+  if (error) throw new ApiFail("upstream_error");
+  if (!data) throw new ApiFail("not_granted");
+  return { stats: data, limit: geminiLimit() };
 }
 async function geminiCapture(req: Request, body: Record<string, unknown>) {
   const key = Deno.env.get("GEMINI_API_KEY");
@@ -329,11 +337,12 @@ Deno.serve(async (req) => {
     const body = await req.json();
     switch (body?.action) {
       case "status": {
-        const gemini = !!Deno.env.get("GEMINI_API_KEY");
+        const gemini = !!Deno.env.get("GEMINI_API_KEY"), q = await geminiQuota(req).catch(() => null);
         return json({ ai: !!Deno.env.get("ANTHROPIC_API_KEY"), search: !!(Deno.env.get("NAVER_CLIENT_ID") && Deno.env.get("NAVER_CLIENT_SECRET")),
-          gemini, quota: gemini ? await geminiQuota(req).catch(() => null) : null });
+          gemini, quota: gemini ? q : null, master: !!q?.master });
       }
       case "gemini_capture": return json(await geminiCapture(req, body));
+      case "master_stats": return json(await masterStats(req));
       case "find_images": return json(await findImages(String(body.query || "")));
       case "image": return json(await getImage(String(body.url || "")));
       case "analyze_photo": return json(await analyzePhoto(String(body.image || ""), String(body.media_type || "image/jpeg")));

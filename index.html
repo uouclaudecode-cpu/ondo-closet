@@ -111,6 +111,8 @@ header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; b
 .logo { all: unset; cursor: pointer; border-radius: 8px; display: inline-flex; color: var(--ink); }
 .logo svg { height: 30px; width: auto; display: block; }
 .logo:focus-visible { outline: 2px solid var(--mauve); outline-offset: 3px; }
+.master { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 20px; background: linear-gradient(160deg, var(--rose-soft), var(--mauve-soft)); }
+.master .gl { background: var(--surface); }
 .theme-btn { border: 0; background: var(--sunken); color: var(--muted); width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; padding: 0; }
 .theme-btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
 .theme-opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -386,6 +388,20 @@ body.noscroll { overflow: hidden; }
 .hr-ico { font-size: 1.05rem; line-height: 1.2; }
 .hr-pop { font-size: .66rem; color: var(--cold); font-weight: 600; }
 .hr.now .hr-pop { color: #A9C2E4; }
+.tile.ghost .tile-img { border: 1.5px dashed var(--line); background: transparent; }
+.ghost-plus { font-size: 1.8rem; font-weight: 300; color: var(--muted); }
+.tile.ghost .tile-n { color: var(--rose-ink); }
+.outfit.partial .o-notes { padding: 10px 16px 0; }
+.more-wx { align-self: center; color: var(--rose-ink); }
+.week { display: flex; flex-direction: column; gap: 4px; }
+.wk { border: 0; background: transparent; border-radius: 14px; padding: 8px 10px; display: grid; grid-template-columns: 64px 26px 52px minmax(0, 1fr); gap: 8px; align-items: center; text-align: left; font-size: .88rem; }
+.wk.on { background: var(--sunken); }
+.wk-d { font-weight: 700; }
+.wk-pop { font-size: .72rem; color: var(--cold); font-weight: 600; }
+.wk-t { display: grid; grid-template-columns: 36px minmax(0, 1fr) 36px; gap: 6px; align-items: center; font-variant-numeric: tabular-nums; }
+.wk-t b { text-align: right; }
+.wk-bar { position: relative; height: 5px; border-radius: 999px; background: var(--line); }
+.wk-bar i { position: absolute; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(90deg, var(--cool), var(--warm)); }
 .glance { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .gl { border: 0; background: var(--surface); border-radius: 20px; padding: 12px; box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; min-width: 0; }
 .gl-k { font-size: .72rem; color: var(--muted); font-weight: 600; }
@@ -711,7 +727,7 @@ function onSession(session) {
   sample = me ? true : null;
   if (me) {
     S.mode = "db"; S.guest = false;
-    if (was !== me.id) { loadAll(); ai("status").then(r => { S.aiOn = !!r?.ai; S.gemShared = !!r?.gemini; S.gemQuota = r?.quota || null; render(); }).catch(() => {}); }
+    if (was !== me.id) { loadAll(); ai("status").then(r => { S.aiOn = !!r?.ai; S.gemShared = !!r?.gemini; S.gemQuota = r?.quota || null; S.master = !!r?.master; render(); }).catch(() => {}); }
   }
   else { S.mode = "memory"; S.items.clear(); S.logs.clear(); S.trips.clear(); S.loading = false; render(); autoWeather(); }
 }
@@ -832,7 +848,7 @@ async function toUpload(file) {
 async function loadWeather(place, save = true) {
   S.wxBusy = true; S.wxMsg = ""; render();
   try {
-    const u = `https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m&hourly=relative_humidity_2m,apparent_temperature,weather_code,precipitation_probability&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,weather_code,uv_index_max,wind_speed_10m_max&timezone=auto&forecast_days=3`;
+    const u = `https://api.open-meteo.com/v1/forecast?latitude=${place.lat}&longitude=${place.lon}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m&hourly=relative_humidity_2m,apparent_temperature,weather_code,precipitation_probability&daily=temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,weather_code,uv_index_max,wind_speed_10m_max&timezone=auto&forecast_days=7`;
     const j = await browserJSON(u);
     const d = j.daily, hr = j.hourly || { time: [], relative_humidity_2m: [] };
     // Humidity while you're out (09~21시), averaged per day.
@@ -841,9 +857,9 @@ async function loadWeather(place, save = true) {
       cur: { t: j.current.temperature_2m, feel: j.current.apparent_temperature, code: j.current.weather_code, wind: j.current.wind_speed_10m, hum: j.current.relative_humidity_2m },
       days: d.time.map((t, i) => ({ date: t, max: d.temperature_2m_max[i], min: d.temperature_2m_min[i], fmax: d.apparent_temperature_max[i], fmin: d.apparent_temperature_min[i], pop: d.precipitation_probability_max[i], code: d.weather_code[i],
         uv: d.uv_index_max?.[i] ?? null, wmax: d.wind_speed_10m_max?.[i] ?? null, hum: hum(t) })),
-      // The next 24 hours in 3-hour steps, for the strip on the home screen.
-      hours: (() => { const now = (j.current?.time || "").slice(0, 13), k = Math.max(0, hr.time.findIndex(t => t.slice(0, 13) >= now));
-        return Array.from({ length: 8 }, (_, n) => k + n * 3).filter(i => i < hr.time.length).map(i => ({ h: +hr.time[i].slice(11, 13), feel: hr.apparent_temperature?.[i], code: hr.weather_code?.[i], pop: hr.precipitation_probability?.[i] ?? 0 })); })() };
+      // Every hour of the 7 days (place's local time); the home screen picks the hours it shows.
+      now: (j.current?.time || "").slice(0, 13),
+      hourly: hr.time.map((t, i) => ({ t, h: +t.slice(11, 13), feel: hr.apparent_temperature?.[i], code: hr.weather_code?.[i], pop: hr.precipitation_probability?.[i] ?? 0 })) };
     S.manual = false; if (save) { S.prefs.place = place; savePrefs(); }
   } catch (e) { S.wxMsg = browserErr(e); }
   S.wxBusy = false; render();
@@ -1777,10 +1793,10 @@ function renderTrip() {
       ${SLOT_ORDER.map(s => { const ps = [...S.items.values()].filter(i => TYPES[i.type]?.slot === s); return ps.length ? `<div class="stack" style="gap:6px"><div class="small muted" style="font-weight:700">${SLOTS[s]}</div><div class="places">${ps.map(p => { const st = must.has(p.id) ? "must" : skip.has(p.id) ? "skip" : ""; return `<button class="chip pack-chip ${st}" data-tpick="${p.id}" title="${esc(fullName(p))}"><span class="ell">${esc(p.name)}</span>${st === "must" ? " ✓" : st === "skip" ? " ✕" : ""}</button>`; }).join("")}</div></div>` : ""; }).join("")}
     </details>`;
     h += `<h3 class="sec-sub">날짜별 코디</h3>`;
-    h += plan.days.map(({ d, c, target }, i) => {
+    h += plan.days.map(({ d, c, target, eff }, i) => {
       const dt = new Date(d.date + "T00:00:00"), where = `d:${t.id}:${d.date}`;
       const head = `<div class="day-head"><span class="day-n">${i + 1}일차</span><span class="small muted">${d.date.slice(5).replace("-", ".")} (${WD[dt.getDay()]}) · 체감 <span class="num">${fmt(d.fmin)}°~${fmt(d.fmax)}°</span> · ${WMO(d.code)}${d.pop >= 50 ? " · 우산" : ""}</span></div>`;
-      if (!c) return `<div class="card">${head}<p class="small muted">옷장에 이너·상의와 하의가 있어야 코디를 만들 수 있어요.</p></div>`;
+      if (!c) return head + partialHTML(eff);
       return head + outfitCard(c, target, where, `<button class="btn" data-tripnext="${esc(d.date)}">다른 코디</button>${t.edits?.[d.date] ? `<button class="btn ghost" data-tripreset="${esc(d.date)}">원래대로</button>` : ""}`);
     }).join("");
     const done = plan.pack.filter(p => t.packed?.[p.id]).length, pct = plan.pack.length ? done / plan.pack.length * 100 : 0;
@@ -1883,13 +1899,22 @@ async function rate(r, date = today()) {
 }
 
 /* ---------- home: greeting, weather icons, at a glance ---------- */
+// Hours for the strip: today from now on, other days from midnight. step 3 normally, 1 in 더보기.
+function hoursFor(W, day, step) {
+  const d = W.days?.[day]; if (!W.hourly?.length || !d) return [];
+  const list = W.hourly.filter(x => x.t.startsWith(d.date) && (day !== 0 || x.t.slice(0, 13) >= W.now));
+  // Today late at night: carry on into tomorrow so the strip isn't nearly empty.
+  const more = day === 0 && list.length < 24 / step * 2 ? W.hourly.filter(x => x.t.slice(0, 13) > (list.at(-1)?.t || W.now).slice(0, 13)).slice(0, 24 - list.length) : [];
+  return [...list, ...more].filter((_, i) => i % step === 0).slice(0, step === 1 ? 24 : 8);
+}
+const dayLabel = i => { const d = S.wx.days?.[i]; if (i === 0) return "오늘"; if (i === 1) return "내일"; if (i === 2) return "모레"; if (!d) return ""; const x = new Date(d.date + "T00:00:00"); return `${x.getMonth() + 1}/${x.getDate()}(${WD[x.getDay()]})`; };
 const WICON = c => c == null ? "🌡️" : c === 0 ? "☀️" : c <= 2 ? "🌤️" : c === 3 ? "☁️" : c <= 48 ? "🌫️" : c <= 67 ? "🌧️" : c <= 77 ? "🌨️" : c <= 82 ? "🌦️" : c <= 86 ? "🌨️" : "⛈️";
 // A greeting plus today's suggestion in one line: "트렌치코트에 니트, 슬랙스 어때요?"
 function helloHTML(rec, eff) {
   const now = new Date(), hr = now.getHours();
   const hi = hr < 5 ? "늦은 밤이에요" : hr < 11 ? "좋은 아침이에요" : hr < 17 ? "좋은 오후예요" : "편안한 저녁이에요";
   const c = rec?.list?.[0], parts = c ? [c.outer, c.mid || c.inner, c.bottom].filter(Boolean).map(p => TYPES[p.type].label.split(/[·(]/)[0].trim()) : [];
-  const line = S.day !== 0 ? `${S.day === 1 ? "내일" : "모레"}은 체감 ${fmt(eff)}°예요.` : parts.length ? `오늘은 <b>${esc(parts.slice(0, -1).join(", "))}에 ${esc(parts[parts.length - 1])}</b> 어때요?` : S.items.size ? `오늘 체감은 ${fmt(eff)}°예요.` : "옷장을 채우면 매일 아침 코디를 골라 드려요.";
+  const line = S.day !== 0 ? `${dayLabel(S.day)}은 체감 ${fmt(eff)}°예요.` : parts.length ? `오늘은 <b>${esc(parts.slice(0, -1).join(", "))}에 ${esc(parts[parts.length - 1])}</b> 어때요?` : S.items.size ? `오늘 체감은 ${fmt(eff)}°예요.` : "옷장을 채우면 매일 아침 코디를 골라 드려요.";
   return `<section class="hello"><p class="small muted">${now.getMonth() + 1}월 ${now.getDate()}일 ${WD[now.getDay()]}요일</p><h2>${hi}</h2><p class="hello-line">${line}</p></section>`;
 }
 // Three tiles that lead elsewhere: closet size, this week's OOTD, the next trip.
@@ -1926,7 +1951,7 @@ function beautyBrief(d) {
 }
 function briefHTML(d) {
   const rows = beautyBrief(d); if (!rows.length) return "";
-  return `<section class="brief" aria-label="뷰티·패션 지수"><h3><span>오늘의 뷰티·패션 지수</span><span class="muted small">${S.day === 0 ? "오늘" : S.day === 1 ? "내일" : "모레"}</span></h3>
+  return `<section class="brief" aria-label="뷰티·패션 지수"><h3><span>오늘의 뷰티·패션 지수</span><span class="muted small">${dayLabel(S.day)}</span></h3>
     ${rows.map(([ico, t, x]) => `<div class="brief-row"><span aria-hidden="true">${ico}</span><span><b>${t}</b><br><span class="muted">${esc(x)}</span></span></div>`).join("")}</section>`;
 }
 
@@ -2131,7 +2156,7 @@ function renderToday() {
   const log = S.logs.get("log_" + today());
   const picked = S.anchors.map(id => S.items.get(id)).filter(Boolean);
   const srcTag = W.source === "live" ? `<span class="tag live">실시간 · ${esc(W.fetchedAt)}</span>` : W.source === "manual" ? `<span class="tag">직접 입력</span>` : `<span class="tag example">${S.wxBusy ? "날씨 불러오는 중…" : "예시 날씨 · 실제 날씨를 못 불러왔어요"}</span>`;
-  const dayBtns = W.days.slice(0, 3).map((x, i) => `<button class="chip" data-day="${i}" aria-pressed="${S.day === i}">${i === 0 ? "오늘" : i === 1 ? "내일" : "모레"}</button>`).join("");
+  const dayBtns = W.days.slice(0, 3).map((x, i) => `<button class="chip" data-day="${i}" aria-pressed="${S.day === i}">${dayLabel(i)}</button>`).join("") + (S.day > 2 ? `<button class="chip" data-day="${S.day}" aria-pressed="true">${dayLabel(S.day)}</button>` : "");
   let h = helloHTML(rec, eff) + locAskHTML() + installHTML() + `<div class="card wx-card">
     <div class="row between"><h2><span aria-hidden="true">${WICON(d.code)}</span> ${esc(W.place)}</h2>${srcTag}</div>
     <div class="row">${W.source !== "manual" ? dayBtns : ""}</div>
@@ -2145,7 +2170,10 @@ function renderToday() {
       </dl>
     </div>
     ${scaleHTML(d.fmin - off, d.fmax - off, eff)}
-    ${S.day === 0 && W.hours?.length ? `<div class="hours" aria-label="시간별 체감온도">${W.hours.map((x, i) => `<div class="hr${i === 0 ? " now" : ""}"><span class="small muted">${i === 0 ? "지금" : x.h + "시"}</span><span class="hr-ico" aria-hidden="true">${WICON(x.code)}</span><b>${fmt(x.feel - off)}°</b>${x.pop >= 40 ? `<span class="hr-pop">${x.pop}%</span>` : ""}</div>`).join("")}</div>` : ""}
+    ${(() => { const hs = hoursFor(W, S.day, S.wxMore ? 1 : 3); return hs.length ? `<div class="hours" aria-label="시간별 체감온도">${hs.map((x, i) => { const now = S.day === 0 && i === 0, nextDay = S.day === 0 && !x.t.startsWith(d.date);
+      return `<div class="hr${now ? " now" : ""}"><span class="small muted">${now ? "지금" : (nextDay && x.h === 0 ? "내일 " : "") + x.h + "시"}</span><span class="hr-ico" aria-hidden="true">${WICON(x.code)}</span><b>${fmt(x.feel - off)}°</b>${x.pop >= 40 ? `<span class="hr-pop">${x.pop}%</span>` : ""}</div>`; }).join("")}</div>` : ""; })()}
+    ${W.source === "live" && W.days.length > 3 ? `<button class="btn ghost small more-wx" id="wxMore" aria-expanded="${!!S.wxMore}">${S.wxMore ? "간단히 보기 ▲" : "날씨 더보기 · 1시간 단위 · 7일 예보 ▼"}</button>` : ""}
+    ${S.wxMore ? `<div class="week" aria-label="7일 예보">${W.days.map((x, i) => `<button class="wk${S.day === i ? " on" : ""}" data-day="${i}"><span class="wk-d">${dayLabel(i)}</span><span aria-hidden="true">${WICON(x.code)}</span><span class="wk-pop">${x.pop >= 30 ? `☔ ${x.pop}%` : ""}</span><span class="wk-t"><span class="muted">${fmt(x.min)}°</span><span class="wk-bar"><i style="left:${(x.min + 10) / 45 * 100}%;right:${100 - (x.max + 10) / 45 * 100}%"></i></span><b>${fmt(x.max)}°</b></span></button>`).join("")}<p class="small muted">날짜를 누르면 그날 날씨로 코디를 추천해요.</p></div>` : ""}
     <p class="band">이 온도엔 보통 <b>${bandFor(eff)}</b></p>
     ${off ? `<p class="badge-line">🌡️ 내 체감 보정 반영 중 · ${off > 0 ? `추위를 타는 편이라 ${fmt(off)}° 더 따뜻하게` : `더위를 타는 편이라 ${fmt(-off)}° 더 가볍게`} 골라요</p>` : ""}
     <details ${S.wxMsg || S.manual || S.placeOpen ? "open" : ""}>
@@ -2175,7 +2203,7 @@ function renderToday() {
   if (picked.length || S.ban.size) h += `<div class="places">${picked.map(it => `<button class="chip pick" data-unanchor="${it.id}" title="${esc(fullName(it))}" aria-label="${esc(it.name)} 고정 해제"><span class="ell">${esc(it.name)}</span> ✕</button>`).join("")}${picked.length > 1 ? `<button class="chip" id="clearAnchor">모두 해제</button>` : ""}${S.ban.size ? `<button class="chip" id="clearBan">뺀 옷 ${S.ban.size}벌 되돌리기</button>` : ""}</div>`;
   if (S.loading) h += `<div class="card"><p class="muted">옷장을 불러오는 중이에요…</p></div>`;
   else if (!S.items.size) h += emptyCloset();
-  else if (rec.need) h += `<div class="card"><p>${rec.need}가 옷장에 없어서 코디를 만들 수 없어요.</p><button class="btn primary" data-go="add" style="align-self:flex-start">${rec.need} 추가하기</button></div>`;
+  else if (rec.need) h += partialHTML(eff);
   else if (!rec.list.length) h += `<div class="card"><p>고정한 옷으로는 조합을 만들 수 없어요.</p></div>`;
   else {
     S.results = rec.list;
@@ -2219,6 +2247,34 @@ function tileHTML(p, where) {
   return `<button class="tile" data-tile="${where}|${p.id}" title="${esc(fullName(p))}" aria-label="${esc(fullName(p))} 바꾸기·빼기">
     <span class="tile-img">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : silhouetteSVG(p)}</span>
     <span class="tile-cap"><span class="tile-k">${esc(TYPES[p.type]?.label || "")}</span><span class="tile-n">${esc(p.name)}</span></span></button>`;
+}
+// When the closet can't make a full outfit yet (e.g. only outerwear): use what's there for this temperature,
+// and show the missing parts as suggestions that lead straight to adding them.
+function partialHTML(eff) {
+  const target = targetFor(eff), have = [...S.items.values()].map(withW);
+  const closest = (s, w) => have.filter(i => TYPES[i.type]?.slot === s).sort((a, b) => Math.abs(a.w - w) - Math.abs(b.w - w))[0];
+  const parts = [];
+  if (eff < 22) parts.push(["outer", closest("outer", target * 0.45)]);
+  if (eff < 16) parts.push(["mid", closest("mid", target * 0.3)]);
+  parts.push(["inner", closest("inner", 2)], ["bottom", closest("bottom", eff < 8 ? 3 : 2)]);
+  if (eff < 23) parts.push(["shoes", closest("shoes", eff < 8 ? 1 : 0.4)]);
+  const idea = {
+    outer: eff >= 17 ? "가디건·얇은 자켓" : eff >= 9 ? "트렌치코트·자켓" : eff >= 5 ? "울 코트" : "패딩·두꺼운 코트",
+    mid: eff >= 12 ? "얇은 니트·맨투맨" : "니트·후드티",
+    inner: eff >= 23 ? "반팔 티·블라우스" : eff >= 12 ? "긴팔 티·셔츠" : "히트텍·긴팔 티",
+    bottom: eff >= 23 ? "반바지·스커트" : eff >= 10 ? "청바지·슬랙스" : "기모 팬츠·두꺼운 슬랙스",
+    shoes: eff >= 15 ? "스니커즈·로퍼" : "부츠·스니커즈",
+  };
+  const cat = { outer: "outer", mid: "top", inner: "top", bottom: "bottom", shoes: "shoesbag" };
+  const missing = parts.filter(([s, p]) => !p && s !== "mid" && s !== "shoes");
+  return `<article class="outfit partial"><div class="o-head"><div class="o-title"><h3>내 옷장 옷으로 맞춘 코디</h3>
+      <div class="o-tags"><span class="tag example">옷장에 없는 옷: ${missing.map(([s]) => SLOTS[s].split("·")[0]).join(" · ")}</span></div></div><span class="pill">체감 ${fmt(eff)}°</span></div>
+    <div class="board-grid">${parts.map(([s, p]) => p
+      ? `<div class="tile" title="${esc(fullName(p))}"><span class="tile-img">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : silhouetteSVG(p)}</span><span class="tile-cap"><span class="tile-k">${esc(TYPES[p.type]?.label || "")}</span><span class="tile-n">${esc(p.name)}</span></span></div>`
+      : `<button class="tile ghost" data-addcat="${cat[s]}"><span class="tile-img"><span class="ghost-plus">+</span></span><span class="tile-cap"><span class="tile-k">${SLOTS[s]} · 옷장에 없음</span><span class="tile-n">${idea[s]} 추천</span></span></button>`).join("")}</div>
+    <p class="o-notes">이 온도 추천 차림: ${esc(bandFor(eff))}. 빈 칸을 누르면 그 종류를 바로 등록할 수 있고, 등록하면 완성된 코디로 바뀌어요.</p>
+    <div class="o-foot"><button class="btn primary" data-addcat="${cat[missing[0]?.[0]] || "top"}">${missing.length ? `${SLOTS[missing[0][0]].split("·")[0]} 추가하기` : "옷 추가하기"}</button></div>
+  </article>`;
 }
 function emptyCloset() {
   return `<div class="card empty"><h3>옷장이 비어 있어요</h3><p class="muted small">샘플 옷 ${STARTER.length}벌로 바로 추천을 받아 보거나, 내 옷을 하나씩 추가해 보세요.</p>
@@ -2398,6 +2454,8 @@ document.addEventListener("click", e => {
   if (ds.day) { S.day = +ds.day; render(); return; }
   if (ds.place) { loadWeather(PLACES[+ds.place]); return; }
   if (b.id === "hereBtn" || b.id === "locYes") { hereWeather(); return; }
+  if (ds.addcat) { S.tab = "add"; S.add.method = "quick"; S.add.cat = ds.addcat; S.add.editing = null; render(); window.scrollTo({ top: 0 }); return; }
+  if (b.id === "wxMore") { S.wxMore = !S.wxMore; render(); return; }
   if (b.id === "locNo") { LS.set("bary.locAsked", "1"); render(); return; }
   if (b.id === "locPick") { LS.set("bary.locAsked", "1"); S.placeOpen = true; render(); $("#placeQ")?.focus(); return; }  if (b.id === "guestBtn") { S.guest = true; render(); return; }
   if (ds.authmode) { S.loginEmail = ($("#loginEmail")?.value || S.loginEmail || "").trim(); S.authMode = ds.authmode; S.authMsg = ""; S.authErr = false; render(); return; }
@@ -2604,6 +2662,7 @@ function renderSheet() {
       <label class="f" for="acPw2">비밀번호 확인<input type="password" id="acPw2" minlength="6" autocomplete="new-password"></label>
       ${s.msg ? `<p class="banner${s.err ? " err" : ""}">${esc(s.msg)}</p>` : ""}
       <button class="btn primary" id="acSave" ${s.busy ? "disabled" : ""}>${s.busy ? "저장하는 중…" : "비밀번호 저장"}</button>
+      ${S.master ? masterHTML(s) : ""}
       <button class="btn ghost danger" id="acLogout" style="align-self:flex-start">로그아웃</button>`;
   } else if (s.kind === "logadd") {
     // Record (or fix) what was worn on a day: today's suggested outfits in one tap, or pick from the closet.
@@ -2743,6 +2802,19 @@ document.addEventListener("change", async e => {
   try { const photo = shrink(await loadImg(el.files[0]), 720); await putLog(S.sheet.date, { photo }); renderSheet(); toast("OOTD 사진을 넣었어요."); }
   catch { toast("사진을 열 수 없어요. 다른 사진을 골라 주세요."); }
 });
+// Master dashboard inside 내 계정: who uses bary and how much of the shared AI goes where.
+function masterHTML(s) {
+  if (!s.stats && !s.statsBusy && !s.statsErr) { s.statsBusy = true; ai("master_stats").then(r => { s.stats = r; }).catch(e => { s.statsErr = e?.code || "error"; }).finally(() => { s.statsBusy = false; const el = S.sheet === s && $("#sheet .master"); if (el) el.outerHTML = masterHTML(s); }); } // redraw only this box, so a password being typed isn't lost
+  const t = s.stats?.stats;
+  const tile = (k, v, sub = "") => `<div class="gl"><span class="gl-k">${k}</span><b>${v}</b>${sub ? `<span class="gl-s">${sub}</span>` : ""}</div>`;
+  return `<div class="master"><div class="row between"><h3>👑 마스터</h3><span class="tag rose">AI 횟수 제한 없음</span></div>
+    ${s.statsErr ? `<p class="small muted">통계를 불러오지 못했어요. (${esc(s.statsErr)})</p>` : !t ? `<p class="small muted">통계를 불러오는 중이에요…</p>` : `
+    <div class="glance rep">${tile("가입자", t.users, `최근 7일 +${t.new_7d}`)}${tile("7일 활동", t.active_7d, "로그인한 사람")}${tile("오늘 AI", t.ai_today, `${t.ai_users_today}명 사용`)}</div>
+    <div class="glance rep">${tile("등록된 옷", t.items)}${tile("OOTD 기록", t.logs)}${tile("여행", t.trips)}</div>
+    <p class="small muted">공용 AI: 최근 7일 ${t.ai_7d}회 · 일반 계정은 하루 ${s.stats.limit}회까지 (Supabase Secrets의 GEMINI_DAILY_LIMIT로 바꿀 수 있어요)</p>
+    ${t.top_today?.length ? `<div class="f">오늘 공용 AI를 많이 쓴 계정</div><div class="rank">${t.top_today.map((r, i) => `<div class="rank-row" style="grid-template-columns:18px minmax(0,1fr) auto"><span class="rank-n">${i + 1}</span><span class="ell">${esc(r.email)}</span><span class="muted small">${r.count}회</span></div>`).join("")}</div>` : ""}`}
+  </div>`;
+}
 // account sheet: set a password (accounts made with mail links have none), log out
 document.addEventListener("click", async e => {
   const b = e.target.closest("#acSave, #acLogout"); if (!b || S.sheet?.kind !== "account") return;
@@ -2994,7 +3066,7 @@ async function bulkFile(file) {
   try { img = await loadImg(file); } catch { B.msg = "이미지를 열 수 없어요. 다른 파일로 시도해 주세요."; B.err = true; renderBulk(); return; }
   B.preview = cropTo(img);
   if (!canCapture()) { B.settings = !!me && !S.gemShared; B.msg = gemErr({ code: me ? (S.gemShared ? "no_key" : "gemini_not_configured") : "login_needed" }); B.err = true; renderBulk(); return; }
-  if (gemShared() && S.gemQuota && S.gemQuota.used >= S.gemQuota.limit) { B.msg = gemErr({ code: "daily_limit" }); B.err = true; renderBulk(); return; }
+  if (gemShared() && !S.master && S.gemQuota && S.gemQuota.used >= S.gemQuota.limit) { B.msg = gemErr({ code: "daily_limit" }); B.err = true; renderBulk(); return; }
   B.busy = true; B.msg = `${gemShared() ? "bary 공용 AI" : gemModel()}로 캡처를 읽는 중이에요… (보통 5~20초)`; renderBulk();
   try {
     // Long order screenshots keep enough resolution for small product names (longest side 2048px).
@@ -3038,6 +3110,7 @@ window.bulkImgFail = (i, src) => {
 function sharedLine() {
   if (gemKey()) return S.gemShared ? `<p class="small muted">내 Gemini 키로 읽어요. 키를 지우면 bary 공용 AI(하루 ${S.gemQuota?.limit ?? 10}회)를 써요.</p>` : "";
   if (!S.gemShared) return "";
+  if (S.master) return `<p class="banner">👑 마스터 계정 · bary 공용 AI를 횟수 제한 없이 써요${S.gemQuota ? ` (오늘 ${S.gemQuota.used}회 사용)` : ""}</p>`;
   const q = S.gemQuota, left = q ? Math.max(0, q.limit - q.used) : null;
   return `<p class="banner">✨ bary 공용 AI로 읽어요 · ${left == null ? "하루 한도 안에서 무료" : left ? `오늘 <b>${left}</b> / ${q.limit}회 남았어요` : "오늘 횟수를 다 썼어요. 내일 다시 쓸 수 있어요"}</p>`;
 }

@@ -72,3 +72,14 @@ returns integer language sql security definer set search_path = '' stable as $$
 $$;
 revoke all on function public.ai_quota_used(text) from public, anon;
 grant execute on function public.ai_quota_used(text) to authenticated;
+
+-- 마스터 계정: 공용 AI 하루 한도 없음 + 내 계정 화면의 운영 통계. 사이트에서는 읽기·쓰기 불가.
+-- (마스터 추가: insert into public.app_roles (user_id, role) select id, 'master' from auth.users where email = '...';)
+create table if not exists public.app_roles (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  role    text not null check (role in ('master')),
+  created_at timestamptz not null default now()
+);
+alter table public.app_roles enable row level security;
+revoke all on public.app_roles from anon, authenticated;
+-- is_master(), master_stats(), 그리고 마스터를 한도에서 빼는 use_ai_quota()는 마이그레이션 app_roles_master에 있어요.
