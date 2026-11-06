@@ -290,6 +290,20 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; fo
 .item .name { font-size: .85rem; }
 .item .meta { font-size: .72rem; }
 .more { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; border-radius: 50%; border: 0; background: rgb(255 255 255 / .85); color: #17181A; font-weight: 700; line-height: 1; box-shadow: 0 1px 3px rgb(0 0 0 / .12); }
+.pick-bar { position: fixed; z-index: 25; left: 50%; transform: translateX(-50%); bottom: calc(var(--nav-h) + 22px + env(safe-area-inset-bottom, 0px)); width: min(calc(100% - 24px), 520px);
+  border: 0; display: flex; align-items: center; gap: 10px; padding: 10px 14px 10px 10px; border-radius: 20px; text-align: left; color: #fff;
+  background: linear-gradient(120deg, var(--rose-ink), var(--mauve)); box-shadow: 0 10px 26px color-mix(in srgb, var(--mauve) 35%, transparent); }
+@media (prefers-reduced-motion: no-preference) { .pick-bar { animation: slideUp .3s cubic-bezier(.2,.8,.2,1) both; } }
+.pick-thumbs { display: flex; flex: none; }
+.pick-thumbs .tile-img.sm { width: 38px; border-radius: 10px; background: #fff; box-shadow: 0 0 0 2px rgb(255 255 255 / .9); }
+.pick-thumbs .tile-img.sm + .tile-img.sm { margin-left: -12px; }
+.pick-txt { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.pick-txt b { font-size: .9rem; }
+.pick-txt span { font-size: .74rem; opacity: .9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick-go { font-size: 1.4rem; flex: none; }
+#view-closet:has(.pick-bar) { padding-bottom: 80px; }
+body:has(#view-closet:not([hidden]) .pick-bar) #toast { bottom: calc(var(--nav-h) + 96px + env(safe-area-inset-bottom, 0px)); }
+.sheet .outfit { box-shadow: none; border: 1px solid var(--line); flex: none; }
 .item.pick { border: 0; padding: 0; text-align: left; cursor: pointer; }
 .item.pick .body { display: flex; flex-direction: column; }
 .item.picked { box-shadow: 0 0 0 2px var(--rose-ink), var(--shadow); }
@@ -401,6 +415,20 @@ body.noscroll { overflow: hidden; }
 .ghost-plus { font-size: 1.8rem; font-weight: 300; color: var(--muted); }
 .tile.ghost .tile-n { color: var(--rose-ink); }
 .outfit.partial .o-notes { padding: 10px 16px 0; }
+.place-btn { border: 0; background: var(--sunken); border-radius: 999px; padding: 7px 14px; font-size: .95rem; color: var(--ink); display: inline-flex; gap: 4px; align-items: center; max-width: 70%; }
+.place-btn b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.place-btn .muted { font-size: .78rem; }
+.wx2 { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.wx2 .big { font-family: var(--f-serif); font-weight: 600; font-size: 4.4rem; line-height: .85; letter-spacing: -0.03em; }
+.wx2 .big small { font-size: 2rem; font-weight: 500; color: var(--rose-ink); vertical-align: top; }
+.wx2-r { display: flex; flex-direction: column; align-items: flex-end; text-align: right; gap: 1px; }
+.wx2-ico { font-size: 1.9rem; line-height: 1; }
+.wx-more { display: flex; flex-direction: column; gap: 10px; padding-top: 4px; border-top: 1px solid var(--line); }
+.wx-dl { margin: 8px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: .86rem; }
+.wx-dl dt { color: var(--muted); }
+.wx-dl dd { margin: 0; font-variant-numeric: tabular-nums; }
+.brief-row .why { display: block; }
+.brief:not(.open) .brief-row .why { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .more-wx { align-self: center; color: var(--rose-ink); }
 .week { display: flex; flex-direction: column; gap: 4px; }
 .wk { border: 0; background: transparent; border-radius: 14px; padding: 8px 10px; display: grid; grid-template-columns: 64px 26px 52px minmax(0, 1fr); gap: 8px; align-items: center; text-align: left; font-size: .88rem; }
@@ -1972,8 +2000,9 @@ function beautyBrief(d) {
 }
 function briefHTML(d) {
   const rows = beautyBrief(d); if (!rows.length) return "";
-  return `<section class="brief" aria-label="뷰티·패션 지수"><h3><span>오늘의 뷰티·패션 지수</span><span class="muted small">${dayLabel(S.day)}</span></h3>
-    ${rows.map(([ico, t, x]) => `<div class="brief-row"><span aria-hidden="true">${ico}</span><span><b>${t}</b><br><span class="muted">${esc(x)}</span></span></div>`).join("")}</section>`;
+  // One line per tip; the full explanation shows after 자세히.
+  return `<section class="brief${S.briefOpen ? " open" : ""}" aria-label="뷰티·패션 지수"><h3><span>${dayLabel(S.day)}의 뷰티·패션 지수</span><button class="btn ghost small" id="briefMore" aria-expanded="${!!S.briefOpen}">${S.briefOpen ? "접기" : "자세히"}</button></h3>
+    ${rows.map(([ico, t, x]) => `<div class="brief-row"><span aria-hidden="true">${ico}</span><span style="min-width:0"><b>${t}</b><span class="muted why">${esc(x)}</span></span></div>`).join("")}</section>`;
 }
 
 /* ---------- install (PWA) ---------- */
@@ -2178,43 +2207,29 @@ function renderToday() {
   const picked = S.anchors.map(id => S.items.get(id)).filter(Boolean);
   const srcTag = W.source === "live" ? `<span class="tag live">실시간 · ${esc(W.fetchedAt)}</span>` : W.source === "manual" ? `<span class="tag">직접 입력</span>` : `<span class="tag example">${S.wxBusy ? "날씨 불러오는 중…" : "예시 날씨 · 실제 날씨를 못 불러왔어요"}</span>`;
   const dayBtns = W.days.slice(0, 3).map((x, i) => `<button class="chip" data-day="${i}" aria-pressed="${S.day === i}">${dayLabel(i)}</button>`).join("") + (S.day > 2 ? `<button class="chip" data-day="${S.day}" aria-pressed="true">${dayLabel(S.day)}</button>` : "");
+  // Weather card: short by default (place, number, one summary line, days, a 3-hour strip); the rest under 더보기.
+  const nowW = S.day === 0 && W.source === "live" ? W.cur : null;
   let h = helloHTML(rec, eff) + locAskHTML() + installHTML() + `<div class="card wx-card">
-    <div class="row between"><h2><span aria-hidden="true">${WICON(d.code)}</span> ${esc(W.place)}</h2>${srcTag}</div>
-    <div class="row">${W.source !== "manual" ? dayBtns : ""}</div>
-    <div class="wx">
-      <div class="big num-d">${fmt(eff)}<small>°</small></div>
-      <dl>
-        <dt>코디 기준</dt><dd>체감 ${fmt(dress)}°${off ? ` → 내 보정 ${fmt(eff)}°` : ""}</dd>
-        <dt>아침 · 낮</dt><dd>체감 ${fmt(d.fmin)}° · ${fmt(d.fmax)}°</dd>
-        <dt>기온</dt><dd>${fmt(d.min)}° / ${fmt(d.max)}° · ${WMO(d.code)}</dd>
-        <dt>강수</dt><dd>${d.pop ?? 0}%</dd>
-      </dl>
+    <div class="row between"><button class="place-btn" id="placeBtn" aria-label="지역 바꾸기, 지금 ${esc(W.place)}">📍 <b>${esc(W.place)}</b> <span class="muted" aria-hidden="true">바꾸기 ▾</span></button>${srcTag}</div>
+    <div class="wx2">
+      <div><div class="big">${fmt(eff)}<small>°</small></div><div class="small muted">코디 기준 체감${off ? ` · 내 보정 ${off > 0 ? "+" : "−"}${fmt(Math.abs(off))}°` : ""}</div></div>
+      <div class="wx2-r"><span class="wx2-ico" aria-hidden="true">${WICON(d.code)}</span><b>${WMO(d.code)}</b>
+        <span class="small muted">${nowW ? `지금 체감 ${fmt(nowW.feel)}°<br>` : ""}${fmt(d.min)}° / ${fmt(d.max)}°${d.pop >= 30 ? ` · ☔ ${d.pop}%` : ""}</span></div>
     </div>
-    ${scaleHTML(d.fmin - off, d.fmax - off, eff)}
+    ${W.source !== "manual" ? `<div class="row">${dayBtns}</div>` : ""}
     ${(() => { const hs = hoursFor(W, S.day, S.wxMore ? 1 : 3); return hs.length ? `<div class="hours" aria-label="시간별 체감온도">${hs.map((x, i) => { const now = S.day === 0 && i === 0, nextDay = S.day === 0 && !x.t.startsWith(d.date);
       return `<div class="hr${now ? " now" : ""}"><span class="small muted">${now ? "지금" : (nextDay && x.h === 0 ? "내일 " : "") + x.h + "시"}</span><span class="hr-ico" aria-hidden="true">${WICON(x.code)}</span><b>${fmt(x.feel - off)}°</b>${x.pop >= 40 ? `<span class="hr-pop">${x.pop}%</span>` : ""}</div>`; }).join("")}</div>` : ""; })()}
-    ${W.source === "live" && W.days.length > 3 ? `<button class="btn ghost small more-wx" id="wxMore" aria-expanded="${!!S.wxMore}">${S.wxMore ? "간단히 보기 ▲" : "날씨 더보기 · 1시간 단위 · 7일 예보 ▼"}</button>` : ""}
-    ${S.wxMore ? `<div class="week" aria-label="7일 예보">${W.days.map((x, i) => `<button class="wk${S.day === i ? " on" : ""}" data-day="${i}"><span class="wk-d">${dayLabel(i)}</span><span aria-hidden="true">${WICON(x.code)}</span><span class="wk-pop">${x.pop >= 30 ? `☔ ${x.pop}%` : ""}</span><span class="wk-t"><span class="muted">${fmt(x.min)}°</span><span class="wk-bar"><i style="left:${(x.min + 10) / 45 * 100}%;right:${100 - (x.max + 10) / 45 * 100}%"></i></span><b>${fmt(x.max)}°</b></span></button>`).join("")}<p class="small muted">날짜를 누르면 그날 날씨로 코디를 추천해요.</p></div>` : ""}
     <p class="band">이 온도엔 보통 <b>${bandFor(eff)}</b></p>
-    ${off ? `<p class="badge-line">🌡️ 내 체감 보정 반영 중 · ${off > 0 ? `추위를 타는 편이라 ${fmt(off)}° 더 따뜻하게` : `더위를 타는 편이라 ${fmt(-off)}° 더 가볍게`} 골라요</p>` : ""}
-    <details ${S.wxMsg || S.manual || S.placeOpen ? "open" : ""}>
-      <summary class="small" style="cursor:pointer;font-weight:600">지역 바꾸기 · 날씨 불러오기</summary>
-      <div class="stack" style="margin-top:10px">
-        <div class="places"><button class="chip" id="hereBtn" ${S.wxBusy ? "disabled" : ""}>현재 위치</button>${PLACES.map((p, i) => `<button class="chip" data-place="${i}" ${S.wxBusy ? "disabled" : ""}>${p.name}</button>`).join("")}</div>
-        <form class="search" id="placeForm"><input type="text" id="placeQ" placeholder="도시 검색 (예: 후쿠오카, Paris)" aria-label="도시 검색"><button class="btn" ${S.wxBusy ? "disabled" : ""}>검색</button></form>
-        <p class="small muted">현재 위치를 허용하거나 도시를 골라요. 날씨는 Open-Meteo에서 받아와요.</p>
-        <button class="btn ghost small" id="manualToggle" style="align-self:flex-start">${S.manual ? "직접 입력 닫기" : "직접 입력하기"}</button>
-        ${S.manual ? `<div class="grid2">
-          <label class="f" for="mMin">아침 체감 (°C)<input type="number" id="mMin" value="${fmt(d.fmin)}" step="0.5"></label>
-          <label class="f" for="mMax">낮 체감 (°C)<input type="number" id="mMax" value="${fmt(d.fmax)}" step="0.5"></label>
-        </div><button class="btn" id="manualApply" style="align-self:flex-start">이 기온으로 추천</button>` : ""}
-      </div>
-    </details>
+    ${S.wxMore ? `<div class="wx-more">
+      <dl class="wx-dl"><dt>코디 기준</dt><dd>체감 ${fmt(dress)}°${off ? ` → 내 보정 ${fmt(eff)}°` : ""}</dd><dt>아침 · 낮</dt><dd>체감 ${fmt(d.fmin)}° · ${fmt(d.fmax)}°</dd><dt>기온</dt><dd>${fmt(d.min)}° / ${fmt(d.max)}°</dd><dt>강수 확률</dt><dd>${d.pop ?? 0}%</dd></dl>
+      ${scaleHTML(d.fmin - off, d.fmax - off, eff)}
+      ${off ? `<p class="badge-line">🌡️ ${off > 0 ? `추위를 타는 편이라 ${fmt(off)}° 더 따뜻하게` : `더위를 타는 편이라 ${fmt(-off)}° 더 가볍게`} 골라요</p>` : ""}
+      ${W.days.length > 3 ? `<div class="f">7일 예보</div><div class="week" aria-label="7일 예보">${W.days.map((x, i) => `<button class="wk${S.day === i ? " on" : ""}" data-day="${i}"><span class="wk-d">${dayLabel(i)}</span><span aria-hidden="true">${WICON(x.code)}</span><span class="wk-pop">${x.pop >= 30 ? `☔ ${x.pop}%` : ""}</span><span class="wk-t"><span class="muted">${fmt(x.min)}°</span><span class="wk-bar"><i style="left:${(x.min + 10) / 45 * 100}%;right:${100 - (x.max + 10) / 45 * 100}%"></i></span><b>${fmt(x.max)}°</b></span></button>`).join("")}</div><p class="small muted">날짜를 누르면 그날 날씨로 코디를 추천해요.</p>` : ""}
+    </div>` : ""}
+    <button class="btn ghost small more-wx" id="wxMore" aria-expanded="${!!S.wxMore}">${S.wxMore ? "간단히 보기 ▲" : "날씨 더보기 ▼"}</button>
     ${S.wxBusy ? `<p class="banner">날씨를 불러오는 중이에요…</p>` : ""}
     ${S.wxMsg ? `<p class="banner err">${esc(S.wxMsg)}</p>` : ""}
   </div>`;
-
-  h += briefHTML(d) + glanceHTML();
   // Feedback: one quiet line. The names of what was worn are not repeated here.
   if (log && !log.rating) h += `<div class="ask-row"><span>오늘 코디 어땠나요? <span class="muted small">알려주면 내 체감온도를 배워요</span></span><div class="fb-row">${FEEL.map(([k, l]) => `<button class="fb" data-rate="${k}">${l}</button>`).join("")}</div></div>`;
 
@@ -2236,6 +2251,8 @@ function renderToday() {
           ${sample && S.aiOn ? `<button class="btn icon" data-note="${i}">한마디</button>` : ""}`,
       S.boardOpen === c.key ? `<div class="board-wrap"><canvas class="board" data-board="${i}" width="900" height="1400" aria-label="착장 보드"></canvas></div>` : "")).join("");
   }
+  // After the outfits: the beauty brief and the at-a-glance tiles.
+  if (!S.loading) h += briefHTML(d) + glanceHTML();
   $("#view-today").innerHTML = h;
   drawBoards();
 }
@@ -2365,7 +2382,12 @@ function renderCloset() {
     ? `<span class="row" style="gap:6px"><button class="btn danger small" id="samplesDelOk">샘플 ${samples.length}벌 지우기</button><button class="btn ghost small" id="samplesDelNo">취소</button></span>`
     : `<button class="btn small" id="samplesDel">샘플 모두 지우기</button>`}</div>`;
   const nPicked = S.anchors.filter(id => S.items.has(id)).length;
-  if (nPicked) h += `<div class="banner row between"><span>입고 싶은 옷 <b>${nPicked}</b>벌을 골랐어요. 같은 종류를 여러 벌 고르면 코디마다 나눠 넣어요.</span><button class="btn primary small" data-go="today">코디 보기</button></div>`;
+  // Picked clothes: a bar above the menu with the outfits made from them, opened right here in the closet.
+  if (nPicked && !sel) {
+    const rec = todayRec(), n = rec.list?.length || 0;
+    h += `<button class="pick-bar" id="picksOpen"><span class="pick-thumbs">${S.anchors.map(id => S.items.get(id)).filter(Boolean).slice(0, 3).map(p => `<span class="tile-img sm">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : silhouetteSVG(p)}</span>`).join("")}</span>
+      <span class="pick-txt"><b>고른 옷 ${nPicked}벌${n ? `로 코디 ${n}개를 만들었어요` : ""}</b><span>${n ? `${dayLabel(S.day)} 체감 ${fmt(dayInfo().eff)}° 기준 · 눌러서 보기` : "옷장에 상의와 하의가 있어야 코디를 만들 수 있어요"}</span></span><span class="pick-go" aria-hidden="true">›</span></button>`;
+  }
   if (all.length) h += `<div class="card filters">
       <div class="search"><input type="text" id="cq" value="${esc(F.q)}" placeholder="브랜드, 옷 이름, 색으로 찾기" aria-label="옷장 검색"></div>
       <details id="cfBox" ${F.open || active ? "open" : ""}><summary class="small" style="cursor:pointer;font-weight:600">브랜드 · 색상 · 소재 · 두께 · 정렬${active ? ` (${active}개 적용)` : ""}</summary>
@@ -2508,8 +2530,11 @@ document.addEventListener("click", e => {
   }
   if (ds.go) { S.tab = ds.go; render(); return; }
   if (ds.day) { S.day = +ds.day; render(); return; }
-  if (ds.place) { loadWeather(PLACES[+ds.place]); return; }
-  if (b.id === "hereBtn" || b.id === "locYes") { hereWeather(); return; }
+  // Region sheet: close it once the new weather is in, keep it open with the message if loading failed.
+  const afterPlace = () => { if (S.sheet?.kind === "place") S.wxMsg ? renderSheet() : closeSheet(); };
+  if (b.id === "placeBtn") { S.wxMsg = ""; openSheet({ kind: "place" }); return; }
+  if (ds.place) { const p = loadWeather(PLACES[+ds.place]); renderSheet(); p.then(afterPlace); return; }
+  if (b.id === "hereBtn" || b.id === "locYes") { if (S.sheet?.kind === "place") closeSheet(); hereWeather(); return; }
   if (b.id === "selToggle") { S.sel = S.sel ? null : new Set(); S.confirmSel = false; render(); return; }
   if (ds.selitem && S.sel) { S.sel.has(ds.selitem) ? S.sel.delete(ds.selitem) : S.sel.add(ds.selitem); S.confirmSel = false; render(); return; }
   if (b.id === "selAll" && S.sel) {
@@ -2526,9 +2551,12 @@ document.addEventListener("click", e => {
     S.confirmSamples = false; delMany(ids).then(() => toast(`샘플 옷 ${ids.length}벌을 지웠어요. 내 옷은 그대로예요.`)); return;
   }
   if (ds.addcat) { S.tab = "add"; S.add.method = "quick"; S.add.cat = ds.addcat; S.add.editing = null; render(); window.scrollTo({ top: 0 }); return; }
+  if (b.id === "picksOpen") { openSheet({ kind: "picks" }); return; }
+  if (b.id === "briefMore") { S.briefOpen = !S.briefOpen; render(); return; }
   if (b.id === "wxMore") { S.wxMore = !S.wxMore; render(); return; }
   if (b.id === "locNo") { LS.set("bary.locAsked", "1"); render(); return; }
-  if (b.id === "locPick") { LS.set("bary.locAsked", "1"); S.placeOpen = true; render(); $("#placeQ")?.focus(); return; }  if (b.id === "guestBtn") { S.guest = true; render(); return; }
+  if (b.id === "locPick") { LS.set("bary.locAsked", "1"); render(); openSheet({ kind: "place" }); $("#placeQ")?.focus(); return; }
+  if (b.id === "guestBtn") { S.guest = true; render(); return; }
   if (ds.authmode) { S.loginEmail = ($("#loginEmail")?.value || S.loginEmail || "").trim(); S.authMode = ds.authmode; S.authMsg = ""; S.authErr = false; render(); return; }
   if (ds.login) { if (S.auth === "unconfigured") return; S.guest = false; S.authMode = "login"; render(); window.scrollTo({ top: 0 }); return; }
   if (b.id === "saveMode") {
@@ -2543,12 +2571,12 @@ document.addEventListener("click", e => {
     if (isNaN(lo) || isNaN(hi)) return;
     const a = Math.min(lo, hi), z = Math.max(lo, hi);
     S.wx = { source: "manual", place: S.wx.place, fetchedAt: "", cur: { t: z, feel: z, code: 0, wind: 0 }, days: [{ date: today(), max: z + 1, min: a + 1, fmax: z, fmin: a, pop: 0, code: S.wx.days[S.day]?.code ?? 0 }] };
-    S.day = 0; S.manual = false; S.wxMsg = ""; render(); return;
+    S.day = 0; S.manual = false; S.wxMsg = ""; if (S.sheet?.kind === "place") closeSheet(); render(); return;
   }
   if (b.id === "starter") { addStarter(); return; }
   if (b.id === "clearAnchor") { S.anchors = []; render(); return; }
   if (ds.anchor) { toggleAnchor(ds.anchor); return; }
-  if (ds.unanchor) { S.anchors = S.anchors.filter(x => x !== ds.unanchor); render(); return; }
+  if (ds.unanchor) { S.anchors = S.anchors.filter(x => x !== ds.unanchor); render(); if (S.sheet?.kind === "picks") renderSheet(); return; }
   if (ds.mode) {
     if (S.prefs.mode !== ds.mode) { S.prefs.mode = ds.mode; S.recCache = null; render(); toast(`'${MODES[ds.mode].label}' 기준으로 다시 골랐어요.`); if (me) savePrefs(); }
     return;
@@ -2631,7 +2659,7 @@ document.addEventListener("input", e => {
 });
 document.addEventListener("submit", e => {
   e.preventDefault();
-  if (e.target.id === "placeForm") searchPlace($("#placeQ").value);
+  if (e.target.id === "placeForm") { const p = searchPlace($("#placeQ").value); renderSheet(); p.then(() => { if (S.sheet?.kind === "place") S.wxMsg ? renderSheet() : closeSheet(); }); }
   if (e.target.id === "linkForm") readLink($("#linkIn").value);
   if (e.target.id === "loginForm") authSubmit();
 });
@@ -2745,6 +2773,31 @@ function renderSheet() {
       <input type="text" id="sheetQ" value="${esc(s.q || "")}" placeholder="옷 이름, 브랜드로 찾기" aria-label="옷 찾기">
       <div class="sheet-scroll">${SLOT_ORDER.map(sl => { const ps = list.filter(i => TYPES[i.type]?.slot === sl); return ps.length ? `<div class="small muted sheet-grp">${SLOTS[sl]}</div><div class="mini-grid">${ps.map(p => `<button class="tile mini${sel.has(p.id) ? " sel" : ""}" data-logpick="${p.id}" aria-pressed="${sel.has(p.id)}" title="${esc(fullName(p))}"><span class="tile-img">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : silhouetteSVG(p)}</span><span class="tile-cap"><span class="tile-n">${sel.has(p.id) ? "✓ " : ""}${esc(p.name)}</span></span></button>`).join("")}</div>` : ""; }).join("") || `<p class="muted small">찾는 옷이 없어요.</p>`}</div>
       <button class="btn primary q-save" id="logSave" ${sel.size ? "" : "disabled"}>${sel.size ? `${sel.size}벌 기록하기` : "입은 옷을 골라 주세요"}</button>`;
+  } else if (s.kind === "picks") {
+    // Outfits built around the clothes picked in the closet (the same cards as on 오늘 코디).
+    const rec = todayRec(), { eff } = dayInfo(), picked = S.anchors.map(id => S.items.get(id)).filter(Boolean);
+    if (!picked.length) { closeSheet(); return; }
+    S.results = rec.list || [];
+    const log = S.logs.get("log_" + today());
+    h = `<div class="sheet-top"><div><h3 id="sheetTitle">고른 옷으로 만든 코디</h3><div class="small muted">${dayLabel(S.day)} ${esc(S.wx.place)} · 체감 ${fmt(eff)}°</div></div><button class="btn ghost" data-close="1">닫기</button></div>
+      <div class="places">${picked.map(it => `<button class="chip pick" data-unanchor="${it.id}" aria-label="${esc(it.name)} 빼기"><span class="ell">${esc(it.name)}</span> ✕</button>`).join("")}</div>
+      <div class="sheet-scroll">${rec.need ? partialHTML(eff) : !rec.list.length ? `<p class="muted">고른 옷끼리는 조합을 만들 수 없어요. 하나를 빼 보세요.</p>`
+        : rec.list.map((c, i) => outfitCard(c, rec.target, `t:${i}`, `<button class="btn primary" data-wear="${i}">${log ? "이 코디로 바꿔 기록" : "오늘 이거 입을래요"}</button><button class="btn icon" data-share="${i}">공유</button>`)).join("")}</div>
+      <button class="btn" data-go="today" data-close="1">오늘 코디 탭에서 크게 보기</button>`;
+  } else if (s.kind === "place") {
+    // Region: current location, saved/recent cities, search, or temperatures typed by hand.
+    const { d } = dayInfo(), busy = S.wxBusy ? "disabled" : "", cur = S.prefs.place;
+    h = `<div class="sheet-top"><div><h3 id="sheetTitle">지역 바꾸기</h3><div class="small muted">지금: ${esc(S.wx.place)}</div></div><button class="btn ghost" data-close="1">닫기</button></div>
+      <button class="act" id="hereBtn" ${busy}><b>📍 현재 위치</b><span>${cur?.here ? "지금 쓰는 중 · 누르면 새로 받아요" : "위치 권한을 허용하면 지금 있는 곳 날씨로 골라요"}</span></button>
+      <form class="search" id="placeForm"><input type="text" id="placeQ" placeholder="도시 검색 (예: 후쿠오카, Paris)" aria-label="도시 검색" autocomplete="off"><button class="btn primary" ${busy}>검색</button></form>
+      <div class="f">자주 찾는 도시</div>
+      <div class="places">${PLACES.map((p, i) => `<button class="chip" data-place="${i}" aria-pressed="${S.wx.place === p.name}" ${busy}>${p.name}</button>`).join("")}</div>
+      ${S.wxBusy ? `<p class="banner">날씨를 불러오는 중이에요…</p>` : ""}
+      ${S.wxMsg ? `<p class="banner err">${esc(S.wxMsg)}</p>` : ""}
+      <details ${S.manual ? "open" : ""}><summary class="small" style="cursor:pointer;font-weight:600">기온 직접 넣기 (날씨를 못 불러올 때)</summary>
+        <div class="grid2" style="margin-top:8px"><label class="f" for="mMin">아침 체감 (°C)<input type="number" id="mMin" value="${fmt(d.fmin)}" step="0.5"></label><label class="f" for="mMax">낮 체감 (°C)<input type="number" id="mMax" value="${fmt(d.fmax)}" step="0.5"></label></div>
+        <button class="btn" id="manualApply" style="margin-top:8px">이 기온으로 추천</button></details>
+      <p class="small muted">고른 지역은 저장돼서 다음에 열어도 그대로예요. 날씨는 Open-Meteo에서 받아와요.</p>`;
   } else if (s.kind === "theme") {
     const cur = LS.get("bary.theme") || "light";
     h = `<div class="sheet-top"><div><h3 id="sheetTitle">화면 테마</h3><div class="small muted">이 기기에서만 바뀌어요</div></div><button class="btn ghost" data-close="1">닫기</button></div>
