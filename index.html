@@ -202,6 +202,8 @@ label.f { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; fo
 .meter-bar { position: relative; height: 8px; border-radius: 999px; background: var(--line); }
 .meter-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: var(--ink); }
 .meter-bar .goal { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--warm); }
+.board-wrap { display: flex; flex-direction: column; gap: 8px; }
+.board-seg { grid-template-columns: 1fr 1fr; max-width: 240px; align-self: center; }
 .board { display: block; width: 100%; max-width: 100%; aspect-ratio: 9 / 14; height: auto; border-radius: 10px; background: #FFFFFF; box-shadow: 0 1px 3px rgb(0 0 0 / .12); }
 
 /* wardrobe */
@@ -1729,11 +1731,82 @@ async function drawBoard(canvas, c) {
   g.fillStyle = "#5D6976"; g.font = "500 24px 'IBM Plex Mono', monospace";
   g.fillText(`${d.date.slice(5).replace("-", ".")} · ${S.wx.place} · 체감 ${fmt(eff)}°`, 40, H - 24);
 }
+// The canvas under an outfit card: mannequin (default) or the flat lay, with a switch.
+const boardHTML = i => `<div class="board-wrap"><div class="seg board-seg"><button type="button" data-bstyle="mannequin" aria-pressed="${S.boardStyle !== "flat"}">마네킹</button><button type="button" data-bstyle="flat" aria-pressed="${S.boardStyle === "flat"}">펼쳐 보기</button></div>
+  <canvas class="board" data-board="${i}" width="900" height="1400" aria-label="${S.boardStyle === "flat" ? "옷을 펼쳐 놓은 착장 보드" : "마네킹에 입힌 코디"}"></canvas>
+  <p class="small muted">${S.boardStyle === "flat" ? "옷을 한눈에 펼쳐 봤어요." : "옷 사진을 마네킹 위에 겹쳐 본 모습이에요. 흰 배경 상품 사진일수록 자연스럽게 보여요."}</p></div>`;
+/* ---------- mannequin: the outfit's clothes placed on a figure (a collage, not AI) ---------- */
+// 900×1400 canvas. Boxes are [x, y, w, h] for each part of the body.
+const MQ = { cx: 450, shoulder: 290, waist: 640, hip: 720, ankle: 1250 };
+function drawFigure(g) {
+  g.save(); g.fillStyle = "#F1E9E2"; g.strokeStyle = "#E2D6CC"; g.lineWidth = 3;
+  const P = new Path2D();
+  P.ellipse(450, 150, 68, 84, 0, 0, Math.PI * 2);                                  // head
+  P.moveTo(425, 228); P.lineTo(475, 228); P.lineTo(480, 280); P.lineTo(420, 280); P.closePath(); // neck
+  // torso, arms and legs as one soft outline
+  P.moveTo(330, 285); P.quadraticCurveTo(450, 268, 570, 285); P.quadraticCurveTo(610, 292, 618, 330);
+  P.lineTo(640, 700); P.quadraticCurveTo(628, 724, 606, 704); P.lineTo(582, 380); P.lineTo(560, 640);
+  P.quadraticCurveTo(580, 690, 578, 724); P.lineTo(560, 1240); P.quadraticCurveTo(520, 1262, 470, 1244); P.lineTo(458, 760);
+  P.lineTo(442, 760); P.lineTo(430, 1244); P.quadraticCurveTo(380, 1262, 340, 1240); P.lineTo(322, 724);
+  P.quadraticCurveTo(320, 690, 340, 640); P.lineTo(318, 380); P.lineTo(294, 704); P.quadraticCurveTo(272, 724, 260, 700);
+  P.lineTo(282, 330); P.quadraticCurveTo(290, 292, 330, 285); P.closePath();
+  g.fill(P); g.stroke(P);
+  g.fillStyle = "#E2D6CC"; g.fillRect(400, 1300, 100, 14); g.fillRect(445, 1262, 10, 40); // stand
+  g.restore();
+}
+function mqBox(it) {
+  const t = it.type, s = TYPES[t]?.slot, long = outerLen(it) === "long" || ["long_down", "coat", "trench"].includes(t);
+  if (s === "outer") return [240, 262, 420, long ? 760 : 520];
+  if (s === "mid") return [258, 268, 384, 470];
+  if (s === "inner") return [266, 272, 368, 450];
+  if (t === "dress") return [262, 276, 376, 780];
+  if (s === "bottom") return t === "shorts" ? [300, 650, 300, 280] : t === "skirt" ? [286, 650, 328, 340] : t === "long_skirt" ? [286, 650, 328, 560] : [300, 650, 300, 620];
+  if (s === "shoes") return t === "long_boots" ? [320, 990, 260, 320] : t === "boots" ? [320, 1130, 260, 190] : [320, 1200, 260, 130];
+  if (TYPES[t]?.hat) return [355, 36, 190, 130];
+  if (t === "scarf") return [345, 226, 210, 210];
+  if (t === "bag") return [598, 560, 210, 230];
+  if (t === "belt") return [330, 630, 240, 50];
+  return null; // gloves, socks, jewelry: left off the figure
+}
+// A piece on the figure: photos keep their shape (fit inside the box); silhouettes stretch to the body part.
+async function drawOn(g, it, [x, y, w, h], flip) {
+  if (it.photo && await imgFrom(it.photo)) return drawPiece(g, it, [x, y, w, h]);
+  const shape = shapeOf(it);
+  g.save(); g.translate(flip ? x + w : x, y); g.scale((flip ? -1 : 1) * w / 100, h / 100);
+  g.fillStyle = COLORS[it.color]?.hex || "#999"; g.strokeStyle = "rgba(0,0,0,.22)"; g.lineWidth = 1.2 * 100 / w; g.lineJoin = "round";
+  const p = new Path2D(SHAPES[shape]); g.fill(p, "evenodd"); g.stroke(p);
+  if (shape === "jacket" || shape === "coat") { g.beginPath(); g.moveTo(50, 8); g.lineTo(50, 98); g.stroke(); }
+  if (shape === "bag") { g.lineWidth = 4; g.strokeStyle = COLORS[it.color]?.hex || "#999"; g.beginPath(); g.moveTo(32, 40); g.quadraticCurveTo(32, 10, 50, 10); g.quadraticCurveTo(68, 10, 68, 40); g.stroke(); }
+  g.restore();
+}
+async function drawMannequin(canvas, c) {
+  const g = canvas.getContext("2d"), W = canvas.width, H = canvas.height;
+  g.fillStyle = "#FBF8F4"; g.fillRect(0, 0, W, H);
+  drawFigure(g);
+  const acc = c.acc || [], order = [c.bottom, c.shoes, c.inner, c.mid, c.outer, ...acc.filter(a => a.type === "belt"), ...acc.filter(a => a.type === "scarf"), ...acc.filter(a => a.type === "bag"), ...acc.filter(a => TYPES[a.type]?.hat)];
+  for (const it of order.filter(Boolean)) {
+    const box = mqBox(it); if (!box) continue;
+    if (it === c.shoes && !(it.photo && await imgFrom(it.photo))) {
+      // Shoe silhouettes: one per foot, the left one mirrored.
+      const [x, y, w, h] = box, half = w / 2 - 6;
+      await drawOn(g, it, [x, y, half, h], true); await drawOn(g, it, [x + w - half, y, half, h]);
+    } else if (it === c.outer && (c.mid || c.inner)) {
+      // An outer over a top is drawn open at the front, so what's underneath shows.
+      g.save(); g.beginPath(); g.rect(0, 0, MQ.cx - 34, H); g.rect(MQ.cx + 34, 0, W, H); g.clip();
+      await drawOn(g, it, box); g.restore();
+    } else await drawOn(g, it, box);
+  }
+  const { eff, d } = dayInfo();
+  g.fillStyle = "#8A817A"; g.font = "500 26px Pretendard, 'Malgun Gothic', sans-serif"; g.textAlign = "center";
+  g.fillText(`${d.date.slice(5).replace("-", ".")} · ${S.wx.place} · 체감 ${fmt(eff)}°`, W / 2, H - 34);
+  g.font = "italic 600 34px 'Cormorant Garamond', Georgia, serif"; g.fillStyle = "#1E1E1E"; g.textAlign = "left"; g.fillText("bary°", 36, 58);
+}
 function drawBoards() {
-  document.querySelectorAll("canvas[data-board]").forEach(cv => { const c = S.results[+cv.dataset.board]; if (c) drawBoard(cv, c); });
+  document.querySelectorAll("canvas[data-board]").forEach(cv => { const c = S.results[+cv.dataset.board]; if (c) (S.boardStyle === "flat" ? drawBoard : drawMannequin)(cv, c); });
 }
 async function saveBoard(i) {
-  const cv = document.querySelector(`canvas[data-board="${i}"]`); if (!cv || !downloads) return;
+  // The one in the open sheet first (the hidden 오늘 코디 screen may hold an older one).
+  const cv = document.querySelector(`#sheet:not([hidden]) canvas[data-board="${i}"]`) || document.querySelector(`#view-today canvas[data-board="${i}"]`); if (!cv || !downloads) return;
   const blob = await new Promise(r => cv.toBlob(r, "image/png"));
   const file = new File([blob], `착장-${today()}.png`, { type: "image/png" });
   // Phones: share sheet (save to photos / send). Desktop: regular download.
@@ -2246,10 +2319,10 @@ function renderToday() {
     h += rec.list.map((c, i) => outfitCard(c, rec.target, `t:${i}`, `
           <button class="btn primary" data-wear="${i}">${log ? "이 코디로 바꿔 기록" : "오늘 이거 입을래요"}</button>
           <button class="btn icon" data-share="${i}" aria-label="이 코디 공유">공유</button>
-          <button class="btn icon" data-boardbtn="${i}" aria-label="착장 보드" title="착장 보드">${S.boardOpen === c.key ? "보드 닫기" : "보드"}</button>
+          <button class="btn icon" data-boardbtn="${i}" aria-label="마네킹에 입혀 보기">${S.boardOpen === c.key ? "닫기" : "👗 입혀 보기"}</button>
           ${S.boardOpen === c.key && downloads ? `<button class="btn icon" data-saveboard="${i}">저장</button>` : ""}
           ${sample && S.aiOn ? `<button class="btn icon" data-note="${i}">한마디</button>` : ""}`,
-      S.boardOpen === c.key ? `<div class="board-wrap"><canvas class="board" data-board="${i}" width="900" height="1400" aria-label="착장 보드"></canvas></div>` : "")).join("");
+      S.boardOpen === c.key ? boardHTML(i) : "")).join("");
   }
   // After the outfits: the beauty brief and the at-a-glance tiles.
   if (!S.loading) h += briefHTML(d) + glanceHTML();
@@ -2585,7 +2658,8 @@ document.addEventListener("click", e => {
   if (ds.cancel) { S.confirmDel = null; render(); return; }
   if (ds.wear) { wear(S.results[+ds.wear]); return; }
   if (ds.note) { styleNote(S.results[+ds.note]); return; }
-  if (ds.boardbtn) { const k = S.results[+ds.boardbtn].key; S.boardOpen = S.boardOpen === k ? null : k; render(); return; }
+  if (ds.boardbtn) { const k = S.results[+ds.boardbtn].key; S.boardOpen = S.boardOpen === k ? null : k; render(); if (S.sheet?.kind === "picks") renderSheet(); return; }
+  if (ds.bstyle) { S.boardStyle = ds.bstyle; render(); if (S.sheet?.kind === "picks") renderSheet(); return; }
   if (ds.saveboard) { saveBoard(+ds.saveboard); return; }
   if (ds.photo) { photoFor = ds.photo; $("#replaceIn").value = ""; $("#replaceIn").click(); return; }
   if (ds.rate) { rate(ds.rate); return; }
@@ -2782,7 +2856,7 @@ function renderSheet() {
     h = `<div class="sheet-top"><div><h3 id="sheetTitle">고른 옷으로 만든 코디</h3><div class="small muted">${dayLabel(S.day)} ${esc(S.wx.place)} · 체감 ${fmt(eff)}°</div></div><button class="btn ghost" data-close="1">닫기</button></div>
       <div class="places">${picked.map(it => `<button class="chip pick" data-unanchor="${it.id}" aria-label="${esc(it.name)} 빼기"><span class="ell">${esc(it.name)}</span> ✕</button>`).join("")}</div>
       <div class="sheet-scroll">${rec.need ? partialHTML(eff) : !rec.list.length ? `<p class="muted">고른 옷끼리는 조합을 만들 수 없어요. 하나를 빼 보세요.</p>`
-        : rec.list.map((c, i) => outfitCard(c, rec.target, `t:${i}`, `<button class="btn primary" data-wear="${i}">${log ? "이 코디로 바꿔 기록" : "오늘 이거 입을래요"}</button><button class="btn icon" data-share="${i}">공유</button>`)).join("")}</div>
+        : rec.list.map((c, i) => outfitCard(c, rec.target, `t:${i}`, `<button class="btn primary" data-wear="${i}">${log ? "이 코디로 바꿔 기록" : "오늘 이거 입을래요"}</button><button class="btn icon" data-boardbtn="${i}">${S.boardOpen === c.key ? "닫기" : "👗 입혀 보기"}</button>${S.boardOpen === c.key && downloads ? `<button class="btn icon" data-saveboard="${i}">저장</button>` : ""}<button class="btn icon" data-share="${i}">공유</button>`, S.boardOpen === c.key ? boardHTML(i) : "")).join("")}</div>
       <button class="btn" data-go="today" data-close="1">오늘 코디 탭에서 크게 보기</button>`;
   } else if (s.kind === "place") {
     // Region: current location, saved/recent cities, search, or temperatures typed by hand.
@@ -2820,6 +2894,7 @@ function renderSheet() {
       </div>`;
   }
   el.querySelector(".sheet-body").innerHTML = h;
+  if (s.kind === "picks") drawBoards();
 }
 function sheetHead(p) {
   return `<div class="sheet-top"><div class="sheet-item"><span class="tile-img sm">${p.photo ? `<img src="${esc(p.photo)}" alt="">` : silhouetteSVG(p)}</span>
